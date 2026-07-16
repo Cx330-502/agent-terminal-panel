@@ -12,6 +12,7 @@ export class WebviewApp {
   private readonly activeName = requiredElement<HTMLElement>('active-name');
   private readonly activeCwd = requiredElement<HTMLElement>('active-cwd');
   private readonly activeStatus = requiredElement<HTMLElement>('active-status');
+  private readonly restartButton = requiredElement<HTMLButtonElement>('restart-session');
   private readonly emptyState = requiredElement<HTMLElement>('empty-state');
   private sessions: SessionSnapshot[] = [];
   private activeId: string | undefined;
@@ -109,6 +110,10 @@ export class WebviewApp {
     this.activeCwd.title = active.cwd;
     this.activeStatus.className = `status-dot status-${active.status}`;
     this.activeStatus.title = statusLabel(active);
+    this.restartButton.disabled = !active.canRestart;
+    this.restartButton.title = active.canRestart
+      ? '重启当前会话'
+      : 'Fork 启动只执行一次；请从历史记录 Resume 新会话';
   }
 
   private bindControls(): void {
@@ -121,13 +126,19 @@ export class WebviewApp {
     requiredElement<HTMLButtonElement>('new-custom-session').addEventListener('click', () => {
       this.post({ type: 'newCustomSession', chooseCwd: false });
     });
+    requiredElement<HTMLButtonElement>('session-history').addEventListener('click', () => {
+      this.post({ type: 'openSessionHistory' });
+    });
     requiredElement<HTMLButtonElement>('empty-new-session').addEventListener('click', () => {
       this.post({ type: 'newSession', chooseCwd: false });
     });
     requiredElement<HTMLButtonElement>('empty-custom-session').addEventListener('click', () => {
       this.post({ type: 'newCustomSession', chooseCwd: false });
     });
-    requiredElement<HTMLButtonElement>('restart-session').addEventListener('click', () => {
+    requiredElement<HTMLButtonElement>('empty-session-history').addEventListener('click', () => {
+      this.post({ type: 'openSessionHistory' });
+    });
+    this.restartButton.addEventListener('click', () => {
       if (this.activeId) this.post({ type: 'restartSession', id: this.activeId });
     });
     requiredElement<HTMLButtonElement>('rename-active-session').addEventListener('click', () => {

@@ -17,6 +17,9 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('agentTerminalPanel.newCustomSession', () =>
       provider.createCustomSession(false)
     ),
+    vscode.commands.registerCommand('agentTerminalPanel.openSessionHistory', () =>
+      provider.openSessionHistory()
+    ),
     vscode.commands.registerCommand('agentTerminalPanel.renameSession', () =>
       provider.renameActiveSession()
     ),

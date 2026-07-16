@@ -19,6 +19,12 @@ export interface LayoutSettings {
   sessionListPosition: SessionListPosition;
 }
 
+export interface SessionHistoryConfig {
+  maxResults: number;
+  codexCommand: string;
+  claudeCommand: string;
+}
+
 const SECTION = 'agentTerminalPanel';
 
 export function getLaunchCommand(): string {
@@ -56,6 +62,15 @@ export function getLayoutSettings(): LayoutSettings {
   };
 }
 
+export function getSessionHistoryConfig(): SessionHistoryConfig {
+  const config = vscode.workspace.getConfiguration(SECTION);
+  return {
+    maxResults: clamp(config.get<number>('sessionHistory.maxResults', 100), 1, 500),
+    codexCommand: config.get<string>('sessionHistory.codexCommand', 'codex').trim() || 'codex',
+    claudeCommand: config.get<string>('sessionHistory.claudeCommand', 'claude').trim() || 'claude'
+  };
+}
+
 export function getTerminalSettings(): TerminalSettings {
   const config = vscode.workspace.getConfiguration('terminal.integrated');
   return {
@@ -80,4 +95,9 @@ export function getTerminalSettings(): TerminalSettings {
     customGlyphs: config.get<boolean>('customGlyphs', true),
     rightClickBehavior: config.get<string>('rightClickBehavior', 'copyPaste')
   };
+}
+
+function clamp(value: number, minimum: number, maximum: number): number {
+  if (!Number.isFinite(value)) return minimum;
+  return Math.min(Math.max(Math.floor(value), minimum), maximum);
 }

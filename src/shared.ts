@@ -9,6 +9,7 @@ export interface SessionSnapshot {
   status: SessionStatus;
   unread: boolean;
   isActive: boolean;
+  canRestart: boolean;
   exitCode?: number;
 }
 
@@ -61,6 +62,7 @@ export type WebviewMessage =
   | { type: 'resize'; id: string; cols: number; rows: number }
   | { type: 'newSession'; chooseCwd: boolean }
   | { type: 'newCustomSession'; chooseCwd: boolean }
+  | { type: 'openSessionHistory' }
   | { type: 'switchSession'; id: string }
   | { type: 'renameSession'; id: string; name: string }
   | { type: 'promptRenameSession'; id: string }

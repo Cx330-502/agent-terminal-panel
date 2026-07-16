@@ -2,7 +2,7 @@
   "name": "agent-terminal-panel",
   "displayName": "Agent Terminal Panel",
   "description": "在可移动的 VS Code 视图中管理多个 Agent CLI 终端会话",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "Cx330-502",
   "author": "Cx330-502",
   "license": "MIT",
@@ -43,6 +43,7 @@
     "onCommand:agentTerminalPanel.newSession",
     "onCommand:agentTerminalPanel.newSessionInFolder",
     "onCommand:agentTerminalPanel.newCustomSession",
+    "onCommand:agentTerminalPanel.openSessionHistory",
     "onCommand:agentTerminalPanel.renameSession",
     "onCommand:agentTerminalPanel.closeSession",
     "onCommand:agentTerminalPanel.restartSession",
@@ -91,6 +92,12 @@
         "title": "使用自定义命令新建会话",
         "category": "Agent Terminal Panel",
         "icon": "$(terminal-new)"
+      },
+      {
+        "command": "agentTerminalPanel.openSessionHistory",
+        "title": "从 Agent 历史会话启动",
+        "category": "Agent Terminal Panel",
+        "icon": "$(history)"
       },
       {
         "command": "agentTerminalPanel.renameSession",
@@ -144,19 +151,24 @@
           "group": "navigation@2"
         },
         {
-          "command": "agentTerminalPanel.newSessionInFolder",
+          "command": "agentTerminalPanel.openSessionHistory",
           "when": "view == agentTerminalPanel.terminalView",
           "group": "navigation@3"
         },
         {
-          "command": "agentTerminalPanel.restartSession",
+          "command": "agentTerminalPanel.newSessionInFolder",
           "when": "view == agentTerminalPanel.terminalView",
           "group": "navigation@4"
         },
         {
-          "command": "agentTerminalPanel.openSettings",
+          "command": "agentTerminalPanel.restartSession",
           "when": "view == agentTerminalPanel.terminalView",
           "group": "navigation@5"
+        },
+        {
+          "command": "agentTerminalPanel.openSettings",
+          "when": "view == agentTerminalPanel.terminalView",
+          "group": "navigation@6"
         }
       ]
     },
@@ -219,6 +231,23 @@
           "type": "boolean",
           "default": true,
           "description": "首次打开视图时自动创建一个 Agent 会话。"
+        },
+        "agentTerminalPanel.sessionHistory.maxResults": {
+          "type": "number",
+          "default": 100,
+          "minimum": 1,
+          "maximum": 500,
+          "description": "当前 workspace 的 Agent 历史会话选择器最多显示多少条记录。"
+        },
+        "agentTerminalPanel.sessionHistory.codexCommand": {
+          "type": "string",
+          "default": "codex",
+          "description": "恢复或 Fork Codex 历史会话时使用的命令前缀，可包含固定参数。"
+        },
+        "agentTerminalPanel.sessionHistory.claudeCommand": {
+          "type": "string",
+          "default": "claude",
+          "description": "恢复或 Fork Claude Code 历史会话时使用的命令前缀，可包含固定参数。"
         },
         "agentTerminalPanel.notifications.showToast": {
           "type": "boolean",

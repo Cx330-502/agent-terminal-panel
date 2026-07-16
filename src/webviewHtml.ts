@@ -24,6 +24,7 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
         <span class="session-heading">会话</span>
         <span class="session-actions">
           <button id="new-session" class="icon-button" type="button" title="新建会话" aria-label="新建会话">＋</button>
+          <button id="session-history" class="icon-button history-button" type="button" title="从 Agent 历史会话启动" aria-label="从 Agent 历史会话启动">↶</button>
           <button id="new-custom-session" class="icon-button custom-session-button" type="button" title="使用自定义命令新建" aria-label="使用自定义命令新建">›_</button>
           <button id="new-session-folder" class="icon-button" type="button" title="选择工作目录并新建" aria-label="选择工作目录并新建">▣</button>
         </span>
@@ -48,6 +49,7 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
         <p>还没有 Agent 会话</p>
         <button id="empty-new-session" class="primary-button" type="button">新建会话</button>
         <button id="empty-custom-session" class="secondary-button" type="button">自定义命令新建</button>
+        <button id="empty-session-history" class="secondary-button" type="button">恢复历史会话</button>
       </div>
     </main>
   </div>

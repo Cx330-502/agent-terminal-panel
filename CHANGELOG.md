@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0
+
+- 新增当前 workspace 的 Agent 历史会话入口，严格按记录中的 cwd 过滤 workspace 根目录及其子目录。
+- 首批 provider 适配器支持 Codex 与 Claude Code，并使用各自原生 Resume/Fork 命令。
+- 历史结果显示 provider、最近提示、更新时间、cwd 与会话 ID。
+- Codex 与 Claude 命令前缀、历史结果数量均可配置，便于 WSL、SSH、Mac 和自定义安装路径使用。
+- Fork 会话禁止直接重复重启，避免同一个旧会话被意外连续派生；新会话写入 provider 历史后可正常 Resume。
+- 增加 fixture 测试，覆盖 JSONL 解析、subagent 排除、workspace 边界、排序、去重和 provider 失败隔离。
+
 ## 0.2.0
 
 - 修复 VS Code Webview 默认内边距造成的会话列表左侧留白，并压缩行内空耗。

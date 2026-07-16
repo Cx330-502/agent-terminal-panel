@@ -60,6 +60,7 @@ button {
 }
 
 .session-sidebar {
+  container: session-sidebar / inline-size;
   display: flex;
   min-width: 0;
   flex-direction: column;
@@ -121,6 +122,15 @@ button {
 .icon-button:hover,
 .session-close:hover {
   background: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground));
+}
+
+.icon-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.icon-button:disabled:hover {
+  background: transparent;
 }
 
 .icon-button:focus-visible,
@@ -408,6 +418,24 @@ button {
   }
   50% {
     opacity: 0.42;
+  }
+}
+
+@container session-sidebar (max-width: 136px) {
+  .session-heading {
+    display: none;
+  }
+
+  .session-header {
+    justify-content: center;
+  }
+
+  .session-actions {
+    gap: 0;
+  }
+
+  .session-actions .icon-button {
+    width: 22px;
   }
 }
 

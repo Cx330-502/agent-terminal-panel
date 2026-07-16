@@ -9,6 +9,10 @@ import {
   shouldStartSessionOnOpen
 } from './config';
 import { CompletionNotifier } from './notifications';
+import {
+  SessionHistoryController,
+  type HistoricalSessionLaunch
+} from './sessionHistory/controller';
 import { SessionManager, type SessionAttention } from './sessionManager';
 import type { HostMessage, WebviewMessage } from './shared';
 import { getWebviewHtml } from './webviewHtml';
@@ -26,6 +30,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
   private readonly readyWaiters = new Set<() => void>();
   private readonly sessions: SessionManager;
   private readonly notifier: CompletionNotifier;
+  private readonly sessionHistory: SessionHistoryController;
   private view: vscode.WebviewView | undefined;
   private webviewReady = false;
   private viewVisible = false;
@@ -51,6 +56,9 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
       reveal: (id) => void this.revealSession(id),
       playCompletionSound: () => this.post({ type: 'playCompletionSound' })
     });
+    this.sessionHistory = new SessionHistoryController((options) =>
+      this.launchHistoricalSession(options)
+    );
 
     this.disposables.push(
       vscode.window.onDidChangeWindowState((state) => {
@@ -127,12 +135,17 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
     });
   }
 
+  async openSessionHistory(): Promise<void> {
+    await this.sessionHistory.open();
+  }
+
   private async createSessionWithOptions(
     chooseCwd: boolean,
-    options: { name?: string; launchCommand?: string } = {}
+    options: { name?: string; launchCommand?: string; canRestart?: boolean } = {}
   ): Promise<string | undefined> {
     const cwd = chooseCwd ? await this.pickWorkingDirectory() : this.defaultWorkingDirectory();
     if (!cwd) return undefined;
+    this.didAutoStart = true;
     if (!this.webviewReady) {
       await this.show();
       await this.waitForWebviewReady();
@@ -238,6 +251,9 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
       case 'newCustomSession':
         await this.createCustomSession(message.chooseCwd);
         return;
+      case 'openSessionHistory':
+        await this.openSessionHistory();
+        return;
       case 'switchSession':
         this.sessions.activate(message.id);
         this.post({ type: 'focusSession', id: message.id });
@@ -335,8 +351,26 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
   }
 
   private async restartSession(id: string): Promise<void> {
+    if (this.sessions.get(id)?.canRestart === false) {
+      void vscode.window.showInformationMessage(
+        'Fork 启动只执行一次。请从历史会话中 Resume 新生成的会话，避免重复 Fork。'
+      );
+      return;
+    }
     if (this.sessions.requiresDefaultLaunchCommand(id) && !(await this.ensureLaunchCommand())) return;
     this.sessions.restart(id);
+  }
+
+  private async launchHistoricalSession(options: HistoricalSessionLaunch): Promise<void> {
+    this.didAutoStart = true;
+    if (!this.webviewReady) {
+      await this.show();
+      await this.waitForWebviewReady();
+    }
+    const id = this.sessions.create(options.cwd, this.lastSize, options);
+    await this.show();
+    this.post({ type: 'focusSession', id });
+    this.acknowledgeVisibleSession();
   }
 
   private async show(): Promise<void> {

@@ -17,11 +17,13 @@ interface SessionRecord {
   lastAttentionKey?: string;
   output: OutputBuffer;
   launchCommand?: string;
+  canRestart: boolean;
 }
 
 export interface SessionCreateOptions {
   name?: string;
   launchCommand?: string;
+  canRestart?: boolean;
 }
 
 export interface SessionAttention {
@@ -66,6 +68,7 @@ export class SessionManager {
       size: normalizeSize(size),
       activityEpoch: 0,
       output: new OutputBuffer(),
+      canRestart: options.canRestart ?? true,
       ...(options.launchCommand?.trim() ? { launchCommand: options.launchCommand.trim() } : {})
     };
     this.sessions.set(id, session);
@@ -90,7 +93,7 @@ export class SessionManager {
 
   restart(id: string): void {
     const session = this.sessions.get(id);
-    if (!session) return;
+    if (!session || !session.canRestart) return;
     this.ptyHost.kill(id);
     session.output.clear();
     session.exitCode = undefined;
@@ -270,6 +273,7 @@ export class SessionManager {
       status: session.status,
       unread: session.unread,
       isActive: session.id === this.activeId,
+      canRestart: session.canRestart,
       ...(session.exitCode === undefined ? {} : { exitCode: session.exitCode })
     };
   }
