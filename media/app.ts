@@ -1,0 +1,169 @@
+import type { HostMessage, SessionSnapshot, VSCodeApi, WebviewMessage } from '../src/shared';
+import { SessionList, statusLabel } from './sessionList';
+import { SidebarResize } from './sidebarResize';
+import { TerminalController } from './terminalController';
+
+export class WebviewApp {
+  private readonly terminalController: TerminalController;
+  private readonly sessionList: SessionList;
+  private readonly activeHeader = requiredElement<HTMLElement>('active-header');
+  private readonly activeName = requiredElement<HTMLElement>('active-name');
+  private readonly activeCwd = requiredElement<HTMLElement>('active-cwd');
+  private readonly activeStatus = requiredElement<HTMLElement>('active-status');
+  private readonly emptyState = requiredElement<HTMLElement>('empty-state');
+  private sessions: SessionSnapshot[] = [];
+  private activeId: string | undefined;
+  private audioContext: AudioContext | undefined;
+  private lastSoundAt = 0;
+
+  constructor(private readonly vscode: VSCodeApi) {
+    const root = requiredElement<HTMLElement>('app');
+    const stack = requiredElement<HTMLElement>('terminal-stack');
+    const splitter = requiredElement<HTMLElement>('session-splitter');
+    this.terminalController = new TerminalController(stack, vscode);
+    this.sessionList = new SessionList(requiredElement('session-list'), {
+      switchSession: (id) => {
+        this.terminalController.activate(id);
+        this.post({ type: 'switchSession', id });
+      },
+      renameSession: (id, name) => this.post({ type: 'renameSession', id, name }),
+      closeSession: (id) => this.post({ type: 'closeSession', id })
+    });
+    new SidebarResize(root, splitter, vscode);
+    this.bindControls();
+    this.bindWindowEvents();
+  }
+
+  start(): void {
+    window.addEventListener('message', (event: MessageEvent<HostMessage>) => {
+      this.handleHostMessage(event.data);
+    });
+    this.post({ type: 'ready', cols: 80, rows: 24 });
+    this.reportFocus();
+  }
+
+  dispose(): void {
+    this.terminalController.dispose();
+    void this.audioContext?.close();
+  }
+
+  private handleHostMessage(message: HostMessage): void {
+    switch (message.type) {
+      case 'initialize':
+        this.terminalController.initialize(message.terminalSettings, message.platform);
+        this.applyState(message.sessions, message.activeId, message.replays);
+        return;
+      case 'state':
+        this.applyState(message.sessions, message.activeId);
+        return;
+      case 'output':
+        this.terminalController.write(message.id, message.data);
+        return;
+      case 'clear':
+        this.terminalController.clear(message.id);
+        return;
+      case 'focusSession':
+        this.terminalController.activate(message.id);
+        return;
+      case 'clipboardText':
+        this.terminalController.receiveClipboardText(message.requestId, message.text);
+        return;
+      case 'terminalSettings':
+        this.terminalController.updateSettings(message.settings);
+        return;
+      case 'refreshTheme':
+        this.terminalController.refreshTheme();
+        return;
+      case 'playCompletionSound':
+        void this.playCompletionSound();
+        return;
+    }
+  }
+
+  private applyState(
+    sessions: SessionSnapshot[],
+    activeId: string | undefined,
+    replays?: Record<string, string>
+  ): void {
+    this.sessions = sessions;
+    this.activeId = activeId;
+    this.sessionList.render(sessions);
+    this.terminalController.syncSessions(sessions, activeId, replays);
+    this.renderActiveHeader();
+    this.emptyState.hidden = sessions.length > 0;
+  }
+
+  private renderActiveHeader(): void {
+    const active = this.sessions.find((session) => session.id === this.activeId);
+    this.activeHeader.hidden = !active;
+    if (!active) return;
+    this.activeName.textContent = active.name;
+    this.activeCwd.textContent = active.cwd;
+    this.activeCwd.title = active.cwd;
+    this.activeStatus.className = `status-dot status-${active.status}`;
+    this.activeStatus.title = statusLabel(active);
+  }
+
+  private bindControls(): void {
+    requiredElement<HTMLButtonElement>('new-session').addEventListener('click', () => {
+      this.post({ type: 'newSession', chooseCwd: false });
+    });
+    requiredElement<HTMLButtonElement>('new-session-folder').addEventListener('click', () => {
+      this.post({ type: 'newSession', chooseCwd: true });
+    });
+    requiredElement<HTMLButtonElement>('empty-new-session').addEventListener('click', () => {
+      this.post({ type: 'newSession', chooseCwd: false });
+    });
+    requiredElement<HTMLButtonElement>('restart-session').addEventListener('click', () => {
+      if (this.activeId) this.post({ type: 'restartSession', id: this.activeId });
+    });
+  }
+
+  private bindWindowEvents(): void {
+    window.addEventListener('focus', () => this.reportFocus());
+    window.addEventListener('blur', () => this.reportFocus());
+    document.addEventListener('visibilitychange', () => this.reportFocus());
+  }
+
+  private reportFocus(): void {
+    this.post({
+      type: 'focusChanged',
+      focused: document.visibilityState === 'visible' && document.hasFocus()
+    });
+  }
+
+  private async playCompletionSound(): Promise<void> {
+    const now = performance.now();
+    if (now - this.lastSoundAt < 800) return;
+    this.lastSoundAt = now;
+    const context = (this.audioContext ??= new AudioContext());
+    if (context.state === 'suspended') await context.resume();
+    const start = context.currentTime + 0.01;
+    playTone(context, 523.25, start, 0.09);
+    playTone(context, 659.25, start + 0.085, 0.12);
+  }
+
+  private post(message: WebviewMessage): void {
+    this.vscode.postMessage(message);
+  }
+}
+
+function playTone(context: AudioContext, frequency: number, start: number, duration: number): void {
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+  oscillator.type = 'sine';
+  oscillator.frequency.setValueAtTime(frequency, start);
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.linearRampToValueAtTime(0.035, start + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+  oscillator.connect(gain);
+  gain.connect(context.destination);
+  oscillator.start(start);
+  oscillator.stop(start + duration + 0.01);
+}
+
+function requiredElement<T extends HTMLElement = HTMLElement>(id: string): T {
+  const element = document.getElementById(id);
+  if (!element) throw new Error(`Missing webview element: ${id}`);
+  return element as T;
+}

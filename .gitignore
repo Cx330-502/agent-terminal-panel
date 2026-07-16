@@ -1,0 +1,10 @@
+node_modules/
+dist/
+media/main.js
+media/xterm.css
+*.vsix
+*.log
+.vscode-test/
+.playwright-cli/
+test/*.png
+test/*.yml

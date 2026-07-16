@@ -1,0 +1,409 @@
+:root {
+  color-scheme: light dark;
+  --session-list-width: 172px;
+  --header-height: 34px;
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  color: var(--vscode-foreground);
+  background: var(--vscode-terminal-background, var(--vscode-editor-background));
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  color: inherit;
+}
+
+.app-shell {
+  container: panel / inline-size;
+  display: grid;
+  grid-template-columns: min(var(--session-list-width), 58%) 4px minmax(0, 1fr);
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  background: var(--vscode-terminal-background, var(--vscode-editor-background));
+}
+
+.session-sidebar {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  color: var(--vscode-sideBar-foreground, var(--vscode-foreground));
+  background: var(--vscode-sideBar-background, var(--vscode-editor-background));
+}
+
+.session-header,
+.active-header {
+  display: flex;
+  height: var(--header-height);
+  min-height: var(--header-height);
+  align-items: center;
+  border-bottom: 1px solid var(--vscode-sideBarSectionHeader-border, var(--vscode-panel-border));
+}
+
+.session-header {
+  justify-content: space-between;
+  padding: 0 5px 0 10px;
+  color: var(--vscode-sideBarSectionHeader-foreground, var(--vscode-foreground));
+  background: var(--vscode-sideBarSectionHeader-background, transparent);
+}
+
+.session-heading {
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.session-actions {
+  display: flex;
+  gap: 2px;
+}
+
+.icon-button,
+.session-close {
+  display: inline-grid;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.icon-button:hover,
+.session-close:hover {
+  background: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground));
+}
+
+.icon-button:focus-visible,
+.session-close:focus-visible,
+.session-row:focus-visible,
+.session-splitter:focus-visible,
+.primary-button:focus-visible,
+.session-rename:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+.session-list {
+  min-height: 0;
+  flex: 1;
+  padding: 4px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.session-row {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) 10px 22px;
+  min-height: 44px;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 2px;
+  padding: 3px 2px 3px 7px;
+  border-radius: 5px;
+  cursor: default;
+}
+
+.session-row:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.session-row.active {
+  color: var(--vscode-list-activeSelectionForeground, var(--vscode-foreground));
+  background: var(--vscode-list-activeSelectionBackground);
+}
+
+.session-details {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.session-name,
+.session-cwd {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-name {
+  line-height: 18px;
+}
+
+.session-cwd {
+  color: var(--vscode-descriptionForeground);
+  font-size: 11px;
+  line-height: 15px;
+}
+
+.session-row.active .session-cwd {
+  color: var(--vscode-list-activeSelectionForeground, var(--vscode-descriptionForeground));
+  opacity: 0.76;
+}
+
+.session-close {
+  width: 22px;
+  height: 22px;
+  visibility: hidden;
+  font-size: 17px;
+}
+
+.session-row:hover .session-close,
+.session-row:focus-within .session-close,
+.session-row.active .session-close {
+  visibility: visible;
+}
+
+.session-rename {
+  width: 100%;
+  min-width: 0;
+  padding: 1px 3px;
+  border: 1px solid var(--vscode-input-border, var(--vscode-focusBorder));
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+}
+
+.status-dot,
+.unread-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--vscode-descriptionForeground);
+}
+
+.status-running {
+  background: var(--vscode-charts-blue, #3794ff);
+  animation: status-pulse 1.4s ease-in-out infinite;
+}
+
+.status-waiting {
+  background: var(--vscode-charts-yellow, #cca700);
+}
+
+.status-approval {
+  background: var(--vscode-charts-orange, #d18616);
+}
+
+.status-completed {
+  background: var(--vscode-testing-iconPassed, #73c991);
+}
+
+.unread-dot {
+  width: 7px;
+  height: 7px;
+  visibility: hidden;
+  background: var(--vscode-notificationsErrorIcon-foreground, #f14c4c);
+  box-shadow: 0 0 0 2px var(--vscode-sideBar-background, var(--vscode-editor-background));
+}
+
+.unread-dot.visible {
+  visibility: visible;
+}
+
+.session-splitter {
+  position: relative;
+  z-index: 3;
+  border-left: 1px solid var(--vscode-panel-border);
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.session-splitter::after {
+  position: absolute;
+  inset: 0 -2px;
+  content: '';
+}
+
+.session-splitter:hover,
+.resizing .session-splitter {
+  border-left-color: var(--vscode-sash-hoverBorder, var(--vscode-focusBorder));
+}
+
+.resizing,
+.resizing * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+
+.terminal-pane {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  background: var(--vscode-terminal-background, var(--vscode-editor-background));
+}
+
+.active-header {
+  justify-content: space-between;
+  padding: 0 5px 0 9px;
+  color: var(--vscode-panelTitle-activeForeground, var(--vscode-foreground));
+  background: var(--vscode-panel-background, var(--vscode-editor-background));
+}
+
+.active-meta {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+}
+
+.active-name {
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.active-cwd {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--vscode-descriptionForeground);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.terminal-stack {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+  background: var(--vscode-terminal-background, var(--vscode-editor-background));
+}
+
+.terminal-surface {
+  position: absolute;
+  inset: 0;
+  display: none;
+  padding: 5px 6px 5px 8px;
+  overflow: hidden;
+  background: var(--vscode-terminal-background, var(--vscode-editor-background));
+}
+
+.terminal-surface.active {
+  display: block;
+}
+
+.terminal-surface .xterm,
+.terminal-surface .xterm-screen,
+.terminal-surface .xterm-viewport {
+  height: 100%;
+}
+
+.empty-state {
+  display: grid;
+  min-height: 0;
+  flex: 1;
+  place-content: center;
+  justify-items: center;
+  gap: 10px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.empty-state[hidden],
+.active-header[hidden] {
+  display: none;
+}
+
+.empty-state p {
+  margin: 0;
+}
+
+.primary-button {
+  padding: 5px 10px;
+  border: 1px solid var(--vscode-button-border, transparent);
+  border-radius: 2px;
+  color: var(--vscode-button-foreground);
+  background: var(--vscode-button-background);
+  cursor: pointer;
+}
+
+.primary-button:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+@keyframes status-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.42;
+  }
+}
+
+@media (max-width: 340px) {
+  .app-shell {
+    grid-template-columns: 48px 3px minmax(0, 1fr);
+  }
+
+  .session-header {
+    height: auto;
+    min-height: var(--header-height);
+    justify-content: center;
+    padding: 3px 0;
+  }
+
+  .session-heading,
+  .session-cwd,
+  .session-close,
+  #new-session-folder {
+    display: none;
+  }
+
+  .session-row {
+    grid-template-columns: 1fr;
+    min-height: 38px;
+    justify-items: center;
+    padding: 4px 2px;
+  }
+
+  .session-details {
+    max-width: 36px;
+  }
+
+  .session-name {
+    width: 100%;
+    text-align: center;
+  }
+
+  .unread-dot {
+    position: absolute;
+    margin: -24px 0 0 26px;
+  }
+
+  .active-cwd {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-running {
+    animation: none;
+  }
+}

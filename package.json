@@ -1,0 +1,235 @@
+{
+  "name": "agent-terminal-panel",
+  "displayName": "Agent Terminal Panel",
+  "description": "在可移动的 VS Code 视图中管理多个 Agent CLI 终端会话",
+  "version": "0.1.1",
+  "publisher": "Cx330-502",
+  "author": "Cx330-502",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Cx330-502/agent-terminal-panel.git"
+  },
+  "homepage": "https://github.com/Cx330-502/agent-terminal-panel#readme",
+  "bugs": {
+    "url": "https://github.com/Cx330-502/agent-terminal-panel/issues"
+  },
+  "engines": {
+    "vscode": "^1.106.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "agent",
+    "cli",
+    "terminal",
+    "xterm",
+    "sidebar",
+    "panel"
+  ],
+  "extensionKind": [
+    "workspace"
+  ],
+  "capabilities": {
+    "virtualWorkspaces": false,
+    "untrustedWorkspaces": {
+      "supported": false
+    }
+  },
+  "activationEvents": [
+    "onView:agentTerminalPanel.terminalView",
+    "onCommand:agentTerminalPanel.newSession",
+    "onCommand:agentTerminalPanel.newSessionInFolder",
+    "onCommand:agentTerminalPanel.renameSession",
+    "onCommand:agentTerminalPanel.closeSession",
+    "onCommand:agentTerminalPanel.restartSession",
+    "onCommand:agentTerminalPanel.configureLaunchCommand",
+    "onCommand:agentTerminalPanel.nextSession",
+    "onCommand:agentTerminalPanel.previousSession"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "secondarySidebar": [
+        {
+          "id": "agentTerminalPanel",
+          "title": "Agent Terminal",
+          "icon": "$(terminal)"
+        }
+      ]
+    },
+    "views": {
+      "agentTerminalPanel": [
+        {
+          "type": "webview",
+          "id": "agentTerminalPanel.terminalView",
+          "name": "Agent 会话",
+          "contextualTitle": "Agent Terminal Panel",
+          "visibility": "visible"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "agentTerminalPanel.newSession",
+        "title": "新建 Agent 会话",
+        "category": "Agent Terminal Panel",
+        "icon": "$(add)"
+      },
+      {
+        "command": "agentTerminalPanel.newSessionInFolder",
+        "title": "在所选目录中新建会话",
+        "category": "Agent Terminal Panel",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "agentTerminalPanel.renameSession",
+        "title": "重命名当前会话",
+        "category": "Agent Terminal Panel"
+      },
+      {
+        "command": "agentTerminalPanel.closeSession",
+        "title": "关闭当前会话",
+        "category": "Agent Terminal Panel"
+      },
+      {
+        "command": "agentTerminalPanel.restartSession",
+        "title": "重启当前会话",
+        "category": "Agent Terminal Panel",
+        "icon": "$(debug-restart)"
+      },
+      {
+        "command": "agentTerminalPanel.configureLaunchCommand",
+        "title": "配置启动命令",
+        "category": "Agent Terminal Panel",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "agentTerminalPanel.nextSession",
+        "title": "切换到下一个会话",
+        "category": "Agent Terminal Panel"
+      },
+      {
+        "command": "agentTerminalPanel.previousSession",
+        "title": "切换到上一个会话",
+        "category": "Agent Terminal Panel"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "agentTerminalPanel.newSession",
+          "when": "view == agentTerminalPanel.terminalView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "agentTerminalPanel.newSessionInFolder",
+          "when": "view == agentTerminalPanel.terminalView",
+          "group": "navigation@2"
+        },
+        {
+          "command": "agentTerminalPanel.restartSession",
+          "when": "view == agentTerminalPanel.terminalView",
+          "group": "navigation@3"
+        },
+        {
+          "command": "agentTerminalPanel.configureLaunchCommand",
+          "when": "view == agentTerminalPanel.terminalView",
+          "group": "navigation@4"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "agentTerminalPanel.newSession",
+        "key": "ctrl+shift+`",
+        "mac": "cmd+shift+`",
+        "when": "focusedView == agentTerminalPanel.terminalView"
+      },
+      {
+        "command": "agentTerminalPanel.nextSession",
+        "key": "ctrl+pagedown",
+        "mac": "cmd+alt+right",
+        "when": "focusedView == agentTerminalPanel.terminalView"
+      },
+      {
+        "command": "agentTerminalPanel.previousSession",
+        "key": "ctrl+pageup",
+        "mac": "cmd+alt+left",
+        "when": "focusedView == agentTerminalPanel.terminalView"
+      },
+      {
+        "command": "agentTerminalPanel.closeSession",
+        "key": "ctrl+w",
+        "mac": "cmd+w",
+        "when": "focusedView == agentTerminalPanel.terminalView"
+      }
+    ],
+    "configuration": {
+      "title": "Agent Terminal Panel",
+      "properties": {
+        "agentTerminalPanel.launchCommand": {
+          "type": "string",
+          "default": "",
+          "description": "在 workspace extension host 的系统 shell 中执行的完整启动命令。首次新建会话时会提示配置。"
+        },
+        "agentTerminalPanel.environment": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "description": "叠加到 Agent 会话环境中的变量。"
+        },
+        "agentTerminalPanel.startSessionOnOpen": {
+          "type": "boolean",
+          "default": true,
+          "description": "首次打开视图时自动创建一个 Agent 会话。"
+        },
+        "agentTerminalPanel.notifications.showToast": {
+          "type": "boolean",
+          "default": true,
+          "description": "当前会话不可见或 VS Code 失焦时显示审批、等待输入和完成 Toast。"
+        },
+        "agentTerminalPanel.notifications.completionSound": {
+          "type": "string",
+          "enum": [
+            "never",
+            "whenHidden",
+            "always"
+          ],
+          "enumDescriptions": [
+            "从不播放完成声音。",
+            "仅在完成的会话不可见或 VS Code 失焦时播放。",
+            "每次完成都播放。"
+          ],
+          "default": "whenHidden",
+          "description": "Agent 回合完成时的声音策略。"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "check": "tsc --noEmit",
+    "build": "npm run check && node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "test": "node --import tsx --test test/*.test.ts",
+    "vscode:prepublish": "npm run build",
+    "package": "npm run package:all",
+    "package:all": "npm run build && node scripts/package.mjs"
+  },
+  "dependencies": {
+    "node-pty": "1.2.0-beta.13"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/vscode": "^1.106.0",
+    "@vscode/vsce": "^3.9.0",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
+    "esbuild": "^0.25.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  }
+}

@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:,">
+  <title>Agent Terminal Panel Harness</title>
+  <style>
+    :root {
+      --vscode-font-family: system-ui, sans-serif;
+      --vscode-font-size: 13px;
+      --vscode-editor-font-family: "DejaVu Sans Mono", monospace;
+      --vscode-foreground: #cccccc;
+      --vscode-descriptionForeground: #999999;
+      --vscode-editor-background: #1e1e1e;
+      --vscode-terminal-background: #1e1e1e;
+      --vscode-terminal-foreground: #cccccc;
+      --vscode-sideBar-background: #181818;
+      --vscode-sideBar-foreground: #cccccc;
+      --vscode-panel-background: #1e1e1e;
+      --vscode-panel-border: #333333;
+      --vscode-focusBorder: #007fd4;
+      --vscode-list-hoverBackground: #2a2d2e;
+      --vscode-list-activeSelectionBackground: #04395e;
+      --vscode-list-activeSelectionForeground: #ffffff;
+      --vscode-button-background: #0e639c;
+      --vscode-button-foreground: #ffffff;
+      --vscode-button-hoverBackground: #1177bb;
+      --vscode-terminalCursor-foreground: #ffffff;
+      --vscode-terminalCursor-background: #1e1e1e;
+      --vscode-terminal-selectionBackground: #264f78;
+      --vscode-terminal-ansiBlack: #000000;
+      --vscode-terminal-ansiRed: #cd3131;
+      --vscode-terminal-ansiGreen: #0dbc79;
+      --vscode-terminal-ansiYellow: #e5e510;
+      --vscode-terminal-ansiBlue: #2472c8;
+      --vscode-terminal-ansiMagenta: #bc3fbc;
+      --vscode-terminal-ansiCyan: #11a8cd;
+      --vscode-terminal-ansiWhite: #e5e5e5;
+      --vscode-terminal-ansiBrightBlack: #666666;
+      --vscode-terminal-ansiBrightRed: #f14c4c;
+      --vscode-terminal-ansiBrightGreen: #23d18b;
+      --vscode-terminal-ansiBrightYellow: #f5f543;
+      --vscode-terminal-ansiBrightBlue: #3b8eea;
+      --vscode-terminal-ansiBrightMagenta: #d670d6;
+      --vscode-terminal-ansiBrightCyan: #29b8db;
+      --vscode-terminal-ansiBrightWhite: #ffffff;
+    }
+  </style>
+  <link rel="stylesheet" href="../media/xterm.css">
+  <link rel="stylesheet" href="../media/styles.css">
+  <script>
+    window.__webviewMessages = [];
+    window.__persistedState = {};
+    window.__hostSend = (data) => window.dispatchEvent(new MessageEvent('message', { data }));
+    window.acquireVsCodeApi = () => ({
+      postMessage(message) {
+        window.__webviewMessages.push(message);
+        if (message.type === 'ready') {
+          setTimeout(() => window.__hostSend({
+            type: 'initialize',
+            sessions: [{
+              id: 'session-1',
+              name: 'Agent 1',
+              cwd: '/workspace/中文项目',
+              status: 'waiting',
+              unread: false,
+              isActive: true
+            }],
+            activeId: 'session-1',
+            replays: {},
+            terminalSettings: {
+              fontFamily: 'DejaVu Sans Mono',
+              fontSize: 14,
+              fontWeight: 'normal',
+              fontWeightBold: 'bold',
+              lineHeight: 1,
+              letterSpacing: 0,
+              cursorStyle: 'block',
+              cursorBlinking: false,
+              cursorWidth: 1,
+              scrollback: 1000,
+              macOptionIsMeta: false,
+              macOptionClickForcesSelection: false,
+              altClickMovesCursor: true,
+              fastScrollSensitivity: 5,
+              mouseWheelScrollSensitivity: 1,
+              wordSeparators: ' ()[]{}',
+              minimumContrastRatio: 4.5,
+              drawBoldTextInBrightColors: true,
+              customGlyphs: true,
+              rightClickBehavior: 'copyPaste'
+            },
+            platform: 'linux'
+          }), 0);
+        }
+      },
+      getState() {
+        return window.__persistedState;
+      },
+      setState(state) {
+        window.__persistedState = state;
+      }
+    });
+  </script>
+</head>
+<body>
+  <div id="app" class="app-shell">
+    <aside id="session-sidebar" class="session-sidebar" aria-label="Agent 会话列表">
+      <header class="session-header">
+        <span class="session-heading">会话</span>
+        <span class="session-actions">
+          <button id="new-session" class="icon-button" type="button">＋</button>
+          <button id="new-session-folder" class="icon-button" type="button">▣</button>
+        </span>
+      </header>
+      <div id="session-list" class="session-list" role="tablist"></div>
+    </aside>
+    <div id="session-splitter" class="session-splitter" role="separator" tabindex="0"></div>
+    <main class="terminal-pane">
+      <header id="active-header" class="active-header" hidden>
+        <div class="active-meta">
+          <span id="active-status" class="status-dot"></span>
+          <span id="active-name" class="active-name"></span>
+          <span id="active-cwd" class="active-cwd"></span>
+        </div>
+        <button id="restart-session" class="icon-button" type="button">↻</button>
+      </header>
+      <div id="terminal-stack" class="terminal-stack"></div>
+      <div id="empty-state" class="empty-state">
+        <p>还没有 Agent 会话</p>
+        <button id="empty-new-session" class="primary-button" type="button">新建会话</button>
+      </div>
+    </main>
+  </div>
+  <script src="../media/main.js"></script>
+</body>
+</html>
