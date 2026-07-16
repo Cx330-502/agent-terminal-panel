@@ -36,6 +36,12 @@ export interface TerminalSettings {
   rightClickBehavior: string;
 }
 
+export interface AttachmentUpload {
+  name: string;
+  mimeType: string;
+  base64: string;
+}
+
 export type HostMessage =
   | {
       type: 'initialize';
@@ -51,6 +57,14 @@ export type HostMessage =
   | { type: 'clear'; id: string }
   | { type: 'focusSession'; id: string }
   | { type: 'clipboardText'; requestId: string; text: string }
+  | {
+      type: 'attachmentResult';
+      requestId: string;
+      id: string;
+      insertText?: string;
+      savedCount: number;
+      errors: string[];
+    }
   | { type: 'terminalSettings'; settings: TerminalSettings }
   | { type: 'layoutSettings'; settings: LayoutSettings }
   | { type: 'refreshTheme' }
@@ -77,7 +91,14 @@ export type WebviewMessage =
     }
   | { type: 'focusChanged'; focused: boolean }
   | { type: 'clipboardRead'; requestId: string }
-  | { type: 'clipboardWrite'; text: string };
+  | { type: 'clipboardWrite'; text: string }
+  | {
+      type: 'saveAttachments';
+      requestId: string;
+      id: string;
+      uploads: AttachmentUpload[];
+      uris: string[];
+    };
 
 export interface VSCodeApi {
   postMessage(message: WebviewMessage): void;

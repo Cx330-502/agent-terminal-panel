@@ -49,6 +49,7 @@
   </style>
   <link rel="stylesheet" href="../media/xterm.css">
   <link rel="stylesheet" href="../media/styles.css">
+  <link rel="stylesheet" href="../media/attachments.css">
   <script>
     window.__webviewMessages = [];
     window.__persistedState = {};
@@ -97,6 +98,15 @@
             },
             platform: 'linux'
           }), 0);
+        } else if (message.type === 'saveAttachments') {
+          setTimeout(() => window.__hostSend({
+            type: 'attachmentResult',
+            requestId: message.requestId,
+            id: message.id,
+            insertText: "'/remote/workspace-storage/pasted-image.png' ",
+            savedCount: message.uploads.length + message.uris.length,
+            errors: []
+          }), 0);
         }
       },
       getState() {
@@ -136,6 +146,11 @@
         </span>
       </header>
       <div id="terminal-stack" class="terminal-stack"></div>
+      <div id="attachment-overlay" class="attachment-overlay" hidden>
+        <strong>拖放图片</strong>
+        <span>松开后保存到 workspace host，并把路径插入当前终端</span>
+      </div>
+      <div id="attachment-status" class="attachment-status" role="status" aria-live="polite" hidden></div>
       <div id="empty-state" class="empty-state">
         <p>还没有 Agent 会话</p>
         <button id="empty-new-session" class="primary-button" type="button">新建会话</button>

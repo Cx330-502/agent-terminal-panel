@@ -1,0 +1,86 @@
+.terminal-pane {
+  position: relative;
+}
+
+.attachment-overlay {
+  position: absolute;
+  z-index: 20;
+  inset: calc(var(--header-height) + 10px) 10px 10px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 7px;
+  padding: 20px;
+  border: 2px dashed var(--vscode-focusBorder);
+  border-radius: 8px;
+  color: var(--vscode-foreground);
+  background: color-mix(
+    in srgb,
+    var(--vscode-editor-background) 90%,
+    var(--vscode-focusBorder) 10%
+  );
+  text-align: center;
+  pointer-events: none;
+}
+
+.attachment-overlay[hidden],
+.attachment-status[hidden] {
+  display: none;
+}
+
+.attachment-overlay strong {
+  font-size: 15px;
+}
+
+.attachment-overlay span {
+  max-width: 360px;
+  color: var(--vscode-descriptionForeground);
+  line-height: 1.45;
+}
+
+.attachment-status {
+  position: absolute;
+  z-index: 21;
+  top: calc(var(--header-height) + 8px);
+  left: 50%;
+  max-width: min(420px, calc(100% - 24px));
+  padding: 6px 10px;
+  overflow: hidden;
+  border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+  border-radius: 4px;
+  color: var(--vscode-notifications-foreground, var(--vscode-foreground));
+  background: var(--vscode-notifications-background, var(--vscode-editorWidget-background));
+  box-shadow: 0 3px 12px var(--vscode-widget-shadow, rgb(0 0 0 / 35%));
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.attachment-success {
+  border-color: var(--vscode-testing-iconPassed, #73c991);
+}
+
+.attachment-warning {
+  border-color: var(--vscode-editorWarning-foreground, #cca700);
+}
+
+.attachment-error {
+  border-color: var(--vscode-errorForeground, #f14c4c);
+}
+
+.attachment-progress {
+  border-color: var(--vscode-progressBar-background, var(--vscode-focusBorder));
+}
+
+@media (max-width: 340px) {
+  .attachment-overlay {
+    inset: calc(var(--header-height) + 5px) 5px 5px;
+    padding: 10px;
+  }
+
+  .attachment-overlay span {
+    max-width: 170px;
+  }
+}

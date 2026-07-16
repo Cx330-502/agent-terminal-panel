@@ -1,6 +1,8 @@
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as vscode from 'vscode';
+import { AttachmentStore } from './attachmentStore';
+import { formatAttachmentPaths } from './attachmentUtils';
 import {
   getAgentProcessConfig,
   getLayoutSettings,
@@ -31,6 +33,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
   private readonly sessions: SessionManager;
   private readonly notifier: CompletionNotifier;
   private readonly sessionHistory: SessionHistoryController;
+  private readonly attachmentStore: AttachmentStore;
   private view: vscode.WebviewView | undefined;
   private webviewReady = false;
   private viewVisible = false;
@@ -40,8 +43,11 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
 
   constructor(
     private readonly extensionUri: vscode.Uri,
-    private readonly extensionId: string
+    private readonly extensionId: string,
+    storageUri: vscode.Uri | undefined,
+    globalStorageUri: vscode.Uri
   ) {
+    this.attachmentStore = new AttachmentStore(storageUri ?? globalStorageUri);
     this.sessions = new SessionManager(getAgentProcessConfig, {
       onOutput: (id, data) => this.post({ type: 'output', id, data }),
       onClear: (id) => this.post({ type: 'clear', id }),
@@ -290,6 +296,20 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
       case 'clipboardWrite':
         await vscode.env.clipboard.writeText(message.text);
         return;
+      case 'saveAttachments': {
+        const result = await this.attachmentStore.save(message.uploads, message.uris);
+        this.post({
+          type: 'attachmentResult',
+          requestId: message.requestId,
+          id: message.id,
+          ...(result.paths.length > 0
+            ? { insertText: formatAttachmentPaths(result.paths, process.platform) }
+            : {}),
+          savedCount: result.paths.length,
+          errors: result.errors
+        });
+        return;
+      }
     }
   }
 

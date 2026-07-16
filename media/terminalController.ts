@@ -115,8 +115,18 @@ export class TerminalController {
     this.pendingPastes.delete(requestId);
     const entry = id ? this.entries.get(id) : undefined;
     if (!entry || !text) return;
+    this.pasteText(id!, text);
+  }
+
+  pasteText(id: string, text: string): void {
+    const entry = this.entries.get(id);
+    if (!entry || !text) return;
     entry.terminal.paste(text);
-    entry.terminal.focus();
+    if (id === this.activeId) entry.terminal.focus();
+  }
+
+  requestClipboardPaste(id: string): void {
+    this.requestPaste(id);
   }
 
   dispose(): void {
@@ -171,8 +181,7 @@ export class TerminalController {
       }
       return true;
     });
-    terminal.attachCustomKeyEventHandler((event) => this.handleKeyEvent(id, terminal, event));
-    element.addEventListener('paste', (event) => event.preventDefault(), true);
+    terminal.attachCustomKeyEventHandler((event) => this.handleKeyEvent(terminal, event));
     element.addEventListener('contextmenu', (event) => this.handleContextMenu(id, terminal, event));
     return entry;
   }
@@ -187,7 +196,7 @@ export class TerminalController {
     this.entries.delete(id);
   }
 
-  private handleKeyEvent(id: string, terminal: Terminal, event: KeyboardEvent): boolean {
+  private handleKeyEvent(terminal: Terminal, event: KeyboardEvent): boolean {
     if (event.type !== 'keydown') return true;
     if (event.isComposing || event.keyCode === 229) return true;
     const key = event.key.toLowerCase();
@@ -206,9 +215,7 @@ export class TerminalController {
       (this.platform !== 'darwin' && this.platform !== 'win32' && event.ctrlKey && event.shiftKey && key === 'v') ||
       (event.shiftKey && event.key === 'Insert');
     if (pasteShortcut) {
-      event.preventDefault();
       event.stopImmediatePropagation();
-      this.requestPaste(id);
       return false;
     }
     return true;

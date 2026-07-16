@@ -5,6 +5,9 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
   const nonce = randomBytes(18).toString('base64');
   const xtermCss = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'xterm.css'));
   const styles = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'styles.css'));
+  const attachmentStyles = webview.asWebviewUri(
+    vscode.Uri.joinPath(extensionUri, 'media', 'attachments.css')
+  );
   const script = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'main.js'));
 
   return `<!doctype html>
@@ -15,6 +18,7 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
   <link rel="stylesheet" href="${xtermCss}">
   <link rel="stylesheet" href="${styles}">
+  <link rel="stylesheet" href="${attachmentStyles}">
   <title>Agent Terminal Panel</title>
 </head>
 <body>
@@ -45,6 +49,11 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
         </span>
       </header>
       <div id="terminal-stack" class="terminal-stack" aria-live="off"></div>
+      <div id="attachment-overlay" class="attachment-overlay" hidden>
+        <strong>拖放图片</strong>
+        <span>松开后保存到 workspace host，并把路径插入当前终端</span>
+      </div>
+      <div id="attachment-status" class="attachment-status" role="status" aria-live="polite" hidden></div>
       <div id="empty-state" class="empty-state">
         <p>还没有 Agent 会话</p>
         <button id="empty-new-session" class="primary-button" type="button">新建会话</button>

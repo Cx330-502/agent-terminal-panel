@@ -1,4 +1,5 @@
 import type { HostMessage, SessionSnapshot, VSCodeApi, WebviewMessage } from '../src/shared';
+import { AttachmentController } from './attachmentController';
 import { SessionList, statusLabel } from './sessionList';
 import { SidebarResize } from './sidebarResize';
 import { TerminalController } from './terminalController';
@@ -6,6 +7,7 @@ import { TerminalController } from './terminalController';
 export class WebviewApp {
   private readonly root: HTMLElement;
   private readonly terminalController: TerminalController;
+  private readonly attachmentController: AttachmentController;
   private readonly sessionList: SessionList;
   private readonly sidebarResize: SidebarResize;
   private readonly activeHeader = requiredElement<HTMLElement>('active-header');
@@ -24,6 +26,14 @@ export class WebviewApp {
     const stack = requiredElement<HTMLElement>('terminal-stack');
     const splitter = requiredElement<HTMLElement>('session-splitter');
     this.terminalController = new TerminalController(stack, vscode);
+    this.attachmentController = new AttachmentController(
+      stack,
+      requiredElement('attachment-overlay'),
+      requiredElement('attachment-status'),
+      vscode,
+      (id, text) => this.terminalController.pasteText(id, text),
+      (id) => this.terminalController.requestClipboardPaste(id)
+    );
     this.sessionList = new SessionList(requiredElement('session-list'), {
       switchSession: (id) => {
         this.terminalController.activate(id);
@@ -46,6 +56,7 @@ export class WebviewApp {
   }
 
   dispose(): void {
+    this.attachmentController.dispose();
     this.terminalController.dispose();
     void this.audioContext?.close();
   }
@@ -72,6 +83,15 @@ export class WebviewApp {
       case 'clipboardText':
         this.terminalController.receiveClipboardText(message.requestId, message.text);
         return;
+      case 'attachmentResult':
+        this.attachmentController.receiveResult(
+          message.requestId,
+          message.id,
+          message.insertText,
+          message.savedCount,
+          message.errors
+        );
+        return;
       case 'terminalSettings':
         this.terminalController.updateSettings(message.settings);
         return;
@@ -94,6 +114,7 @@ export class WebviewApp {
   ): void {
     this.sessions = sessions;
     this.activeId = activeId;
+    this.attachmentController.setActiveId(activeId);
     this.sessionList.render(sessions);
     this.terminalController.syncSessions(sessions, activeId, replays);
     this.renderActiveHeader();

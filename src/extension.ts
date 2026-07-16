@@ -2,7 +2,12 @@ import * as vscode from 'vscode';
 import { AgentTerminalViewProvider, VIEW_ID } from './AgentTerminalViewProvider';
 
 export function activate(context: vscode.ExtensionContext): void {
-  const provider = new AgentTerminalViewProvider(context.extensionUri, context.extension.id);
+  const provider = new AgentTerminalViewProvider(
+    context.extensionUri,
+    context.extension.id,
+    context.storageUri,
+    context.globalStorageUri
+  );
   context.subscriptions.push(
     provider,
     vscode.window.registerWebviewViewProvider(VIEW_ID, provider, {
