@@ -16,6 +16,12 @@ interface SessionRecord {
   activityEpoch: number;
   lastAttentionKey?: string;
   output: OutputBuffer;
+  launchCommand?: string;
+}
+
+export interface SessionCreateOptions {
+  name?: string;
+  launchCommand?: string;
 }
 
 export interface SessionAttention {
@@ -48,17 +54,19 @@ export class SessionManager {
     });
   }
 
-  create(cwd: string, size: PtySize): string {
+  create(cwd: string, size: PtySize, options: SessionCreateOptions = {}): string {
     const id = randomUUID();
+    const defaultName = `Agent ${++this.nameCounter}`;
     const session: SessionRecord = {
       id,
-      name: `Agent ${++this.nameCounter}`,
+      name: options.name?.trim() || defaultName,
       cwd,
       status: 'running',
       unread: false,
       size: normalizeSize(size),
       activityEpoch: 0,
-      output: new OutputBuffer()
+      output: new OutputBuffer(),
+      ...(options.launchCommand?.trim() ? { launchCommand: options.launchCommand.trim() } : {})
     };
     this.sessions.set(id, session);
     this.activeId = id;
@@ -200,6 +208,10 @@ export class SessionManager {
     return this.sessions.size;
   }
 
+  requiresDefaultLaunchCommand(id: string): boolean {
+    return !this.sessions.get(id)?.launchCommand;
+  }
+
   snapshots(): SessionSnapshot[] {
     return [...this.sessions.values()].map((session) => this.snapshot(session));
   }
@@ -216,7 +228,11 @@ export class SessionManager {
   }
 
   private spawn(session: SessionRecord): void {
-    this.ptyHost.spawn(session.id, session.cwd, session.size, this.getProcessConfig());
+    const config = this.getProcessConfig();
+    this.ptyHost.spawn(session.id, session.cwd, session.size, {
+      ...config,
+      launchCommand: session.launchCommand ?? config.launchCommand
+    });
   }
 
   private handlePtyData(id: string, data: string): void {

@@ -24,6 +24,7 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
         <span class="session-heading">会话</span>
         <span class="session-actions">
           <button id="new-session" class="icon-button" type="button" title="新建会话" aria-label="新建会话">＋</button>
+          <button id="new-custom-session" class="icon-button custom-session-button" type="button" title="使用自定义命令新建" aria-label="使用自定义命令新建">›_</button>
           <button id="new-session-folder" class="icon-button" type="button" title="选择工作目录并新建" aria-label="选择工作目录并新建">▣</button>
         </span>
       </header>
@@ -37,12 +38,16 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
           <span id="active-name" class="active-name"></span>
           <span id="active-cwd" class="active-cwd"></span>
         </div>
-        <button id="restart-session" class="icon-button" type="button" title="重启当前会话" aria-label="重启当前会话">↻</button>
+        <span class="active-actions">
+          <button id="rename-active-session" class="icon-button" type="button" title="重命名当前会话" aria-label="重命名当前会话">✎</button>
+          <button id="restart-session" class="icon-button" type="button" title="重启当前会话" aria-label="重启当前会话">↻</button>
+        </span>
       </header>
       <div id="terminal-stack" class="terminal-stack" aria-live="off"></div>
       <div id="empty-state" class="empty-state">
         <p>还没有 Agent 会话</p>
         <button id="empty-new-session" class="primary-button" type="button">新建会话</button>
+        <button id="empty-custom-session" class="secondary-button" type="button">自定义命令新建</button>
       </div>
     </main>
   </div>

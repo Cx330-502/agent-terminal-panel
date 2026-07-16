@@ -10,8 +10,10 @@
 
 - 多会话：新建、切换、双击或 `F2` 重命名、关闭、重启。
 - 完整启动命令可配置；新建或重启会话时读取最新配置。
+- 可用一次性自定义命令创建会话，不修改默认启动命令，并在创建时直接命名。
 - 每个会话独立选择 cwd；普通新建默认使用当前编辑器所在 workspace folder。
-- 左侧竖排会话列表支持鼠标拖拽和键盘调整宽度，并持久化宽度。
+- 会话列表可放在终端左侧或右侧，支持鼠标拖拽和键盘调整宽度，并持久化宽度。
+- 设置按钮直接打开完整的 VS Code 扩展设置页。
 - 切换视图或隐藏 Panel 后 PTY 继续在后台运行；Webview 重建时回放近期终端内容。
 - xterm.js + node-pty，支持 resize、Bracketed Paste、中文 IME、真彩色和 OSC 10/11/12。
 - 字体、字号、字重、行高、字距、光标、滚动和颜色均跟随 VS Code 原生终端设置及主题。
@@ -25,19 +27,20 @@
 
 | VSIX | 使用场景 |
 | --- | --- |
-| `agent-terminal-panel-0.1.1-linux-x64.vsix` | Linux x64、x64 WSL/SSH workspace host |
-| `agent-terminal-panel-0.1.1-linux-arm64.vsix` | Linux ARM64、ARM64 SSH workspace host |
-| `agent-terminal-panel-0.1.1-darwin-x64.vsix` | Intel Mac |
-| `agent-terminal-panel-0.1.1-darwin-arm64.vsix` | Apple Silicon Mac |
+| `agent-terminal-panel-0.2.0-linux-x64.vsix` | Linux x64、x64 WSL/SSH workspace host |
+| `agent-terminal-panel-0.2.0-linux-arm64.vsix` | Linux ARM64、ARM64 SSH workspace host |
+| `agent-terminal-panel-0.2.0-darwin-x64.vsix` | Intel Mac |
+| `agent-terminal-panel-0.2.0-darwin-arm64.vsix` | Apple Silicon Mac |
 
 在 WSL/SSH 窗口中应将对应 Linux VSIX 安装到远程端。扩展声明了 `extensionKind: ["workspace"]`，不会把远程会话误启动在本地 UI host。
 
 ## 使用
 
 - 点击视图标题栏的 `+` 使用默认 cwd 新建会话。
+- 点击终端新建按钮，输入一次性命令和会话名，不会修改默认启动命令。
 - 点击文件夹按钮选择 workspace folder、Home 或任意目录后新建。
-- 点击视图标题栏的齿轮配置完整启动命令；未配置时，首次新建会话会自动提示。
-- 双击会话名称或聚焦后按 `F2` 重命名。
+- 点击视图标题栏的齿轮打开完整设置页；默认命令未配置时，首次新建会话会自动提示。
+- 双击会话名称、双击顶部当前名称、点击铅笔或聚焦后按 `F2` 重命名。
 - 拖动会话列表右侧分隔条调整宽度；分隔条聚焦时也可按左右方向键。
 - 右键视图标题并选择 Move View，或直接拖动视图标题，可放到任一侧栏或 Panel。
 
@@ -56,6 +59,7 @@
 | --- | --- | --- |
 | `agentTerminalPanel.launchCommand` | 空 | workspace host 系统 shell 中执行的完整启动命令 |
 | `agentTerminalPanel.environment` | `{}` | 会话附加环境变量 |
+| `agentTerminalPanel.sessionListPosition` | `left` | 会话列表放在终端左侧或右侧 |
 | `agentTerminalPanel.startSessionOnOpen` | `true` | 首次打开时自动创建会话 |
 | `agentTerminalPanel.notifications.showToast` | `true` | 后台审批、等待输入、完成 Toast |
 | `agentTerminalPanel.notifications.completionSound` | `whenHidden` | `never`、`whenHidden` 或 `always` |
@@ -79,3 +83,4 @@ npm run package
 - GitHub：[Cx330-502/agent-terminal-panel](https://github.com/Cx330-502/agent-terminal-panel)
 - Issues：[问题与建议](https://github.com/Cx330-502/agent-terminal-panel/issues)
 - License：MIT
+- Roadmap：[TODO.md](./TODO.md)

@@ -1,6 +1,6 @@
 :root {
   color-scheme: light dark;
-  --session-list-width: 172px;
+  --session-list-width: 156px;
   --header-height: 34px;
   font-family: var(--vscode-font-family);
   font-size: var(--vscode-font-size);
@@ -17,6 +17,7 @@ body {
   width: 100%;
   height: 100%;
   margin: 0;
+  padding: 0;
   overflow: hidden;
 }
 
@@ -39,6 +40,25 @@ button {
   background: var(--vscode-terminal-background, var(--vscode-editor-background));
 }
 
+.app-shell.session-list-right {
+  grid-template-columns: minmax(0, 1fr) 4px min(var(--session-list-width), 58%);
+}
+
+.session-list-right .terminal-pane {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.session-list-right .session-splitter {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.session-list-right .session-sidebar {
+  grid-column: 3;
+  grid-row: 1;
+}
+
 .session-sidebar {
   display: flex;
   min-width: 0;
@@ -59,7 +79,7 @@ button {
 
 .session-header {
   justify-content: space-between;
-  padding: 0 5px 0 10px;
+  padding: 0 3px 0 6px;
   color: var(--vscode-sideBarSectionHeader-foreground, var(--vscode-foreground));
   background: var(--vscode-sideBarSectionHeader-background, transparent);
 }
@@ -76,7 +96,13 @@ button {
 
 .session-actions {
   display: flex;
-  gap: 2px;
+  gap: 1px;
+}
+
+.custom-session-button {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .icon-button,
@@ -102,6 +128,7 @@ button {
 .session-row:focus-visible,
 .session-splitter:focus-visible,
 .primary-button:focus-visible,
+.secondary-button:focus-visible,
 .session-rename:focus-visible {
   outline: 1px solid var(--vscode-focusBorder);
   outline-offset: -1px;
@@ -110,19 +137,19 @@ button {
 .session-list {
   min-height: 0;
   flex: 1;
-  padding: 4px;
+  padding: 3px;
   overflow-x: hidden;
   overflow-y: auto;
 }
 
 .session-row {
   display: grid;
-  grid-template-columns: 12px minmax(0, 1fr) 10px 22px;
+  grid-template-columns: 10px minmax(0, 1fr) 8px 20px;
   min-height: 44px;
   align-items: center;
-  gap: 5px;
+  gap: 3px;
   margin-bottom: 2px;
-  padding: 3px 2px 3px 7px;
+  padding: 3px 1px 3px 4px;
   border-radius: 5px;
   cursor: default;
 }
@@ -166,7 +193,7 @@ button {
 }
 
 .session-close {
-  width: 22px;
+  width: 20px;
   height: 22px;
   visibility: hidden;
   font-size: 17px;
@@ -233,6 +260,11 @@ button {
   touch-action: none;
 }
 
+.session-list-right .session-splitter {
+  border-right: 1px solid var(--vscode-panel-border);
+  border-left: 0;
+}
+
 .session-splitter::after {
   position: absolute;
   inset: 0 -2px;
@@ -242,6 +274,11 @@ button {
 .session-splitter:hover,
 .resizing .session-splitter {
   border-left-color: var(--vscode-sash-hoverBorder, var(--vscode-focusBorder));
+}
+
+.session-list-right .session-splitter:hover,
+.session-list-right.resizing .session-splitter {
+  border-right-color: var(--vscode-sash-hoverBorder, var(--vscode-focusBorder));
 }
 
 .resizing,
@@ -276,6 +313,13 @@ button {
   flex: none;
   font-size: 12px;
   font-weight: 600;
+  cursor: default;
+}
+
+.active-actions {
+  display: flex;
+  flex: none;
+  gap: 1px;
 }
 
 .active-cwd {
@@ -334,7 +378,8 @@ button {
   margin: 0;
 }
 
-.primary-button {
+.primary-button,
+.secondary-button {
   padding: 5px 10px;
   border: 1px solid var(--vscode-button-border, transparent);
   border-radius: 2px;
@@ -343,8 +388,17 @@ button {
   cursor: pointer;
 }
 
+.secondary-button {
+  color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+  background: var(--vscode-button-secondaryBackground, transparent);
+}
+
 .primary-button:hover {
   background: var(--vscode-button-hoverBackground);
+}
+
+.secondary-button:hover {
+  background: var(--vscode-button-secondaryHoverBackground, var(--vscode-list-hoverBackground));
 }
 
 @keyframes status-pulse {
@@ -362,6 +416,10 @@ button {
     grid-template-columns: 48px 3px minmax(0, 1fr);
   }
 
+  .app-shell.session-list-right {
+    grid-template-columns: minmax(0, 1fr) 3px 48px;
+  }
+
   .session-header {
     height: auto;
     min-height: var(--header-height);
@@ -372,6 +430,7 @@ button {
   .session-heading,
   .session-cwd,
   .session-close,
+  #new-custom-session,
   #new-session-folder {
     display: none;
   }

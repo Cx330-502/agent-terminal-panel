@@ -2,7 +2,7 @@
   "name": "agent-terminal-panel",
   "displayName": "Agent Terminal Panel",
   "description": "在可移动的 VS Code 视图中管理多个 Agent CLI 终端会话",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "publisher": "Cx330-502",
   "author": "Cx330-502",
   "license": "MIT",
@@ -14,6 +14,7 @@
   "bugs": {
     "url": "https://github.com/Cx330-502/agent-terminal-panel/issues"
   },
+  "icon": "media/icon.png",
   "engines": {
     "vscode": "^1.106.0"
   },
@@ -41,10 +42,12 @@
     "onView:agentTerminalPanel.terminalView",
     "onCommand:agentTerminalPanel.newSession",
     "onCommand:agentTerminalPanel.newSessionInFolder",
+    "onCommand:agentTerminalPanel.newCustomSession",
     "onCommand:agentTerminalPanel.renameSession",
     "onCommand:agentTerminalPanel.closeSession",
     "onCommand:agentTerminalPanel.restartSession",
     "onCommand:agentTerminalPanel.configureLaunchCommand",
+    "onCommand:agentTerminalPanel.openSettings",
     "onCommand:agentTerminalPanel.nextSession",
     "onCommand:agentTerminalPanel.previousSession"
   ],
@@ -84,9 +87,16 @@
         "icon": "$(folder-opened)"
       },
       {
+        "command": "agentTerminalPanel.newCustomSession",
+        "title": "使用自定义命令新建会话",
+        "category": "Agent Terminal Panel",
+        "icon": "$(terminal-new)"
+      },
+      {
         "command": "agentTerminalPanel.renameSession",
         "title": "重命名当前会话",
-        "category": "Agent Terminal Panel"
+        "category": "Agent Terminal Panel",
+        "icon": "$(edit)"
       },
       {
         "command": "agentTerminalPanel.closeSession",
@@ -102,6 +112,11 @@
       {
         "command": "agentTerminalPanel.configureLaunchCommand",
         "title": "配置启动命令",
+        "category": "Agent Terminal Panel"
+      },
+      {
+        "command": "agentTerminalPanel.openSettings",
+        "title": "打开完整设置",
         "category": "Agent Terminal Panel",
         "icon": "$(settings-gear)"
       },
@@ -124,19 +139,24 @@
           "group": "navigation@1"
         },
         {
-          "command": "agentTerminalPanel.newSessionInFolder",
+          "command": "agentTerminalPanel.newCustomSession",
           "when": "view == agentTerminalPanel.terminalView",
           "group": "navigation@2"
         },
         {
-          "command": "agentTerminalPanel.restartSession",
+          "command": "agentTerminalPanel.newSessionInFolder",
           "when": "view == agentTerminalPanel.terminalView",
           "group": "navigation@3"
         },
         {
-          "command": "agentTerminalPanel.configureLaunchCommand",
+          "command": "agentTerminalPanel.restartSession",
           "when": "view == agentTerminalPanel.terminalView",
           "group": "navigation@4"
+        },
+        {
+          "command": "agentTerminalPanel.openSettings",
+          "when": "view == agentTerminalPanel.terminalView",
+          "group": "navigation@5"
         }
       ]
     },
@@ -181,6 +201,19 @@
           },
           "default": {},
           "description": "叠加到 Agent 会话环境中的变量。"
+        },
+        "agentTerminalPanel.sessionListPosition": {
+          "type": "string",
+          "enum": [
+            "left",
+            "right"
+          ],
+          "enumDescriptions": [
+            "会话列表显示在终端左侧。",
+            "会话列表显示在终端右侧。"
+          ],
+          "default": "left",
+          "description": "会话列表相对于终端的位置。"
         },
         "agentTerminalPanel.startSessionOnOpen": {
           "type": "boolean",

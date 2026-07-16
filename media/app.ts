@@ -4,8 +4,10 @@ import { SidebarResize } from './sidebarResize';
 import { TerminalController } from './terminalController';
 
 export class WebviewApp {
+  private readonly root: HTMLElement;
   private readonly terminalController: TerminalController;
   private readonly sessionList: SessionList;
+  private readonly sidebarResize: SidebarResize;
   private readonly activeHeader = requiredElement<HTMLElement>('active-header');
   private readonly activeName = requiredElement<HTMLElement>('active-name');
   private readonly activeCwd = requiredElement<HTMLElement>('active-cwd');
@@ -17,7 +19,7 @@ export class WebviewApp {
   private lastSoundAt = 0;
 
   constructor(private readonly vscode: VSCodeApi) {
-    const root = requiredElement<HTMLElement>('app');
+    this.root = requiredElement<HTMLElement>('app');
     const stack = requiredElement<HTMLElement>('terminal-stack');
     const splitter = requiredElement<HTMLElement>('session-splitter');
     this.terminalController = new TerminalController(stack, vscode);
@@ -29,7 +31,7 @@ export class WebviewApp {
       renameSession: (id, name) => this.post({ type: 'renameSession', id, name }),
       closeSession: (id) => this.post({ type: 'closeSession', id })
     });
-    new SidebarResize(root, splitter, vscode);
+    this.sidebarResize = new SidebarResize(this.root, splitter, vscode);
     this.bindControls();
     this.bindWindowEvents();
   }
@@ -50,6 +52,7 @@ export class WebviewApp {
   private handleHostMessage(message: HostMessage): void {
     switch (message.type) {
       case 'initialize':
+        this.applyLayoutSettings(message.layoutSettings.sessionListPosition);
         this.terminalController.initialize(message.terminalSettings, message.platform);
         this.applyState(message.sessions, message.activeId, message.replays);
         return;
@@ -70,6 +73,9 @@ export class WebviewApp {
         return;
       case 'terminalSettings':
         this.terminalController.updateSettings(message.settings);
+        return;
+      case 'layoutSettings':
+        this.applyLayoutSettings(message.settings.sessionListPosition);
         return;
       case 'refreshTheme':
         this.terminalController.refreshTheme();
@@ -98,6 +104,7 @@ export class WebviewApp {
     this.activeHeader.hidden = !active;
     if (!active) return;
     this.activeName.textContent = active.name;
+    this.activeName.title = '双击重命名会话';
     this.activeCwd.textContent = active.cwd;
     this.activeCwd.title = active.cwd;
     this.activeStatus.className = `status-dot status-${active.status}`;
@@ -111,12 +118,29 @@ export class WebviewApp {
     requiredElement<HTMLButtonElement>('new-session-folder').addEventListener('click', () => {
       this.post({ type: 'newSession', chooseCwd: true });
     });
+    requiredElement<HTMLButtonElement>('new-custom-session').addEventListener('click', () => {
+      this.post({ type: 'newCustomSession', chooseCwd: false });
+    });
     requiredElement<HTMLButtonElement>('empty-new-session').addEventListener('click', () => {
       this.post({ type: 'newSession', chooseCwd: false });
+    });
+    requiredElement<HTMLButtonElement>('empty-custom-session').addEventListener('click', () => {
+      this.post({ type: 'newCustomSession', chooseCwd: false });
     });
     requiredElement<HTMLButtonElement>('restart-session').addEventListener('click', () => {
       if (this.activeId) this.post({ type: 'restartSession', id: this.activeId });
     });
+    requiredElement<HTMLButtonElement>('rename-active-session').addEventListener('click', () => {
+      if (this.activeId) this.post({ type: 'promptRenameSession', id: this.activeId });
+    });
+    this.activeName.addEventListener('dblclick', () => {
+      if (this.activeId) this.post({ type: 'promptRenameSession', id: this.activeId });
+    });
+  }
+
+  private applyLayoutSettings(position: 'left' | 'right'): void {
+    this.root.classList.toggle('session-list-right', position === 'right');
+    this.sidebarResize.setPosition(position);
   }
 
   private bindWindowEvents(): void {

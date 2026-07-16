@@ -23,7 +23,7 @@ export class SessionList {
     row.setAttribute('role', 'tab');
     row.setAttribute('aria-selected', String(session.isActive));
     row.tabIndex = session.isActive ? 0 : -1;
-    row.title = `${session.name}\n${session.cwd}\n${statusLabel(session)}`;
+    row.title = `${session.name}\n${session.cwd}\n${statusLabel(session)}\n双击重命名`;
 
     const status = document.createElement('span');
     status.className = `status-dot status-${session.status}`;

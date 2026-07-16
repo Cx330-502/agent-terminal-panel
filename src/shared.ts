@@ -1,3 +1,5 @@
+import type { LayoutSettings } from './config';
+
 export type SessionStatus = 'running' | 'waiting' | 'approval' | 'completed';
 
 export interface SessionSnapshot {
@@ -40,6 +42,7 @@ export type HostMessage =
       activeId?: string;
       replays: Record<string, string>;
       terminalSettings: TerminalSettings;
+      layoutSettings: LayoutSettings;
       platform: NodeJS.Platform;
     }
   | { type: 'state'; sessions: SessionSnapshot[]; activeId?: string }
@@ -48,6 +51,7 @@ export type HostMessage =
   | { type: 'focusSession'; id: string }
   | { type: 'clipboardText'; requestId: string; text: string }
   | { type: 'terminalSettings'; settings: TerminalSettings }
+  | { type: 'layoutSettings'; settings: LayoutSettings }
   | { type: 'refreshTheme' }
   | { type: 'playCompletionSound' };
 
@@ -56,8 +60,10 @@ export type WebviewMessage =
   | { type: 'input'; id: string; data: string }
   | { type: 'resize'; id: string; cols: number; rows: number }
   | { type: 'newSession'; chooseCwd: boolean }
+  | { type: 'newCustomSession'; chooseCwd: boolean }
   | { type: 'switchSession'; id: string }
   | { type: 'renameSession'; id: string; name: string }
+  | { type: 'promptRenameSession'; id: string }
   | { type: 'closeSession'; id: string }
   | { type: 'restartSession'; id: string }
   | {

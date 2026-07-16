@@ -4,12 +4,13 @@ interface PersistedState {
   sidebarWidth?: number;
 }
 
-const DEFAULT_WIDTH = 172;
+const DEFAULT_WIDTH = 156;
 const MIN_WIDTH = 104;
 const MAX_WIDTH = 360;
 
 export class SidebarResize {
   private width: number;
+  private position: 'left' | 'right' = 'left';
 
   constructor(
     private readonly root: HTMLElement,
@@ -23,6 +24,11 @@ export class SidebarResize {
     this.splitter.addEventListener('keydown', (event) => this.handleKey(event));
   }
 
+  setPosition(position: 'left' | 'right'): void {
+    this.position = position;
+    this.apply();
+  }
+
   private startDrag(event: PointerEvent): void {
     event.preventDefault();
     const startX = event.clientX;
@@ -32,7 +38,12 @@ export class SidebarResize {
 
     const move = (moveEvent: PointerEvent): void => {
       const maxForView = Math.max(MIN_WIDTH, this.root.clientWidth * 0.58);
-      this.width = clamp(startWidth + moveEvent.clientX - startX, MIN_WIDTH, maxForView);
+      const direction = this.position === 'left' ? 1 : -1;
+      this.width = clamp(
+        startWidth + (moveEvent.clientX - startX) * direction,
+        MIN_WIDTH,
+        maxForView
+      );
       this.apply();
     };
     const finish = (): void => {
@@ -50,7 +61,9 @@ export class SidebarResize {
   private handleKey(event: KeyboardEvent): void {
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
     event.preventDefault();
-    this.width = clamp(this.width + (event.key === 'ArrowRight' ? 12 : -12), MIN_WIDTH, MAX_WIDTH);
+    const physicalDirection = event.key === 'ArrowRight' ? 1 : -1;
+    const widthDirection = this.position === 'left' ? physicalDirection : -physicalDirection;
+    this.width = clamp(this.width + widthDirection * 12, MIN_WIDTH, MAX_WIDTH);
     this.apply();
     this.persist();
   }

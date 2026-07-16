@@ -3,6 +3,7 @@ import * as os from 'node:os';
 import * as vscode from 'vscode';
 import {
   getAgentProcessConfig,
+  getLayoutSettings,
   getLaunchCommand,
   getTerminalSettings,
   shouldStartSessionOnOpen
@@ -32,7 +33,10 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
   private didAutoStart = false;
   private lastSize = { cols: 80, rows: 24 };
 
-  constructor(private readonly extensionUri: vscode.Uri) {
+  constructor(
+    private readonly extensionUri: vscode.Uri,
+    private readonly extensionId: string
+  ) {
     this.sessions = new SessionManager(getAgentProcessConfig, {
       onOutput: (id, data) => this.post({ type: 'output', id, data }),
       onClear: (id) => this.post({ type: 'clear', id }),
@@ -57,6 +61,9 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
       vscode.workspace.onDidChangeConfiguration((event) => {
         if (event.affectsConfiguration('terminal.integrated')) {
           this.post({ type: 'terminalSettings', settings: getTerminalSettings() });
+        }
+        if (event.affectsConfiguration('agentTerminalPanel.sessionListPosition')) {
+          this.post({ type: 'layoutSettings', settings: getLayoutSettings() });
         }
       })
     );
@@ -93,13 +100,44 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
 
   async createSession(chooseCwd = false): Promise<string | undefined> {
     if (!(await this.ensureLaunchCommand())) return undefined;
+    return this.createSessionWithOptions(chooseCwd);
+  }
+
+  async createCustomSession(chooseCwd = false): Promise<string | undefined> {
+    const launchCommand = await vscode.window.showInputBox({
+      title: '新建自定义命令会话',
+      prompt: '此命令只属于新会话，不会修改默认启动命令',
+      placeHolder: 'agent-cli --flag value',
+      value: getLaunchCommand(),
+      ignoreFocusOut: true,
+      validateInput: (value) => (value.trim() ? undefined : '启动命令不能为空')
+    });
+    if (launchCommand === undefined) return undefined;
+    const name = await vscode.window.showInputBox({
+      title: '命名新会话',
+      prompt: '会话创建后仍可双击名称或使用重命名按钮修改',
+      value: 'Custom Agent',
+      ignoreFocusOut: true,
+      validateInput: (value) => (value.trim() ? undefined : '会话名称不能为空')
+    });
+    if (name === undefined) return undefined;
+    return this.createSessionWithOptions(chooseCwd, {
+      name,
+      launchCommand
+    });
+  }
+
+  private async createSessionWithOptions(
+    chooseCwd: boolean,
+    options: { name?: string; launchCommand?: string } = {}
+  ): Promise<string | undefined> {
     const cwd = chooseCwd ? await this.pickWorkingDirectory() : this.defaultWorkingDirectory();
     if (!cwd) return undefined;
     if (!this.webviewReady) {
       await this.show();
       await this.waitForWebviewReady();
     }
-    const id = this.sessions.create(cwd, this.lastSize);
+    const id = this.sessions.create(cwd, this.lastSize, options);
     await this.show();
     this.post({ type: 'focusSession', id });
     this.acknowledgeVisibleSession();
@@ -114,6 +152,10 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
   async restartActiveSession(): Promise<void> {
     const id = this.sessions.getActiveId();
     if (id) await this.restartSession(id);
+  }
+
+  openSettings(): void {
+    void vscode.commands.executeCommand('workbench.action.openSettings', `@ext:${this.extensionId}`);
   }
 
   async configureLaunchCommand(showConfirmation = true): Promise<string | undefined> {
@@ -143,6 +185,12 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
 
   async renameActiveSession(): Promise<void> {
     const session = this.sessions.getActive();
+    if (!session) return;
+    await this.renameSession(session.id);
+  }
+
+  private async renameSession(id: string): Promise<void> {
+    const session = this.sessions.get(id);
     if (!session) return;
     const name = await vscode.window.showInputBox({
       title: '重命名 Agent 会话',
@@ -187,6 +235,9 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
       case 'newSession':
         await this.createSession(message.chooseCwd);
         return;
+      case 'newCustomSession':
+        await this.createCustomSession(message.chooseCwd);
+        return;
       case 'switchSession':
         this.sessions.activate(message.id);
         this.post({ type: 'focusSession', id: message.id });
@@ -194,6 +245,9 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
         return;
       case 'renameSession':
         this.sessions.rename(message.id, message.name);
+        return;
+      case 'promptRenameSession':
+        await this.renameSession(message.id);
         return;
       case 'closeSession':
         this.sessions.close(message.id);
@@ -244,6 +298,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
       activeId: this.sessions.getActiveId(),
       replays: this.sessions.replays(),
       terminalSettings: getTerminalSettings(),
+      layoutSettings: getLayoutSettings(),
       platform: process.platform
     });
     const activeId = this.sessions.getActiveId();
@@ -280,7 +335,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
   }
 
   private async restartSession(id: string): Promise<void> {
-    if (!(await this.ensureLaunchCommand())) return;
+    if (this.sessions.requiresDefaultLaunchCommand(id) && !(await this.ensureLaunchCommand())) return;
     this.sessions.restart(id);
   }
 

@@ -4,6 +4,7 @@
 src/**
 test/**
 media/*.ts
+media/icon.svg
 tsconfig.json
 esbuild.mjs
 scripts/**

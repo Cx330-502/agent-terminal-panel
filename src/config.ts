@@ -13,6 +13,12 @@ export interface NotificationConfig {
   completionSound: CompletionSoundMode;
 }
 
+export type SessionListPosition = 'left' | 'right';
+
+export interface LayoutSettings {
+  sessionListPosition: SessionListPosition;
+}
+
 const SECTION = 'agentTerminalPanel';
 
 export function getLaunchCommand(): string {
@@ -39,6 +45,14 @@ export function getNotificationConfig(): NotificationConfig {
       'notifications.completionSound',
       'whenHidden'
     )
+  };
+}
+
+export function getLayoutSettings(): LayoutSettings {
+  return {
+    sessionListPosition: vscode.workspace
+      .getConfiguration(SECTION)
+      .get<SessionListPosition>('sessionListPosition', 'left')
   };
 }
 

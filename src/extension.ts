@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { AgentTerminalViewProvider, VIEW_ID } from './AgentTerminalViewProvider';
 
 export function activate(context: vscode.ExtensionContext): void {
-  const provider = new AgentTerminalViewProvider(context.extensionUri);
+  const provider = new AgentTerminalViewProvider(context.extensionUri, context.extension.id);
   context.subscriptions.push(
     provider,
     vscode.window.registerWebviewViewProvider(VIEW_ID, provider, {
@@ -13,6 +13,9 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
     vscode.commands.registerCommand('agentTerminalPanel.newSessionInFolder', () =>
       provider.createSession(true)
+    ),
+    vscode.commands.registerCommand('agentTerminalPanel.newCustomSession', () =>
+      provider.createCustomSession(false)
     ),
     vscode.commands.registerCommand('agentTerminalPanel.renameSession', () =>
       provider.renameActiveSession()
@@ -25,6 +28,9 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
     vscode.commands.registerCommand('agentTerminalPanel.configureLaunchCommand', () =>
       provider.configureLaunchCommand()
+    ),
+    vscode.commands.registerCommand('agentTerminalPanel.openSettings', () =>
+      provider.openSettings()
     ),
     vscode.commands.registerCommand('agentTerminalPanel.nextSession', () =>
       provider.switchSession(1)
