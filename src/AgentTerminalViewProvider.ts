@@ -1,10 +1,8 @@
-import * as fs from 'node:fs';
-import * as os from 'node:os';
 import * as vscode from 'vscode';
-import { AttachmentStore } from './attachmentStore';
-import { formatAttachmentPaths } from './attachmentUtils';
+import { AttachmentController } from './attachmentController';
 import {
   getAgentProcessConfig,
+  getCommunicationHealthConfig,
   getLayoutSettings,
   getLaunchCommand,
   getTerminalSettings,
@@ -23,13 +21,9 @@ import {
 import type { HostMessage, WebviewMessage } from './shared';
 import { StartupLogger } from './startupLogger';
 import { getWebviewHtml } from './webviewHtml';
+import { defaultWorkingDirectory, pickWorkingDirectory } from './workingDirectory';
 
 export const VIEW_ID = 'agentTerminalPanel.terminalView';
-
-interface CwdPickItem extends vscode.QuickPickItem {
-  path?: string;
-  browse?: boolean;
-}
 
 export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   private readonly disposables: vscode.Disposable[] = [];
@@ -38,7 +32,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
   private readonly sessions: SessionManager;
   private readonly notifier: CompletionNotifier;
   private readonly sessionHistory: SessionHistoryController;
-  private readonly attachmentStore: AttachmentStore;
+  private readonly attachments: AttachmentController;
   private readonly startupLogger = new StartupLogger();
   private view: vscode.WebviewView | undefined;
   private webviewReady = false;
@@ -53,8 +47,11 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
     storageUri: vscode.Uri | undefined,
     globalStorageUri: vscode.Uri
   ) {
-    this.attachmentStore = new AttachmentStore(storageUri ?? globalStorageUri);
-    this.sessions = new SessionManager(getAgentProcessConfig, {
+    this.attachments = new AttachmentController(
+      storageUri ?? globalStorageUri,
+      (message) => this.post(message)
+    );
+    this.sessions = new SessionManager(getAgentProcessConfig, getCommunicationHealthConfig, {
       onOutput: (id, data) => this.post({ type: 'output', id, data }),
       onClear: (id) => this.post({ type: 'clear', id }),
       onStateChanged: () => this.handleStateChanged(),
@@ -89,6 +86,9 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
         }
         if (event.affectsConfiguration('agentTerminalPanel.sessionListPosition')) {
           this.post({ type: 'layoutSettings', settings: getLayoutSettings() });
+        }
+        if (event.affectsConfiguration('agentTerminalPanel.communicationHealth')) {
+          this.sessions.refreshCommunicationHealth();
         }
       })
     );
@@ -161,7 +161,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
     chooseCwd: boolean,
     options: { name?: string; launchCommand?: string; canRestart?: boolean } = {}
   ): Promise<string | undefined> {
-    const cwd = chooseCwd ? await this.pickWorkingDirectory() : this.defaultWorkingDirectory();
+    const cwd = chooseCwd ? await pickWorkingDirectory() : defaultWorkingDirectory();
     if (!cwd) return undefined;
     this.didAutoStart = true;
     if (!this.webviewReady) {
@@ -309,20 +309,17 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
       case 'clipboardWrite':
         await vscode.env.clipboard.writeText(message.text);
         return;
-      case 'saveAttachments': {
-        const result = await this.attachmentStore.save(message.uploads, message.uris);
-        this.post({
-          type: 'attachmentResult',
-          requestId: message.requestId,
-          id: message.id,
-          ...(result.paths.length > 0
-            ? { insertText: formatAttachmentPaths(result.paths, process.platform) }
-            : {}),
-          savedCount: result.paths.length,
-          errors: result.errors
-        });
+      case 'pickAttachments':
+        if (this.sessions.get(message.id)) await this.attachments.pick(message.id);
         return;
-      }
+      case 'saveAttachments':
+        await this.attachments.save(
+          message.requestId,
+          message.id,
+          message.uploads,
+          message.uris
+        );
+        return;
     }
   }
 
@@ -433,46 +430,6 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
       }, 2000);
       this.readyWaiters.add(finish);
     });
-  }
-
-  private defaultWorkingDirectory(): string {
-    const candidate = this.defaultWorkingDirectoryUri().fsPath;
-    return candidate && fs.existsSync(candidate) ? candidate : os.homedir();
-  }
-
-  private defaultWorkingDirectoryUri(): vscode.Uri {
-    const activeUri = vscode.window.activeTextEditor?.document.uri;
-    const activeFolder = activeUri ? vscode.workspace.getWorkspaceFolder(activeUri) : undefined;
-    return activeFolder?.uri ?? vscode.workspace.workspaceFolders?.[0]?.uri ?? vscode.Uri.file(os.homedir());
-  }
-
-  private async pickWorkingDirectory(): Promise<string | undefined> {
-    const items: CwdPickItem[] = (vscode.workspace.workspaceFolders ?? []).map((folder) => ({
-      label: `$(root-folder) ${folder.name}`,
-      description: folder.uri.fsPath,
-      path: folder.uri.fsPath
-    }));
-    if (items.length > 0) items.push({ label: '', kind: vscode.QuickPickItemKind.Separator });
-    items.push(
-      { label: '$(home) Home', description: os.homedir(), path: os.homedir() },
-      { label: '$(folder-opened) 浏览…', browse: true }
-    );
-    const selected = await vscode.window.showQuickPick(items, {
-      title: '选择 Agent 工作目录',
-      placeHolder: '会话会在 workspace extension host 上从此目录启动'
-    });
-    if (!selected) return undefined;
-    if (selected.path) return selected.path;
-    if (!selected.browse) return undefined;
-    const picked = await vscode.window.showOpenDialog({
-      title: '选择 Agent 工作目录',
-      defaultUri: this.defaultWorkingDirectoryUri(),
-      canSelectFiles: false,
-      canSelectFolders: true,
-      canSelectMany: false,
-      openLabel: '在此目录中新建'
-    });
-    return picked?.[0]?.fsPath;
   }
 
   private clearViewDisposables(): void {

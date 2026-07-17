@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.6.0
+
+- 新增响应式通信健康条，显示活跃、静默、疑似停滞和空闲状态；窄侧栏自动收缩为短标签，不遮挡会话名与操作按钮。
+- 新增通用 PTY 收发速率与静默计时，并在界面和提示中明确标注为“非网络流量”。
+- Linux/WSL/Remote SSH 使用 `ss` 关联 Agent 进程树和 TCP 累计字节；macOS 使用 `nettop`；Windows 显示逐进程连接数并安全回退到 PTY。
+- 支持识别 Agent 到本地 loopback 代理的连接，反向关联 cc-switch 等代理上游，并用 `*` 标记“代理进程共享估计”。
+- 新增 Codex 进程级 rollout JSONL 映射，展示真实完成 TTFT、回合时长、token 计数和进行中的首事件时间；不保存、上传或展示消息正文。
+- 新增静默/停滞阈值、采样间隔、进程网络和 Codex 元数据独立开关；配置修改可热刷新。
+- 明确不伪造 TPOT/TBT，并记录远端 CPA、多账号代理和共享代理无法仅凭进程 socket 精确归因的边界。
+- 修复 xterm DOM 渲染器中拖选文字到终端上下边缘时不自动滚动 scrollback 的问题，并增加上下方向浏览器回归。
+- 文件拖入遮罩明确提示 VS Code 的 `Shift` Webview 手势，新增统一图片图标的原生文件选择入口；继续支持 Explorer/远端 URI 与剪贴板路径。
+- Marketplace 图标改为真正透明的 RGBA PNG，移除圆角外的白色底边。
+- 启动遮罩改为仅覆盖 PTY 创建阶段；进程一创建就显示终端，不再把 Agent 首次输出或网络等待误表现为插件加载。
+- 增加 Linux 真实 TCP 探针、macOS `nettop` fixture、Codex 首回合 token、通信状态和九视口 UI 回归；更新 Marketplace 展示图。
+
 ## 0.5.0
 
 - 全面更新品牌视觉：新的梦幻渐变 Marketplace 图标、专用 Activity Bar 图标，以及统一的 Webview 线性图标体系。

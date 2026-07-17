@@ -39,6 +39,14 @@ export class AttachmentController {
     this.activeId = id;
   }
 
+  pickFiles(): void {
+    if (!this.activeId) {
+      this.showStatus('请先创建或选择一个终端会话', 'error');
+      return;
+    }
+    this.vscode.postMessage({ type: 'pickAttachments', id: this.activeId });
+  }
+
   receiveResult(
     requestId: string,
     id: string,

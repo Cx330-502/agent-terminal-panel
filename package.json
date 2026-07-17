@@ -1,8 +1,8 @@
 {
   "name": "agent-terminal-panel",
   "displayName": "Agent Terminal Panel",
-  "description": "在可移动的 VS Code 视图中管理多个 Agent CLI 终端会话",
-  "version": "0.5.0",
+  "description": "在可移动的 VS Code 视图中管理多个 Agent CLI 会话，支持真实 PTY、历史恢复、图片输入与通信健康监测",
+  "version": "0.6.0",
   "publisher": "Cx330-502",
   "author": "Cx330-502",
   "license": "MIT",
@@ -23,11 +23,16 @@
   ],
   "keywords": [
     "agent",
+    "ai-agent",
     "cli",
+    "codex",
+    "claude",
     "terminal",
     "xterm",
     "sidebar",
-    "panel"
+    "panel",
+    "wsl",
+    "ssh"
   ],
   "extensionKind": [
     "workspace"
@@ -236,6 +241,42 @@
           "type": "boolean",
           "default": false,
           "description": "启用 Sixel/iTerm 终端图片，并为 Codex Pets 兼容模式设置 TERM=xterm-sixel、移除 TERM_PROGRAM。新建或重启会话时生效。"
+        },
+        "agentTerminalPanel.communicationHealth.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "在会话顶栏显示带来源标记的通信健康、流量、静默时长和 Provider 指标。"
+        },
+        "agentTerminalPanel.communicationHealth.sampleIntervalMs": {
+          "type": "number",
+          "default": 2000,
+          "minimum": 500,
+          "maximum": 10000,
+          "description": "通信健康状态的刷新间隔（毫秒）。进程网络探针可能使用更低频率。"
+        },
+        "agentTerminalPanel.communicationHealth.quietThresholdSeconds": {
+          "type": "number",
+          "default": 15,
+          "minimum": 5,
+          "maximum": 300,
+          "description": "运行中会话连续多久没有所选来源的活动后标记为静默。"
+        },
+        "agentTerminalPanel.communicationHealth.stalledThresholdSeconds": {
+          "type": "number",
+          "default": 45,
+          "minimum": 10,
+          "maximum": 600,
+          "description": "运行中会话连续多久没有活动后标记为疑似停滞；该状态是诊断提示，不等同于确认网络故障。"
+        },
+        "agentTerminalPanel.communicationHealth.processNetwork.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "启用 workspace host 上的进程网络探针。Linux/WSL/SSH 读取 TCP 字节，macOS 使用 nettop，Windows 显示连接数并回退到 PTY 速率。"
+        },
+        "agentTerminalPanel.communicationHealth.codexSessionMetrics.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "从被监控 Codex 进程已打开的本地 JSONL 中提取 TTFT 和 token 计数元数据；不会保存、上传或展示提示词正文。Linux/WSL/SSH 与 macOS 支持精确进程映射。"
         },
         "agentTerminalPanel.sessionHistory.maxResults": {
           "type": "number",

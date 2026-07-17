@@ -18,8 +18,9 @@ Agent Terminal Panel is provider-agnostic. You supply the launch command; it sup
 - **Per-session context**: choose a cwd or launch a named one-off custom command without changing the default.
 - **Continue old work**: discover only Codex and Claude Code sessions belonging to the current workspace, then invoke each provider's native resume or fork command.
 - **Useful attention signals**: running, waiting for input, awaiting approval, and completed states, plus unread dots, a View badge, native toasts, and deduplicated completion sound.
-- **Visible startup diagnostics**: distinguish PTY creation from waiting for the Agent's first output. Open `Output > Agent Terminal Panel` for Webview, spawn, and first-byte timings.
-- **Practical image input**: paste clipboard images or drop files and supported local/remote URI transfers. The extension stores the image and inserts a safely quoted path without submitting it.
+- **See real activity behind “Working”**: layered PTY, process-socket, silence, and provider telemetry distinguishes useful work from a session that may be stuck without pretending terminal bytes are network traffic.
+- **Terminal visible immediately**: the startup overlay only covers PTY creation and never blocks the terminal while an Agent or network is waiting for first output. Open `Output > Agent Terminal Panel` for Webview, spawn, and first-byte timings.
+- **Practical image input**: paste, use the native file picker, or hold `Shift` while dropping OS/VS Code Explorer files and remote URI transfers. The extension inserts a safely quoted path without submitting it.
 - **Native VS Code appearance**: terminal font, size, weight, line height, cursor, scroll behavior, and colors all come from VS Code's integrated terminal settings and theme.
 - **Optional terminal images**: enable Sixel/iTerm support for Codex Pets and similar tools only when needed.
 
@@ -54,13 +55,28 @@ Shortcuts apply only while the Agent Terminal view is focused:
 | Previous session | `Ctrl+PageUp` | `Cmd+Alt+Left` |
 | Close session | `Ctrl+W` | `Cmd+W` |
 
-## Image paste and drop
+## Image paste, picker, and drop
 
-- Paste a clipboard image into the focused terminal, or drop up to eight images from the OS file manager.
+- Paste a clipboard image into the focused terminal, or use the image button in the active-session header to open VS Code's native file picker.
+- Hold `Shift` before entering and dropping files from either VS Code Explorer or the OS file manager. This is VS Code's official gesture for routing a file into a Webview instead of opening it in an editor (see [microsoft/vscode#182449](https://github.com/microsoft/vscode/issues/182449)).
+- Browser files, `ResourceURLs`, VS Code URI lists, `CodeFiles`, remote URIs, and absolute image paths are supported, up to eight images per operation.
 - The per-file limit is 25 MB and the per-operation limit is 50 MB. Paths are inserted without an automatic Enter.
-- Images live in VS Code extension storage, so the project directory remains clean.
-- In WSL and Remote SSH, images are stored on the remote workspace host where the Agent can access them.
-- VS Code core disables Webview iframe pointer events during some internal Explorer drags (see [microsoft/vscode#182449](https://github.com/microsoft/vscode/issues/182449)). If that drag never reaches the extension, copy the image in Explorer and paste it into the terminal. OS file-manager drops are not affected.
+- Clipboard/browser file bytes are stored in VS Code extension storage; Explorer/URI files already on the workspace host keep their original path, so no project copy is created.
+- In WSL and Remote SSH, uploaded images are stored on the remote workspace host where the Agent can access them.
+- If a particular VS Code build, desktop environment, or remote host still does not route the drop into the Webview, use the header picker or copy/paste; neither path depends on iframe drag routing.
+
+## Communication health without invented metrics
+
+Version 0.6.0 adds a responsive communication strip to the active-session header. Its sources stay deliberately separate:
+
+- **PTY layer** works for every Agent and reports terminal input/output rates plus silence duration. These are terminal bytes, not network throughput.
+- **Process-network layer** reads cumulative TCP counters for the Agent process tree through `ss` on Linux, WSL, and Remote SSH, uses `nettop` on macOS, and reports established connection counts on Windows before falling back to PTY activity when byte counters are unavailable.
+- **Codex provider layer** maps only rollout JSONL files already opened by the monitored Codex process (`/proc/<pid>/fd` on Linux, `lsof` on macOS), then extracts the exact `task_complete.time_to_first_token_ms`, turn duration, and token metadata.
+- **Local proxy correlation** detects loopback-only Agent sockets and can locate a local cc-switch-like proxy. A `*` beside the proxy name means its upstream rate is a process-shared estimate, not traffic exclusively attributed to one Agent session.
+
+Green means recent activity, yellow means the quiet threshold was crossed, and red means the session is possibly stalled. A red signal is diagnostic rather than proof of a broken network: local tools, server queues, and model work can all be silent. Codex tool activity reported in JSONL is exempt from the silence warning.
+
+The extension does not fabricate TPOT/TBT. Exact values are shown only when a provider exposes reliable telemetry. Completed Codex `TTFT` is exact; an in-progress “first event” is explicitly labelled as an approximation. Traffic beyond a remote CPA or a shared multi-account proxy cannot be attributed to an account or request from the Agent socket alone, and the UI preserves that limitation.
 
 ## Settings
 
@@ -71,6 +87,12 @@ Shortcuts apply only while the Agent Terminal view is focused:
 | `agentTerminalPanel.sessionListPosition` | `left` | Place the session list left or right of the terminal |
 | `agentTerminalPanel.startSessionOnOpen` | `true` | Create a session when the view first opens |
 | `agentTerminalPanel.terminalImages.enabled` | `false` | Enable Sixel/iTerm images and the Codex Pets compatibility environment |
+| `agentTerminalPanel.communicationHealth.enabled` | `true` | Show source-labelled communication health |
+| `agentTerminalPanel.communicationHealth.sampleIntervalMs` | `2000` | UI and PTY refresh interval; platform probes may sample less often |
+| `agentTerminalPanel.communicationHealth.quietThresholdSeconds` | `15` | Silence before a running session becomes quiet |
+| `agentTerminalPanel.communicationHealth.stalledThresholdSeconds` | `45` | Silence before a running session becomes possibly stalled |
+| `agentTerminalPanel.communicationHealth.processNetwork.enabled` | `true` | Enable workspace-host process-network probes |
+| `agentTerminalPanel.communicationHealth.codexSessionMetrics.enabled` | `true` | Extract TTFT and token metadata from the active Codex process |
 | `agentTerminalPanel.sessionHistory.maxResults` | `100` | Maximum current-workspace history results |
 | `agentTerminalPanel.sessionHistory.codexCommand` | `codex` | Codex resume/fork command prefix |
 | `agentTerminalPanel.sessionHistory.claudeCommand` | `claude` | Claude Code resume/fork command prefix |
@@ -81,7 +103,7 @@ For Codex Pets, enable `agentTerminalPanel.terminalImages.enabled` and create or
 
 ## Platforms and remote development
 
-The Marketplace selects the package for the current extension host. `releases/v0.5.0/` also contains native packages for:
+The Marketplace selects the package for the current extension host. `releases/v0.6.0/` also contains native packages for:
 
 - Windows x64 and ARM64
 - Linux x64 and ARM64, including WSL and Remote SSH workspace hosts
@@ -91,7 +113,7 @@ Each VSIX carries only the matching `node-pty` prebuild. The extension declares 
 
 ## Privacy
 
-The extension has no cloud service and does not upload terminal output, history, or images. Any network traffic, account routing, or proxy behavior belongs to the Agent command and environment you configure. History discovery reads provider records on the workspace host and filters them by the current workspace cwd.
+The extension has no cloud service and does not upload terminal output, history, communication metrics, or images. Any network traffic, account routing, or proxy behavior belongs to the Agent command and environment you configure. History discovery reads provider records on the workspace host and filters them by the current workspace cwd. When Codex communication metadata is enabled, the extension reads only rollout JSONL files already opened by that Codex process and retains event phase, timing, and token numbers—not prompt or response text. Process-network and Codex metadata probes can be disabled independently.
 
 ## Project
 

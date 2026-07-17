@@ -11,6 +11,9 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
   const startupStyles = webview.asWebviewUri(
     vscode.Uri.joinPath(extensionUri, 'media', 'startup.css')
   );
+  const communicationStyles = webview.asWebviewUri(
+    vscode.Uri.joinPath(extensionUri, 'media', 'communication.css')
+  );
   const script = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'main.js'));
 
   return `<!doctype html>
@@ -23,6 +26,7 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
   <link rel="stylesheet" href="${styles}">
   <link rel="stylesheet" href="${attachmentStyles}">
   <link rel="stylesheet" href="${startupStyles}">
+  <link rel="stylesheet" href="${communicationStyles}">
   <title>Agent Terminal Panel</title>
 </head>
 <body>
@@ -47,7 +51,17 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
           <span id="active-name" class="active-name"></span>
           <span id="active-cwd" class="active-cwd"></span>
         </div>
+        <div id="communication-summary" class="communication-summary" role="status" aria-live="polite" hidden>
+          <span class="communication-health">
+            <span id="communication-dot" class="communication-dot" aria-hidden="true"></span>
+            <span id="communication-health-full" class="communication-health-full"></span>
+            <span id="communication-health-compact" class="communication-health-compact"></span>
+          </span>
+          <span id="communication-traffic" class="communication-traffic"></span>
+          <span id="communication-latency" class="communication-latency"></span>
+        </div>
         <span class="active-actions">
+          <button id="pick-attachments" class="icon-button" type="button" title="选择图片文件；从 VS Code 资源管理器拖入时请按住 Shift" aria-label="选择图片文件" data-icon="image"></button>
           <button id="rename-active-session" class="icon-button" type="button" title="重命名当前会话" aria-label="重命名当前会话" data-icon="pencil"></button>
           <button id="restart-session" class="icon-button" type="button" title="重启当前会话" aria-label="重启当前会话" data-icon="restart"></button>
         </span>
@@ -64,7 +78,7 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
       </div>
       <div id="attachment-overlay" class="attachment-overlay" hidden>
         <strong>放下图片</strong>
-        <span>保存到 workspace host 并插入路径；VS Code 资源管理器受 Webview 限制时请复制后粘贴</span>
+        <span>VS Code 资源管理器或系统文件管理器拖入时请按住 Shift；也可点击顶栏图片按钮</span>
       </div>
       <div id="attachment-status" class="attachment-status" role="status" aria-live="polite" hidden></div>
       <div id="empty-state" class="empty-state">

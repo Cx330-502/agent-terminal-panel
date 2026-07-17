@@ -1,5 +1,6 @@
 import type { HostMessage, SessionSnapshot, VSCodeApi, WebviewMessage } from '../src/shared';
 import { AttachmentController } from './attachmentController';
+import { CommunicationIndicator } from './communicationIndicator';
 import { hydrateIcons } from './icons';
 import { SessionList, statusLabel } from './sessionList';
 import { SidebarResize } from './sidebarResize';
@@ -13,6 +14,7 @@ export class WebviewApp {
   private readonly sessionList: SessionList;
   private readonly sidebarResize: SidebarResize;
   private readonly startupIndicator: StartupIndicator;
+  private readonly communicationIndicator: CommunicationIndicator;
   private readonly activeHeader = requiredElement<HTMLElement>('active-header');
   private readonly activeName = requiredElement<HTMLElement>('active-name');
   private readonly activeCwd = requiredElement<HTMLElement>('active-cwd');
@@ -51,6 +53,14 @@ export class WebviewApp {
       requiredElement('startup-overlay'),
       requiredElement('startup-title'),
       requiredElement('startup-detail')
+    );
+    this.communicationIndicator = new CommunicationIndicator(
+      requiredElement('communication-summary'),
+      requiredElement('communication-dot'),
+      requiredElement('communication-health-full'),
+      requiredElement('communication-health-compact'),
+      requiredElement('communication-traffic'),
+      requiredElement('communication-latency')
     );
     this.bindControls();
     this.bindWindowEvents();
@@ -127,7 +137,9 @@ export class WebviewApp {
     this.attachmentController.setActiveId(activeId);
     this.sessionList.render(sessions);
     this.terminalController.syncSessions(sessions, activeId, replays);
-    this.startupIndicator.render(sessions.find((session) => session.id === activeId));
+    const active = sessions.find((session) => session.id === activeId);
+    this.startupIndicator.render(active);
+    this.communicationIndicator.render(active);
     this.renderActiveHeader();
     this.emptyState.hidden = sessions.length > 0;
   }
@@ -141,6 +153,10 @@ export class WebviewApp {
     this.activeCwd.textContent = active.cwd;
     this.activeCwd.title = active.cwd;
     this.activeStatus.className = `status-dot status-${active.status}`;
+    this.activeHeader.classList.toggle(
+      'communication-stalled',
+      active.communication?.health === 'stalled'
+    );
     this.activeStatus.title = statusLabel(active);
     this.restartButton.disabled = !active.canRestart;
     this.restartButton.title = active.canRestart
@@ -160,6 +176,9 @@ export class WebviewApp {
     });
     requiredElement<HTMLButtonElement>('session-history').addEventListener('click', () => {
       this.post({ type: 'openSessionHistory' });
+    });
+    requiredElement<HTMLButtonElement>('pick-attachments').addEventListener('click', () => {
+      this.attachmentController.pickFiles();
     });
     requiredElement<HTMLButtonElement>('empty-new-session').addEventListener('click', () => {
       this.post({ type: 'newSession', chooseCwd: false });

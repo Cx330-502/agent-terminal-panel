@@ -29,7 +29,48 @@ async (page) => {
           status: 'running',
           unread: false,
           isActive: true,
-          canRestart: true
+          canRestart: true,
+          communication: {
+            health: 'active',
+            healthBasis: 'network',
+            silentForMs: 420,
+            sampledAt: Date.now(),
+            pty: {
+              receivedBytes: 24_000,
+              sentBytes: 520,
+              receiveRate: 840,
+              sendRate: 48
+            },
+            network: {
+              source: 'linux-ss',
+              available: true,
+              hasByteCounters: true,
+              connectionCount: 1,
+              loopback: true,
+              receivedBytes: 18_000,
+              sentBytes: 2_800,
+              receiveRate: 760,
+              sendRate: 42,
+              proxy: {
+                processName: 'cc-switch',
+                connectionCount: 2,
+                shared: true,
+                receivedBytes: 20_000,
+                sentBytes: 3_200,
+                receiveRate: 1_240,
+                sendRate: 96
+              }
+            },
+            provider: {
+              provider: 'codex',
+              source: 'codex-jsonl',
+              turnActive: true,
+              phase: 'waiting',
+              waitingForFirstEventMs: 3200,
+              totalTokens: 18_400,
+              contextWindow: 200_000
+            }
+          }
         },
         {
           id: 'session-2',
@@ -64,7 +105,7 @@ async (page) => {
           '\r\n',
           '\u001b[1m› Ship across every host\u001b[0m\r\n',
           '\r\n',
-          '\u001b[38;2;103;232;249m•\u001b[0m 25 tests passed\r\n',
+          '\u001b[38;2;103;232;249m•\u001b[0m Regression passed\r\n',
           '\u001b[38;2;103;232;249m•\u001b[0m Six targets packaged\r\n',
           '\r\n',
           '\u001b[38;2;192;132;252m✦\u001b[0m Working…\r\n',
@@ -79,7 +120,7 @@ async (page) => {
           '\u001b[1m› Build a provider-agnostic terminal workspace\u001b[0m\r\n',
           '\r\n',
           '\u001b[38;2;103;232;249m•\u001b[0m Reading the current workspace\r\n',
-          '\u001b[38;2;103;232;249m•\u001b[0m 25 tests passed\r\n',
+          '\u001b[38;2;103;232;249m•\u001b[0m Regression suite passed\r\n',
           '\u001b[38;2;103;232;249m•\u001b[0m Packaging six native targets\r\n',
           '\r\n',
           '\u001b[38;2;192;132;252m✦\u001b[0m Working across the workspace host…\r\n',

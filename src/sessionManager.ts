@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import type { AgentProcessConfig } from './config';
+import { CommunicationMonitor } from './communication/monitor';
+import type { AgentProcessConfig, CommunicationHealthConfig } from './config';
 import { isApprovalDecisionInput, isSubmissionInput } from './input';
 import { OutputBuffer } from './outputBuffer';
 import { PtyHost, type PtySize } from './ptyHost';
@@ -56,11 +57,13 @@ export interface SessionStartupTiming {
 export class SessionManager {
   private readonly sessions = new Map<string, SessionRecord>();
   private readonly ptyHost: PtyHost;
+  private readonly communication: CommunicationMonitor;
   private activeId: string | undefined;
   private nameCounter = 0;
 
   constructor(
     private readonly getProcessConfig: () => AgentProcessConfig,
+    getCommunicationConfig: () => CommunicationHealthConfig,
     private readonly callbacks: SessionManagerCallbacks
   ) {
     this.ptyHost = new PtyHost({
@@ -68,6 +71,9 @@ export class SessionManager {
       onExit: (id, exitCode) => this.handlePtyExit(id, exitCode),
       onError: (id, error) => this.handlePtyError(id, error)
     });
+    this.communication = new CommunicationMonitor(getCommunicationConfig, () =>
+      this.callbacks.onStateChanged()
+    );
   }
 
   create(cwd: string, size: PtySize, options: SessionCreateOptions = {}): string {
@@ -87,6 +93,7 @@ export class SessionManager {
       ...(options.launchCommand?.trim() ? { launchCommand: options.launchCommand.trim() } : {})
     };
     this.sessions.set(id, session);
+    this.communication.create(id);
     this.activeId = id;
     this.callbacks.onStateChanged();
     this.spawn(session);
@@ -98,6 +105,7 @@ export class SessionManager {
     const index = ids.indexOf(id);
     if (index < 0) return;
     this.ptyHost.kill(id);
+    this.communication.remove(id);
     this.sessions.delete(id);
     if (this.activeId === id) {
       const remaining = [...this.sessions.keys()];
@@ -110,6 +118,7 @@ export class SessionManager {
     const session = this.sessions.get(id);
     if (!session || !session.canRestart) return;
     this.ptyHost.kill(id);
+    this.communication.restart(id);
     session.output.clear();
     session.exitCode = undefined;
     session.unread = false;
@@ -142,6 +151,7 @@ export class SessionManager {
       changed = true;
     }
     if (changed) this.callbacks.onStateChanged();
+    this.communication.recordPtyInput(id, data);
     this.ptyHost.write(id, data);
   }
 
@@ -234,6 +244,10 @@ export class SessionManager {
     return !this.sessions.get(id)?.launchCommand;
   }
 
+  refreshCommunicationHealth(): void {
+    this.communication.refreshConfig();
+  }
+
   snapshots(): SessionSnapshot[] {
     return [...this.sessions.values()].map((session) => this.snapshot(session));
   }
@@ -245,6 +259,7 @@ export class SessionManager {
   }
 
   dispose(): void {
+    this.communication.dispose();
     this.ptyHost.dispose();
     this.sessions.clear();
   }
@@ -257,6 +272,7 @@ export class SessionManager {
     });
     if (!info) return;
     session.pid = info.pid;
+    this.communication.setPid(session.id, info.pid);
     session.spawnDurationMs = info.durationMs;
     this.callbacks.onStartupTiming({
       id: session.id,
@@ -275,6 +291,7 @@ export class SessionManager {
       this.finishStartup(session, 'firstOutput');
       this.callbacks.onStateChanged();
     }
+    this.communication.recordPtyOutput(id, data);
     session.output.append(data);
     this.callbacks.onOutput(id, data);
   }
@@ -287,6 +304,7 @@ export class SessionManager {
     }
     session.exitCode = exitCode;
     const message = `\r\n[Agent process exited with code ${exitCode}]\r\n`;
+    this.communication.recordPtyOutput(id, message);
     session.output.append(message);
     this.callbacks.onOutput(id, message);
     this.setDetectedStatus(id, 'completed', true, `exit ${exitCode}`);
@@ -300,6 +318,7 @@ export class SessionManager {
     }
     session.exitCode = -1;
     const message = `\r\n[Unable to start Agent CLI: ${error.message}]\r\n`;
+    this.communication.recordPtyOutput(id, message);
     session.output.append(message);
     this.callbacks.onOutput(id, message);
     this.setDetectedStatus(id, 'completed', true, error.message);
@@ -322,6 +341,7 @@ export class SessionManager {
   }
 
   private snapshot(session: SessionRecord): SessionSnapshot {
+    const communication = this.communication.snapshot(session.id, session.status);
     return {
       id: session.id,
       name: session.name,
@@ -336,6 +356,7 @@ export class SessionManager {
       ...(session.startupDurationMs === undefined
         ? { startupElapsedMs: Math.max(0, Date.now() - session.startedAt) }
         : { startupDurationMs: session.startupDurationMs }),
+      ...(communication ? { communication } : {}),
       ...(session.exitCode === undefined ? {} : { exitCode: session.exitCode })
     };
   }

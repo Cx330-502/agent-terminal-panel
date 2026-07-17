@@ -7,6 +7,7 @@ import type {
   VSCodeApi,
   WebviewMessage
 } from '../src/shared';
+import { SelectionAutoScroll } from './selectionAutoScroll';
 import { StatusDetector } from './statusDetector';
 import { applyTerminalSettings } from './theme';
 
@@ -15,6 +16,7 @@ interface TerminalEntry {
   fitAddon: FitAddon;
   element: HTMLElement;
   detector: StatusDetector;
+  selectionAutoScroll: SelectionAutoScroll;
   imageAddon?: ImageAddon;
   settleTimer?: number;
   signalTimer?: number;
@@ -164,11 +166,13 @@ export class TerminalController {
     const detector = new StatusDetector((update) => {
       this.post({ type: 'status', id, ...update });
     });
+    const selectionAutoScroll = new SelectionAutoScroll(element, terminal);
     const entry: TerminalEntry = {
       terminal,
       fitAddon,
       element,
       detector,
+      selectionAutoScroll,
       ...(imageAddon ? { imageAddon } : {}),
       replaying: false
     };
@@ -199,6 +203,7 @@ export class TerminalController {
     if (!entry) return;
     if (entry.settleTimer !== undefined) window.clearTimeout(entry.settleTimer);
     if (entry.signalTimer !== undefined) window.clearTimeout(entry.signalTimer);
+    entry.selectionAutoScroll.dispose();
     entry.terminal.dispose();
     entry.element.remove();
     this.entries.delete(id);

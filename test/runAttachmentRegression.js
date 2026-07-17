@@ -69,6 +69,19 @@ async (page) => {
     };
   });
 
+  await page.evaluate(() => { window.__webviewMessages.length = 0; });
+  await page.locator('#pick-attachments').click();
+  await page.waitForTimeout(60);
+  const filePicker = await page.evaluate(() => {
+    const inputs = window.__webviewMessages.filter((message) => message.type === 'input');
+    return {
+      pickerPosted: window.__webviewMessages.some((message) => message.type === 'pickAttachments'),
+      inputCount: inputs.length,
+      inserted: inputs.map((message) => message.data).join(''),
+      status: document.querySelector('#attachment-status').textContent
+    };
+  });
+
   const dragDrop = await page.evaluate(async () => {
     window.__webviewMessages.length = 0;
     const transfer = new DataTransfer();
@@ -78,12 +91,14 @@ async (page) => {
     const target = document.querySelector('#terminal-stack');
     target.dispatchEvent(new DragEvent('dragenter', {
       dataTransfer: transfer,
+      shiftKey: true,
       bubbles: true,
       cancelable: true
     }));
     const overlayDuring = !document.querySelector('#attachment-overlay').hidden;
     target.dispatchEvent(new DragEvent('drop', {
       dataTransfer: transfer,
+      shiftKey: true,
       bubbles: true,
       cancelable: true
     }));
@@ -104,6 +119,7 @@ async (page) => {
     transfer.setData('text/uri-list', 'file:///tmp/example%20image.png');
     document.querySelector('#terminal-stack').dispatchEvent(new DragEvent('drop', {
       dataTransfer: transfer,
+      shiftKey: true,
       bubbles: true,
       cancelable: true
     }));
@@ -138,6 +154,7 @@ async (page) => {
       transfer.setData(item.type, item.value);
       document.querySelector('#active-header').dispatchEvent(new DragEvent('drop', {
         dataTransfer: transfer,
+        shiftKey: true,
         bubbles: true,
         cancelable: true
       }));
@@ -149,6 +166,7 @@ async (page) => {
     unknownTransfer.setData('application/x-agent-terminal-test', 'unknown');
     const dragOver = new DragEvent('dragover', {
       dataTransfer: unknownTransfer,
+      shiftKey: true,
       bubbles: true,
       cancelable: true
     });
@@ -169,6 +187,7 @@ async (page) => {
       window.__layoutTransfer = transfer;
       document.querySelector('#terminal-stack').dispatchEvent(new DragEvent('dragenter', {
         dataTransfer: transfer,
+        shiftKey: true,
         bubbles: true,
         cancelable: true
       }));
@@ -186,6 +205,7 @@ async (page) => {
     await page.evaluate(() => {
       document.querySelector('#terminal-stack').dispatchEvent(new DragEvent('drop', {
         dataTransfer: window.__layoutTransfer,
+        shiftKey: true,
         bubbles: true,
         cancelable: true
       }));
@@ -208,6 +228,7 @@ async (page) => {
     textPaste,
     keyboardPaste,
     imagePaste,
+    filePicker,
     dragDrop,
     uriDrop,
     vscodeTransfers,

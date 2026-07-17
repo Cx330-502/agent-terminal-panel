@@ -1,0 +1,125 @@
+.active-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 5px;
+}
+
+.active-meta {
+  overflow: hidden;
+}
+
+.active-name {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.communication-summary {
+  display: flex;
+  min-width: 0;
+  height: 24px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 7px;
+  overflow: hidden;
+  border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+  border-radius: 12px;
+  color: var(--vscode-descriptionForeground);
+  background: color-mix(in srgb, var(--vscode-panel-background) 92%, transparent);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.communication-summary[hidden] {
+  display: none;
+}
+
+.communication-health {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--vscode-foreground);
+}
+
+.communication-dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--vscode-descriptionForeground);
+}
+
+.communication-dot.communication-active {
+  background: var(--vscode-testing-iconPassed, #73c991);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--vscode-testing-iconPassed, #73c991) 65%, transparent);
+}
+
+.communication-dot.communication-quiet {
+  background: var(--vscode-charts-yellow, #cca700);
+}
+
+.communication-dot.communication-stalled {
+  background: var(--vscode-errorForeground, #f14c4c);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--vscode-errorForeground, #f14c4c) 24%, transparent);
+}
+
+.communication-dot.communication-idle,
+.communication-dot.communication-unavailable {
+  background: var(--vscode-descriptionForeground);
+}
+
+.communication-summary.communication-stalled {
+  border-color: color-mix(in srgb, var(--vscode-errorForeground, #f14c4c) 60%, transparent);
+}
+
+.communication-traffic,
+.communication-latency {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.communication-latency {
+  color: var(--vscode-charts-purple, #b180d7);
+}
+
+.communication-health-compact {
+  display: none;
+}
+
+.session-row.communication-stalled .status-running,
+.active-header.communication-stalled .status-running {
+  background: var(--vscode-errorForeground, #f14c4c);
+  animation: none;
+}
+
+@container panel (max-width: 700px) {
+  .active-cwd {
+    display: none;
+  }
+
+  .communication-traffic {
+    display: none;
+  }
+}
+
+@container panel (max-width: 470px) {
+  .communication-latency {
+    display: none;
+  }
+
+  .communication-summary {
+    padding: 0 5px;
+  }
+}
+
+@container panel (max-width: 370px) {
+  .communication-health-full {
+    display: none;
+  }
+
+  .communication-health-compact {
+    display: inline;
+  }
+}

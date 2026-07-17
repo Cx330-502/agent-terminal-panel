@@ -26,6 +26,15 @@ export interface SessionHistoryConfig {
   claudeCommand: string;
 }
 
+export interface CommunicationHealthConfig {
+  enabled: boolean;
+  sampleIntervalMs: number;
+  quietThresholdMs: number;
+  stalledThresholdMs: number;
+  processNetworkEnabled: boolean;
+  codexSessionMetricsEnabled: boolean;
+}
+
 const SECTION = 'agentTerminalPanel';
 
 export function getLaunchCommand(): string {
@@ -70,6 +79,38 @@ export function getSessionHistoryConfig(): SessionHistoryConfig {
     maxResults: clamp(config.get<number>('sessionHistory.maxResults', 100), 1, 500),
     codexCommand: config.get<string>('sessionHistory.codexCommand', 'codex').trim() || 'codex',
     claudeCommand: config.get<string>('sessionHistory.claudeCommand', 'claude').trim() || 'claude'
+  };
+}
+
+export function getCommunicationHealthConfig(): CommunicationHealthConfig {
+  const config = vscode.workspace.getConfiguration(SECTION);
+  const quietThresholdMs = clamp(
+    config.get<number>('communicationHealth.quietThresholdSeconds', 15),
+    5,
+    300
+  ) * 1000;
+  const configuredStalledMs = clamp(
+    config.get<number>('communicationHealth.stalledThresholdSeconds', 45),
+    10,
+    600
+  ) * 1000;
+  return {
+    enabled: config.get<boolean>('communicationHealth.enabled', true),
+    sampleIntervalMs: clamp(
+      config.get<number>('communicationHealth.sampleIntervalMs', 2000),
+      500,
+      10_000
+    ),
+    quietThresholdMs,
+    stalledThresholdMs: Math.max(quietThresholdMs + 5000, configuredStalledMs),
+    processNetworkEnabled: config.get<boolean>(
+      'communicationHealth.processNetwork.enabled',
+      true
+    ),
+    codexSessionMetricsEnabled: config.get<boolean>(
+      'communicationHealth.codexSessionMetrics.enabled',
+      true
+    )
   };
 }
 

@@ -51,6 +51,7 @@
   <link rel="stylesheet" href="../media/styles.css">
   <link rel="stylesheet" href="../media/attachments.css">
   <link rel="stylesheet" href="../media/startup.css">
+  <link rel="stylesheet" href="../media/communication.css">
   <script>
     window.__webviewMessages = [];
     window.__persistedState = {};
@@ -68,7 +69,51 @@
               status: 'waiting',
               unread: false,
               isActive: true,
-              canRestart: true
+              canRestart: true,
+              communication: {
+                health: 'idle',
+                healthBasis: 'network',
+                silentForMs: 1800,
+                sampledAt: Date.now(),
+                pty: {
+                  receivedBytes: 18000,
+                  sentBytes: 320,
+                  receiveRate: 0,
+                  sendRate: 0
+                },
+                network: {
+                  source: 'linux-ss',
+                  available: true,
+                  hasByteCounters: true,
+                  connectionCount: 1,
+                  loopback: true,
+                  receivedBytes: 14000,
+                  sentBytes: 2100,
+                  receiveRate: 0,
+                  sendRate: 0,
+                  proxy: {
+                    processName: 'cc-switch',
+                    connectionCount: 1,
+                    shared: true,
+                    receivedBytes: 15000,
+                    sentBytes: 2300,
+                    receiveRate: 0,
+                    sendRate: 0
+                  }
+                },
+                provider: {
+                  provider: 'codex',
+                  source: 'codex-jsonl',
+                  turnActive: false,
+                  phase: 'complete',
+                  lastTtftMs: 1850,
+                  lastTurnDurationMs: 12400,
+                  turnInputTokens: 6200,
+                  turnOutputTokens: 940,
+                  totalTokens: 18400,
+                  contextWindow: 200000
+                }
+              }
             }],
             activeId: 'session-1',
             replays: {},
@@ -109,6 +154,15 @@
             savedCount: message.uploads.length + message.uris.length,
             errors: []
           }), 0);
+        } else if (message.type === 'pickAttachments') {
+          setTimeout(() => window.__hostSend({
+            type: 'attachmentResult',
+            requestId: 'picker-request',
+            id: message.id,
+            insertText: "'/remote/workspace-storage/picked-image.png' ",
+            savedCount: 1,
+            errors: []
+          }), 0);
         }
       },
       getState() {
@@ -134,7 +188,7 @@
       </header>
       <div id="session-list" class="session-list" role="tablist"></div>
     </aside>
-    <div id="session-splitter" class="session-splitter" role="separator" tabindex="0"></div>
+    <div id="session-splitter" class="session-splitter" role="separator" aria-label="调整会话列表宽度" aria-orientation="vertical" tabindex="0"></div>
     <main class="terminal-pane">
       <header id="active-header" class="active-header" hidden>
         <div class="active-meta">
@@ -142,7 +196,17 @@
           <span id="active-name" class="active-name"></span>
           <span id="active-cwd" class="active-cwd"></span>
         </div>
+        <div id="communication-summary" class="communication-summary" role="status" aria-live="polite" hidden>
+          <span class="communication-health">
+            <span id="communication-dot" class="communication-dot" aria-hidden="true"></span>
+            <span id="communication-health-full" class="communication-health-full"></span>
+            <span id="communication-health-compact" class="communication-health-compact"></span>
+          </span>
+          <span id="communication-traffic" class="communication-traffic"></span>
+          <span id="communication-latency" class="communication-latency"></span>
+        </div>
         <span class="active-actions">
+          <button id="pick-attachments" class="icon-button" type="button" aria-label="选择图片文件" data-icon="image"></button>
           <button id="rename-active-session" class="icon-button" type="button" aria-label="重命名当前会话" data-icon="pencil"></button>
           <button id="restart-session" class="icon-button" type="button" aria-label="重启当前会话" data-icon="restart"></button>
         </span>
@@ -159,7 +223,7 @@
       </div>
       <div id="attachment-overlay" class="attachment-overlay" hidden>
         <strong>放下图片</strong>
-        <span>保存到 workspace host 并插入路径；VS Code 资源管理器受 Webview 限制时请复制后粘贴</span>
+        <span>VS Code 资源管理器或系统文件管理器拖入时请按住 Shift；也可点击顶栏图片按钮</span>
       </div>
       <div id="attachment-status" class="attachment-status" role="status" aria-live="polite" hidden></div>
       <div id="empty-state" class="empty-state">

@@ -1,6 +1,57 @@
 import type { LayoutSettings } from './config';
 
 export type SessionStatus = 'running' | 'waiting' | 'approval' | 'completed';
+export type CommunicationHealthState = 'active' | 'quiet' | 'stalled' | 'idle' | 'unavailable';
+export type CommunicationHealthBasis = 'network' | 'provider' | 'pty' | 'none';
+export type NetworkProbeSource = 'linux-ss' | 'macos-nettop' | 'windows-connections';
+
+export interface TrafficSnapshot {
+  receivedBytes: number;
+  sentBytes: number;
+  receiveRate: number;
+  sendRate: number;
+}
+
+export interface ProxyCommunicationSnapshot extends TrafficSnapshot {
+  processName: string;
+  connectionCount: number;
+  shared: true;
+}
+
+export interface NetworkCommunicationSnapshot extends TrafficSnapshot {
+  source: NetworkProbeSource;
+  available: boolean;
+  hasByteCounters: boolean;
+  connectionCount: number;
+  loopback: boolean;
+  proxy?: ProxyCommunicationSnapshot;
+  error?: string;
+}
+
+export interface ProviderCommunicationSnapshot {
+  provider: 'codex';
+  source: 'codex-jsonl';
+  turnActive: boolean;
+  phase: 'waiting' | 'model' | 'tool' | 'complete' | 'unknown';
+  waitingForFirstEventMs?: number;
+  firstEventMs?: number;
+  lastTtftMs?: number;
+  lastTurnDurationMs?: number;
+  turnInputTokens?: number;
+  turnOutputTokens?: number;
+  totalTokens?: number;
+  contextWindow?: number;
+}
+
+export interface CommunicationSnapshot {
+  health: CommunicationHealthState;
+  healthBasis: CommunicationHealthBasis;
+  silentForMs: number;
+  sampledAt: number;
+  pty: TrafficSnapshot;
+  network?: NetworkCommunicationSnapshot;
+  provider?: ProviderCommunicationSnapshot;
+}
 
 export interface SessionSnapshot {
   id: string;
@@ -14,6 +65,7 @@ export interface SessionSnapshot {
   spawnDurationMs?: number;
   startupElapsedMs?: number;
   startupDurationMs?: number;
+  communication?: CommunicationSnapshot;
 }
 
 export interface TerminalSettings {
@@ -96,6 +148,7 @@ export type WebviewMessage =
   | { type: 'focusChanged'; focused: boolean }
   | { type: 'clipboardRead'; requestId: string }
   | { type: 'clipboardWrite'; text: string }
+  | { type: 'pickAttachments'; id: string }
   | {
       type: 'saveAttachments';
       requestId: string;

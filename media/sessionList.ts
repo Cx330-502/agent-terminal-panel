@@ -1,4 +1,5 @@
 import type { SessionSnapshot } from '../src/shared';
+import { communicationStatusLabel } from './communicationIndicator';
 import { createIcon } from './icons';
 
 export interface SessionListCallbacks {
@@ -8,23 +9,43 @@ export interface SessionListCallbacks {
 }
 
 export class SessionList {
+  private sessions: SessionSnapshot[] = [];
+
   constructor(
     private readonly element: HTMLElement,
     private readonly callbacks: SessionListCallbacks
   ) {}
 
   render(sessions: SessionSnapshot[]): void {
+    this.sessions = sessions;
+    const editor = this.element.querySelector<HTMLInputElement>('.session-rename');
+    const editingId = editor?.closest<HTMLElement>('.session-row')?.dataset.id;
+    if (editor && editingId && sessions.some((session) => session.id === editingId)) return;
+    this.renderRows(sessions);
+  }
+
+  private renderRows(sessions: SessionSnapshot[]): void {
     this.element.replaceChildren(...sessions.map((session) => this.createRow(session)));
   }
 
   private createRow(session: SessionSnapshot): HTMLElement {
     const row = document.createElement('div');
-    row.className = `session-row${session.isActive ? ' active' : ''}`;
+    row.className = `session-row${session.isActive ? ' active' : ''}${
+      session.communication ? ` communication-${session.communication.health}` : ''
+    }`;
     row.dataset.id = session.id;
     row.setAttribute('role', 'tab');
     row.setAttribute('aria-selected', String(session.isActive));
     row.tabIndex = session.isActive ? 0 : -1;
-    row.title = `${session.name}\n${session.cwd}\n${statusLabel(session)}\n双击重命名`;
+    row.title = [
+      session.name,
+      session.cwd,
+      statusLabel(session),
+      communicationStatusLabel(session),
+      '双击重命名'
+    ]
+      .filter(Boolean)
+      .join('\n');
 
     const status = document.createElement('span');
     status.className = `status-dot status-${session.status}`;
@@ -98,9 +119,8 @@ export class SessionList {
       finished = true;
       if (commit && input.value.trim()) {
         this.callbacks.renameSession(session.id, input.value);
-      } else {
-        this.renderFromCurrentDomFallback(session);
       }
+      this.renderRows(this.sessions);
     };
     input.addEventListener('keydown', (event) => {
       event.stopPropagation();
@@ -110,18 +130,6 @@ export class SessionList {
     input.addEventListener('blur', () => finish(true));
   }
 
-  private renderFromCurrentDomFallback(session: SessionSnapshot): void {
-    const row = this.element.querySelector<HTMLElement>(`.session-row[data-id="${session.id}"]`);
-    const details = row?.querySelector<HTMLElement>('.session-details');
-    if (!details) return;
-    const name = document.createElement('span');
-    name.className = 'session-name';
-    name.textContent = session.name;
-    const cwd = document.createElement('span');
-    cwd.className = 'session-cwd';
-    cwd.textContent = basename(session.cwd);
-    details.replaceChildren(name, cwd);
-  }
 }
 
 export function statusLabel(session: SessionSnapshot): string {

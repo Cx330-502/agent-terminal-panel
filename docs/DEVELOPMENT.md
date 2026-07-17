@@ -20,6 +20,9 @@ VS Code workspace extension host
     SessionManager
       PtyHost -> node-pty -> configured system-shell command
       OutputBuffer
+      CommunicationMonitor
+        process tree -> Linux ss / macOS nettop / Windows TCP connections
+        CodexSessionTracker -> process-open rollout JSONL metadata
     SessionHistoryController -> Codex / Claude provider adapters
     AttachmentStore -> workspace/global extension storage
     CompletionNotifier
@@ -31,6 +34,7 @@ Webview
     StatusDetector
     AttachmentController
     StartupIndicator
+    CommunicationIndicator
 ```
 
 `src/shared.ts` is the message contract between the extension host and Webview. Keep it serializable and make message variants explicit.
@@ -40,7 +44,7 @@ Webview
 1. The provider resolves the Webview and waits for its `ready` message.
 2. `SessionManager.create` publishes the session immediately so the UI can render a startup state.
 3. `PtyHost.spawn` resolves the configured command through the workspace-host system shell and returns the PID plus synchronous spawn duration.
-4. The first PTY output completes startup timing and hides the Webview startup indicator.
+4. A successful PTY spawn hides the Webview startup indicator immediately; first PTY output only completes the diagnostic timing recorded in the output channel.
 5. Output is buffered for Webview reconstruction and sent to xterm.js for rendering.
 6. `StatusDetector` reads the visible terminal screen and signals generic running/waiting/approval/completed states back to the host.
 
@@ -48,19 +52,34 @@ Startup timings are written to the `Agent Terminal Panel` LogOutputChannel. Do n
 
 ### Attachment flow
 
-Clipboard image bytes are encoded in the Webview and written by `AttachmentStore`. Dropped file/remote URI references are validated through `vscode.workspace.fs`. Saved paths are quoted for the workspace-host platform before being pasted into xterm.js.
+Clipboard image bytes are encoded in the Webview and written by `AttachmentStore`. Dropped file/remote URI references and native-picker selections are validated through `vscode.workspace.fs`. Saved paths are quoted for the workspace-host platform before being pasted into xterm.js.
 
-The controller understands browser files, `text/uri-list`, `application/vnd.code.uri-list`, `ResourceURLs`, `CodeFiles`, basic `CodeEditors` resources, and absolute text paths. VS Code itself blocks pointer events to Webview iframes during some internal Explorer drags, so copy/paste remains the documented fallback for that host-level limitation.
+The controller understands browser files, `text/uri-list`, `application/vnd.code.uri-list`, `ResourceURLs`, `CodeFiles`, basic `CodeEditors` resources, and absolute text paths. VS Code reserves ordinary file drops for opening editors; holding `Shift` re-enables Webview delivery. The active-header picker and copy/paste are deterministic fallbacks when a host does not deliver drag events.
+
+### Terminal selection scrolling
+
+The xterm DOM renderer uses a custom scroll model, so browser-native text selection does not automatically move scrollback near the top or bottom edge. `SelectionAutoScroll` observes a left-button selection drag without cancelling xterm events, then calls `Terminal.scrollLines` at a distance-proportional rate until mouseup. Keep this behavior isolated from HTML file drag/drop.
 
 ### Session history providers
 
 Providers implement discovery, workspace matching, presentation, and native resume/fork command generation. New providers should be added under `src/sessionHistory/` and registered by `SessionHistoryController`. Do not guess undocumented resume arguments: provider support should ship only with verified commands and fixtures.
 
+### Communication health
+
+`CommunicationMonitor` samples PTY counters for every session and optionally adds process-network and provider layers. A snapshot always labels its health basis so Webview code cannot silently present PTY bytes as network traffic.
+
+- Linux uses one `ss -Htinp` table per sample, correlates socket owners against each Agent process tree, and reverse-matches loopback endpoints to a local proxy process. Proxy upstream bytes are marked `shared` because the proxy may serve several sessions or applications.
+- macOS uses raw cumulative `nettop -P -L 1 -x -J bytes_in,bytes_out` counters and `ps` process trees. The parser accepts quoted CSV identities and aggregates duplicate PID rows.
+- Windows uses `Get-CimInstance Win32_Process` plus `Get-NetTCPConnection`. It intentionally exposes connection counts only; when byte counters are unavailable, health falls back to PTY output.
+- `CodexSessionTracker` discovers rollout JSONL only through files opened by the monitored process tree. It tails a bounded window, stores no message content, and extracts task phase, exact completed TTFT, duration, and token metadata.
+
+Do not derive TPOT from terminal output timing or token-count deltas. Codex exposes TPOT/TBT through its optional OTel pipeline, but a provider-agnostic transparent terminal cannot assume control of the user's exporter. Add such metrics only through an explicit, reliable provider adapter.
+
 ## Source layout
 
 | Path | Responsibility |
 | --- | --- |
-| `src/` | Extension-host orchestration, PTY, storage, notifications, configuration |
+| `src/` | Extension-host orchestration, PTY, communication probes, storage, notifications, configuration |
 | `src/sessionHistory/` | Provider-specific history discovery and launch adapters |
 | `media/` | Webview TypeScript, CSS, icons, generated browser bundle |
 | `test/*.test.ts` | Node unit and PTY integration tests |
@@ -102,10 +121,11 @@ Then run the Playwright scripts with a real Chromium page:
 ```bash
 playwright-cli open http://127.0.0.1:4173/test/browser-harness.html
 playwright-cli run-code --filename=test/runAttachmentRegression.js
+playwright-cli run-code --filename=test/runSelectionScrollRegression.js
 playwright-cli run-code --filename=test/runUiRegression.js
 ```
 
-The standard UI matrix contains six desktop sizes, a same-width reduced-height pair, two narrow/mobile-like sizes, and a 320 px stress case. Review generated baseline, interaction, dense-control, attachment-overlay, and startup screenshots in addition to automated overflow/occlusion probes.
+The standard UI matrix contains six desktop sizes, a same-width reduced-height pair, two narrow/mobile-like sizes, and a 320 px stress case. Review generated baseline, interaction, active/quiet/stalled communication states, dense-control, attachment-overlay, and startup screenshots in addition to automated overflow/occlusion probes.
 
 The harness is not a substitute for an Extension Development Host check of:
 

@@ -35,25 +35,15 @@ export class StartupIndicator {
       (session.startupElapsedMs ?? 0) + performance.now() - this.receivedAt
     );
     this.element.hidden = false;
-    if (session.spawnDurationMs === undefined) {
-      this.title.textContent = '正在创建终端';
-      this.detail.textContent = `正在 workspace host 启动进程 · ${formatDuration(elapsed)}`;
-      return;
-    }
-    if (elapsed < 4000) {
-      this.title.textContent = '进程已启动，等待首个输出';
-      this.detail.textContent = `PTY 创建 ${formatDuration(session.spawnDurationMs)} · 已等待 ${formatDuration(elapsed)}`;
-      return;
-    }
-    this.title.textContent = '仍在等待 Agent 输出';
-    this.detail.textContent = `PTY 已创建，等待 ${formatDuration(elapsed)}；可在“输出 > Agent Terminal Panel”查看耗时`;
+    this.title.textContent = '正在创建终端';
+    this.detail.textContent = `正在 workspace host 启动进程 · ${formatDuration(elapsed)}`;
   }
 
   private isWaiting(): boolean {
     return Boolean(
       this.session &&
         this.session.startupElapsedMs !== undefined &&
-        this.session.startupDurationMs === undefined
+        this.session.spawnDurationMs === undefined
     );
   }
 
