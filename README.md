@@ -26,16 +26,18 @@
 
 ## 平台包
 
-`npm run package` 生成四个按真实原生架构打包的 VSIX：
+`npm run package` 在 `releases/v0.4.1/` 中生成六个按真实原生架构打包的 VSIX：
 
 | VSIX | 使用场景 |
 | --- | --- |
-| `agent-terminal-panel-0.4.0-linux-x64.vsix` | Linux x64、x64 WSL/SSH workspace host |
-| `agent-terminal-panel-0.4.0-linux-arm64.vsix` | Linux ARM64、ARM64 SSH workspace host |
-| `agent-terminal-panel-0.4.0-darwin-x64.vsix` | Intel Mac |
-| `agent-terminal-panel-0.4.0-darwin-arm64.vsix` | Apple Silicon Mac |
+| `agent-terminal-panel-0.4.1-win32-x64.vsix` | Windows x64 |
+| `agent-terminal-panel-0.4.1-win32-arm64.vsix` | Windows ARM64 |
+| `agent-terminal-panel-0.4.1-linux-x64.vsix` | Linux x64、x64 WSL/SSH workspace host |
+| `agent-terminal-panel-0.4.1-linux-arm64.vsix` | Linux ARM64、ARM64 SSH workspace host |
+| `agent-terminal-panel-0.4.1-darwin-x64.vsix` | Intel Mac |
+| `agent-terminal-panel-0.4.1-darwin-arm64.vsix` | Apple Silicon Mac |
 
-在 WSL/SSH 窗口中应将对应 Linux VSIX 安装到远程端。扩展声明了 `extensionKind: ["workspace"]`，不会把远程会话误启动在本地 UI host。
+在 WSL/SSH 窗口中应将对应 Linux VSIX 安装到远程端；普通 Windows 窗口安装 Windows VSIX。扩展声明了 `extensionKind: ["workspace"]`，不会把远程会话误启动在本地 UI host。
 
 ## 使用
 

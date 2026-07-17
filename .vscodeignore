@@ -1,6 +1,7 @@
 .gitignore
 .vscode/**
 .playwright-cli/**
+releases/**
 src/**
 test/**
 media/*.ts
@@ -24,3 +25,4 @@ node_modules/node-pty/node_modules/**
 node_modules/node-pty/lib/**/*.map
 node_modules/node-pty/lib/**/*.test.js
 node_modules/node-pty/build/**
+node_modules/node-pty/prebuilds/**/*.pdb

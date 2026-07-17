@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.1
+
+- 补充 Windows x64 与 Windows ARM64 的 `node-pty` 原生 VSIX。
+- 六个平台包统一输出到版本化的 `releases/` 目录并纳入仓库。
+- 打包前校验每个目标平台都存在对应的 `node-pty` 预编译文件。
+- Windows 包排除仅用于调试的 PDB 符号文件。
+
 ## 0.4.0
 
 - 新增剪贴板图片粘贴：保留普通文本、中文和 Bracketed Paste 行为，不产生重复输入。
