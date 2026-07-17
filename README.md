@@ -88,6 +88,10 @@ npm run build
 npm run package
 ```
 
+Marketplace 发布由 `.github/workflows/marketplace-publish.yml` 完成。工作流通过
+GitHub Environment `marketplace-publish` 与 Azure 托管身份进行 OIDC 登录，不保存
+PAT；推送匹配当前 `package.json` 版本的 `v*` 标签或手动运行工作流即可发布六个平台包。
+
 单元及集成测试覆盖状态机、通知可见性、Bracketed Paste、中文 PTY 输入、resize、可配置 CLI 启动、图片路径转义，以及 Codex/Claude Code JSONL 历史发现与 workspace 边界过滤。`test/browser-harness.html` 用真实 Chromium/xterm 检查 OSC 10/11/12、IME、文本/图片粘贴、图片拖放、窄/宽布局及带灰色输入区的 Codex CLI 兼容显示。
 
 ## 项目
