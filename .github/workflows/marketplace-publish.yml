@@ -57,20 +57,48 @@ jobs:
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Verify Azure DevOps access token
+      - name: Verify Marketplace publisher access
+        env:
+          PUBLISHER_ID: Cx330-502
         run: |
-          az account get-access-token \
-            --resource 499b84ac-1321-427f-aa17-267ca6975798 \
-            --query expiresOn \
-            --output tsv >/dev/null
-          echo "Microsoft Entra ID token acquired for Azure DevOps."
+          set -euo pipefail
+          marketplace_resource="499b84ac-1321-427f-aa17-267ca6975798"
+          profile_id="$(az rest \
+            --method get \
+            --url https://app.vssps.visualstudio.com/_apis/profile/profiles/me \
+            --resource "$marketplace_resource" \
+            --query id \
+            --output tsv)"
+          echo "Marketplace profile identity: $profile_id"
+          echo "Marketplace profile identity: \`$profile_id\`" >> "$GITHUB_STEP_SUMMARY"
+
+          VSCE_PAT="$(az account get-access-token \
+            --resource "$marketplace_resource" \
+            --query accessToken \
+            --output tsv)"
+          echo "::add-mask::$VSCE_PAT"
+          export VSCE_PAT
+          npx vsce verify-pat "$PUBLISHER_ID"
 
       - name: Publish platform packages
-        env:
-          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
-          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
         run: |
-          npx vsce publish \
-            --azure-credential \
-            --skip-duplicate \
-            --packagePath releases/v${{ steps.version.outputs.version }}/*.vsix
+          set -euo pipefail
+          shopt -s nullglob
+          packages=(releases/v${{ steps.version.outputs.version }}/*.vsix)
+          if [[ ${#packages[@]} -ne 6 ]]; then
+            echo "Expected 6 platform packages, found ${#packages[@]}." >&2
+            exit 1
+          fi
+
+          VSCE_PAT="$(az account get-access-token \
+            --resource 499b84ac-1321-427f-aa17-267ca6975798 \
+            --query accessToken \
+            --output tsv)"
+          echo "::add-mask::$VSCE_PAT"
+          export VSCE_PAT
+
+          for package in "${packages[@]}"; do
+            npx vsce publish \
+              --skip-duplicate \
+              --packagePath "$package"
+          done
