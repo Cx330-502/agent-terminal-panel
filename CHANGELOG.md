@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.0
+
+- 全面更新品牌视觉：新的梦幻渐变 Marketplace 图标、专用 Activity Bar 图标，以及统一的 Webview 线性图标体系。
+- 区分默认新建与自定义命令入口，移除标题栏中两个近似“加号”的视觉歧义。
+- 扩展图片拖放兼容范围，支持大小写归一、`ResourceURLs`、VS Code 内部 URI list、`CodeFiles`、远端 URI 和绝对路径。
+- 拖放监听覆盖完整终端面板并使用捕获阶段接收，修复部分 xterm 子元素和非标准 MIME 无法触发 drop 的问题。
+- 新增启动阶段遮罩，明确区分“创建 PTY”和“等待 Agent 首个输出”，长时间启动不再只显示空白终端。
+- 新增 `Agent Terminal Panel` 日志输出，记录 Webview ready、PTY spawn、首个输出、启动失败和过早退出耗时。
+- 新增默认中文、独立英文的 Marketplace 文档、压缩展示图和独立开发文档。
+
 ## 0.4.2
 
 - 新增默认关闭的 Sixel/iTerm 终端图片开关，为 Codex Pets 等终端图片功能加载官方 xterm.js image addon。

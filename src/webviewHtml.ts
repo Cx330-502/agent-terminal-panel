@@ -8,6 +8,9 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
   const attachmentStyles = webview.asWebviewUri(
     vscode.Uri.joinPath(extensionUri, 'media', 'attachments.css')
   );
+  const startupStyles = webview.asWebviewUri(
+    vscode.Uri.joinPath(extensionUri, 'media', 'startup.css')
+  );
   const script = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'main.js'));
 
   return `<!doctype html>
@@ -19,6 +22,7 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
   <link rel="stylesheet" href="${xtermCss}">
   <link rel="stylesheet" href="${styles}">
   <link rel="stylesheet" href="${attachmentStyles}">
+  <link rel="stylesheet" href="${startupStyles}">
   <title>Agent Terminal Panel</title>
 </head>
 <body>
@@ -27,10 +31,10 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
       <header class="session-header">
         <span class="session-heading">会话</span>
         <span class="session-actions">
-          <button id="new-session" class="icon-button" type="button" title="新建会话" aria-label="新建会话">＋</button>
-          <button id="session-history" class="icon-button history-button" type="button" title="从 Agent 历史会话启动" aria-label="从 Agent 历史会话启动">↶</button>
-          <button id="new-custom-session" class="icon-button custom-session-button" type="button" title="使用自定义命令新建" aria-label="使用自定义命令新建">›_</button>
-          <button id="new-session-folder" class="icon-button" type="button" title="选择工作目录并新建" aria-label="选择工作目录并新建">▣</button>
+          <button id="new-session" class="icon-button" type="button" title="新建会话" aria-label="新建会话" data-icon="add"></button>
+          <button id="session-history" class="icon-button" type="button" title="从 Agent 历史会话启动" aria-label="从 Agent 历史会话启动" data-icon="history"></button>
+          <button id="new-custom-session" class="icon-button" type="button" title="使用自定义命令新建" aria-label="使用自定义命令新建" data-icon="terminal"></button>
+          <button id="new-session-folder" class="icon-button" type="button" title="选择工作目录并新建" aria-label="选择工作目录并新建" data-icon="folder"></button>
         </span>
       </header>
       <div id="session-list" class="session-list" role="tablist" aria-label="Agent 会话"></div>
@@ -44,14 +48,23 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
           <span id="active-cwd" class="active-cwd"></span>
         </div>
         <span class="active-actions">
-          <button id="rename-active-session" class="icon-button" type="button" title="重命名当前会话" aria-label="重命名当前会话">✎</button>
-          <button id="restart-session" class="icon-button" type="button" title="重启当前会话" aria-label="重启当前会话">↻</button>
+          <button id="rename-active-session" class="icon-button" type="button" title="重命名当前会话" aria-label="重命名当前会话" data-icon="pencil"></button>
+          <button id="restart-session" class="icon-button" type="button" title="重启当前会话" aria-label="重启当前会话" data-icon="restart"></button>
         </span>
       </header>
       <div id="terminal-stack" class="terminal-stack" aria-live="off"></div>
+      <div id="startup-overlay" class="startup-overlay" role="status" aria-live="polite" hidden>
+        <div class="startup-card">
+          <span class="startup-spinner" aria-hidden="true"></span>
+          <span class="startup-copy">
+            <strong id="startup-title" class="startup-title"></strong>
+            <span id="startup-detail" class="startup-detail"></span>
+          </span>
+        </div>
+      </div>
       <div id="attachment-overlay" class="attachment-overlay" hidden>
-        <strong>拖放图片</strong>
-        <span>松开后保存到 workspace host，并把路径插入当前终端</span>
+        <strong>放下图片</strong>
+        <span>保存到 workspace host 并插入路径；VS Code 资源管理器受 Webview 限制时请复制后粘贴</span>
       </div>
       <div id="attachment-status" class="attachment-status" role="status" aria-live="polite" hidden></div>
       <div id="empty-state" class="empty-state">

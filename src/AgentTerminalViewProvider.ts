@@ -15,8 +15,13 @@ import {
   SessionHistoryController,
   type HistoricalSessionLaunch
 } from './sessionHistory/controller';
-import { SessionManager, type SessionAttention } from './sessionManager';
+import {
+  SessionManager,
+  type SessionAttention,
+  type SessionStartupTiming
+} from './sessionManager';
 import type { HostMessage, WebviewMessage } from './shared';
+import { StartupLogger } from './startupLogger';
 import { getWebviewHtml } from './webviewHtml';
 
 export const VIEW_ID = 'agentTerminalPanel.terminalView';
@@ -34,6 +39,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
   private readonly notifier: CompletionNotifier;
   private readonly sessionHistory: SessionHistoryController;
   private readonly attachmentStore: AttachmentStore;
+  private readonly startupLogger = new StartupLogger();
   private view: vscode.WebviewView | undefined;
   private webviewReady = false;
   private viewVisible = false;
@@ -52,7 +58,8 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
       onOutput: (id, data) => this.post({ type: 'output', id, data }),
       onClear: (id) => this.post({ type: 'clear', id }),
       onStateChanged: () => this.handleStateChanged(),
-      onAttention: (event) => this.handleAttention(event)
+      onAttention: (event) => this.handleAttention(event),
+      onStartupTiming: (event) => this.handleStartupTiming(event)
     });
     this.notifier = new CompletionNotifier({
       isActiveSession: (id) => this.sessions.getActiveId() === id,
@@ -67,6 +74,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
     );
 
     this.disposables.push(
+      this.startupLogger,
       vscode.window.onDidChangeWindowState((state) => {
         this.windowFocused = state.focused;
         if (state.focused) this.acknowledgeVisibleSession();
@@ -87,6 +95,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
   }
 
   resolveWebviewView(webviewView: vscode.WebviewView): void {
+    this.startupLogger.beginWebviewResolve();
     this.clearViewDisposables();
     this.view = webviewView;
     this.viewVisible = webviewView.visible;
@@ -239,6 +248,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
     switch (message.type) {
       case 'ready':
         this.webviewReady = true;
+        this.startupLogger.webviewReady();
         for (const waiter of [...this.readyWaiters]) waiter();
         this.lastSize = normalizeSize(message.cols, message.rows);
         this.postInitialize();
@@ -330,6 +340,10 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
     this.updateBadge();
   }
 
+  private handleStartupTiming(event: SessionStartupTiming): void {
+    this.startupLogger.sessionTiming(event);
+  }
+
   private postInitialize(): void {
     this.post({
       type: 'initialize',
@@ -413,7 +427,10 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
         this.readyWaiters.delete(finish);
         resolve();
       };
-      timer = setTimeout(finish, 2000);
+      timer = setTimeout(() => {
+        this.startupLogger.webviewReadyTimeout(2000);
+        finish();
+      }, 2000);
       this.readyWaiters.add(finish);
     });
   }

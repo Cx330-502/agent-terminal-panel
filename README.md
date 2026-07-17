@@ -1,106 +1,113 @@
 # Agent Terminal Panel
 
-在可移动的 VS Code `WebviewView` 中运行和管理多个交互式 Agent CLI 会话。视图默认位于 Secondary Side Bar，可直接拖到左侧栏、右侧栏或底部 Panel。PTY 始终运行在 workspace extension host，因此适用于本地工作区、WSL 和 Remote SSH。
+把任意 Agent CLI 变成一个可移动、可并行、真正运行在 workspace host 上的 VS Code 工作台。
 
-扩展不依赖某个固定 Agent 产品，也没有默认绑定 Codex。首次新建会话时输入完整启动命令，之后也可以通过视图标题栏齿轮或命令面板中的 `Agent Terminal Panel: 配置启动命令` 随时修改。
+[English](https://github.com/Cx330-502/agent-terminal-panel/blob/main/README.en.md) · [Marketplace](https://marketplace.visualstudio.com/items?itemName=Cx330-502.agent-terminal-panel) · [开发文档](https://github.com/Cx330-502/agent-terminal-panel/blob/main/docs/DEVELOPMENT.md) · [更新记录](./CHANGELOG.md)
 
-启动命令由 workspace host 的系统 shell 执行，因此可以包含参数、引号、环境变量前缀或脚本路径，例如 `codex --model ...`、`claude`、`gemini`、`aider`，以及自建 Agent CLI。
+<p align="center">
+  <img src="media/screenshots/panel.webp" alt="Agent Terminal Panel 宽面板多会话界面" width="100%">
+</p>
 
-## 功能
+Agent Terminal Panel 不绑定 Codex、Claude 或任何单一产品。你提供启动命令，它提供完整 PTY、多会话管理、后台运行、状态提醒、历史恢复和图片输入。视图可以放在左侧栏、右侧栏或底部 Panel；在 WSL 和 Remote SSH 中，进程会留在远端 workspace extension host，而不是误跑到本地 UI 机器。
 
-- 多会话：新建、切换、双击或 `F2` 重命名、关闭、重启。
-- 完整启动命令可配置；新建或重启会话时读取最新配置。
-- 可用一次性自定义命令创建会话，不修改默认启动命令，并在创建时直接命名。
-- 可扫描当前 workspace 下的 Codex 与 Claude Code 本地历史记录，并以原生 Resume 或 Fork 方式启动。
-- 历史会话按真实 cwd 严格过滤；provider 通过独立适配器注册，未验证的 CLI 不会套用猜测参数。
-- 每个会话独立选择 cwd；普通新建默认使用当前编辑器所在 workspace folder。
-- 会话列表可放在终端左侧或右侧，支持鼠标拖拽和键盘调整宽度，并持久化宽度。
-- 设置按钮直接打开完整的 VS Code 扩展设置页。
-- 切换视图或隐藏 Panel 后 PTY 继续在后台运行；Webview 重建时回放近期终端内容。
-- xterm.js + node-pty，支持 resize、Bracketed Paste、中文 IME、真彩色和 OSC 10/11/12。
-- 可选启用 Sixel/iTerm 终端图片及 Codex Pets 兼容环境；默认关闭，避免无图片需求时增加内存占用。
-- 支持直接粘贴剪贴板图片，或把本机/远端图片拖到终端；图片保存到 workspace host 的扩展存储后，将安全转义的绝对路径插入当前输入区。
-- 字体、字号、字重、行高、字距、光标、滚动和颜色均跟随 VS Code 原生终端设置及主题。
-- 通用 Agent 状态：运行中、等待输入、等待审批、已完成；保留常见 Codex CLI 屏幕的兼容检测。
-- 后台状态提供会话红点、原生 Toast、视图 badge 和可配置完成声音。
-- 完成通知按“视图可见、当前会话、VS Code 聚焦”去重；当前可见会话不会产生干扰性提示。
+## 为什么值得装
 
-## 平台包
+- **一个面板管理所有 Agent**：`codex`、`claude`、`gemini`、`aider`、内部 CLI、代理包装命令或任意交互式 shell 程序都可以使用。
+- **不是“看起来像终端”的文本框**：底层使用 xterm.js + node-pty，支持 resize、Bracketed Paste、中文 IME、真彩色、OSC 10/11/12 和 Codex 灰色输入区。
+- **会话真正并行**：新建、切换、重命名、关闭、重启；切走视图后 PTY 仍在后台运行，Webview 重建时可回放近期输出。
+- **每个会话都有自己的上下文**：可选择 cwd，也可用一次性自定义命令和独立名称启动，不污染默认命令。
+- **从旧上下文继续工作**：只扫描当前 workspace 的 Codex / Claude Code 历史记录，并使用 provider 原生 Resume 或 Fork 命令。
+- **知道什么时候该回来**：运行中、等待输入、等待审批、已完成四态，会话红点、View Badge、原生 Toast 和去重完成声音协同工作。
+- **启动不再只剩空白**：界面区分 PTY 创建与 Agent 首个输出；`输出 > Agent Terminal Panel` 会记录 Webview、spawn 和首字节耗时。
+- **图片输入更顺手**：剪贴板图片直接粘贴；系统文件管理器、远端 URI 和可到达 Webview 的 VS Code 数据类型可拖入，保存后只插入安全转义的路径，不自动提交。
+- **终端外观原生一致**：字体、字号、字重、行高、字距、光标、滚动和颜色全部读取 VS Code 原生终端设置与主题。
+- **可选 Codex Pets / 终端图片**：按需启用 Sixel/iTerm 图片支持，默认关闭以节省多会话内存。
 
-`npm run package` 在 `releases/v0.4.1/` 中生成六个按真实原生架构打包的 VSIX：
+<p align="center">
+  <img src="media/screenshots/sidebar.webp" alt="Agent Terminal Panel 窄侧栏界面" width="390">
+</p>
 
-| VSIX | 使用场景 |
-| --- | --- |
-| `agent-terminal-panel-0.4.1-win32-x64.vsix` | Windows x64 |
-| `agent-terminal-panel-0.4.1-win32-arm64.vsix` | Windows ARM64 |
-| `agent-terminal-panel-0.4.1-linux-x64.vsix` | Linux x64、x64 WSL/SSH workspace host |
-| `agent-terminal-panel-0.4.1-linux-arm64.vsix` | Linux ARM64、ARM64 SSH workspace host |
-| `agent-terminal-panel-0.4.1-darwin-x64.vsix` | Intel Mac |
-| `agent-terminal-panel-0.4.1-darwin-arm64.vsix` | Apple Silicon Mac |
+## 三分钟开始
 
-在 WSL/SSH 窗口中应将对应 Linux VSIX 安装到远程端；普通 Windows 窗口安装 Windows VSIX。扩展声明了 `extensionKind: ["workspace"]`，不会把远程会话误启动在本地 UI host。
+1. 从 Marketplace 安装后打开 Activity Bar 中的 Agent Terminal 图标。
+2. 点击 `+`，首次使用时输入 workspace host 上可执行的完整启动命令。
+3. 示例：`codex`、`claude`、`gemini --model ...`、`cc-switch-cli ...`，或带参数、引号和环境变量前缀的脚本命令。
+4. 需要不同命令时点击终端图标，新建一次性自定义命令会话并直接命名。
+5. 点击文件夹图标选择 cwd；点击历史图标从当前 workspace 的旧会话 Resume / Fork。
 
-## 使用
+默认命令没有绑定任何 provider，也没有偷偷预设 Codex。启动命令由 workspace host 的系统 shell 执行，新建或重启时读取最新配置。
 
-- 点击视图标题栏的 `+` 使用默认 cwd 新建会话。
-- 点击终端新建按钮，输入一次性命令和会话名，不会修改默认启动命令。
-- 点击历史按钮或运行 `Agent Terminal Panel: 从 Agent 历史会话启动`，选择当前 workspace 的 Codex/Claude Code 会话，再选择 Resume 或 Fork。
-- 点击文件夹按钮选择 workspace folder、Home 或任意目录后新建。
-- 点击视图标题栏的齿轮打开完整设置页；默认命令未配置时，首次新建会话会自动提示。
-- 双击会话名称、双击顶部当前名称、点击铅笔或聚焦后按 `F2` 重命名。
-- 聚焦终端后直接粘贴剪贴板图片，或把最多 8 张图片拖进终端区域；扩展只插入路径，不会自动提交输入。
-- 拖动会话列表右侧分隔条调整宽度；分隔条聚焦时也可按左右方向键。
-- 右键视图标题并选择 Move View，或直接拖动视图标题，可放到任一侧栏或 Panel。
+## 会话与布局
 
-快捷键只在该视图聚焦时生效：
+- 双击会话名、双击顶部名称、点击铅笔或按 `F2` 可重命名。
+- 拖动会话列表边缘可调整宽度；分隔条聚焦后也可用左右方向键。
+- `agentTerminalPanel.sessionListPosition` 可把会话列放在终端左侧或右侧。
+- 右键视图标题选择 **Move View**，或直接拖动视图标题，可移动到任一侧栏或 Panel。
+- 设置按钮直接打开完整扩展设置页，而不是只编辑启动命令。
 
-| 操作 | Windows/Linux | macOS |
+快捷键仅在 Agent Terminal 视图聚焦时生效：
+
+| 操作 | Windows / Linux | macOS |
 | --- | --- | --- |
 | 新建会话 | `Ctrl+Shift+\`` | `Cmd+Shift+\`` |
 | 下一会话 | `Ctrl+PageDown` | `Cmd+Alt+Right` |
 | 上一会话 | `Ctrl+PageUp` | `Cmd+Alt+Left` |
 | 关闭会话 | `Ctrl+W` | `Cmd+W` |
 
+## 图片粘贴与拖放
+
+- 聚焦终端后粘贴剪贴板图片，或从系统文件管理器把最多 8 张图片拖入终端区域。
+- 单张上限 25 MB，单次总量上限 50 MB；扩展只插入路径，不会自动发送回车。
+- 图片保存到当前 workspace 对应的 VS Code 扩展存储，不会在项目目录制造未跟踪文件。
+- WSL / Remote SSH 中图片会进入远端 workspace host 的扩展存储，因此远端 Agent 可以直接访问路径。
+- VS Code 核心在部分 Explorer 内部拖拽期间会禁用 Webview iframe 指针事件（参见 [microsoft/vscode#182449](https://github.com/microsoft/vscode/issues/182449)）。这类拖拽若未到达插件，请在 Explorer 复制图片后直接粘贴到终端；系统文件管理器拖放不受该限制。
+
+## 状态与通知
+
+插件从终端屏幕和信号中识别通用 Agent 状态，并兼容常见 Codex CLI 屏幕：
+
+- 蓝色：运行中
+- 黄色：等待输入
+- 橙色：等待审批
+- 绿色：已完成
+- 红点：后台会话有未读状态
+
+Toast 与完成声音会结合“当前会话、视图是否可见、VS Code 是否聚焦”去重。你正在看的会话不会反复打扰，切到后台后又不会悄悄错过审批或完成。
+
 ## 设置
 
 | 设置 | 默认值 | 说明 |
 | --- | --- | --- |
-| `agentTerminalPanel.launchCommand` | 空 | workspace host 系统 shell 中执行的完整启动命令 |
-| `agentTerminalPanel.environment` | `{}` | 会话附加环境变量 |
-| `agentTerminalPanel.sessionListPosition` | `left` | 会话列表放在终端左侧或右侧 |
-| `agentTerminalPanel.startSessionOnOpen` | `true` | 首次打开时自动创建会话 |
-| `agentTerminalPanel.terminalImages.enabled` | `false` | 启用 Sixel/iTerm 图片与 Codex Pets 兼容环境；新建或重启会话后生效 |
-| `agentTerminalPanel.sessionHistory.maxResults` | `100` | 历史会话选择器的最大结果数 |
-| `agentTerminalPanel.sessionHistory.codexCommand` | `codex` | Codex Resume/Fork 命令前缀 |
-| `agentTerminalPanel.sessionHistory.claudeCommand` | `claude` | Claude Code Resume/Fork 命令前缀 |
-| `agentTerminalPanel.notifications.showToast` | `true` | 后台审批、等待输入、完成 Toast |
+| `agentTerminalPanel.launchCommand` | 空 | workspace host 系统 shell 中执行的完整命令 |
+| `agentTerminalPanel.environment` | `{}` | 叠加到 Agent 会话的环境变量 |
+| `agentTerminalPanel.sessionListPosition` | `left` | 会话列表位于终端左侧或右侧 |
+| `agentTerminalPanel.startSessionOnOpen` | `true` | 首次打开视图时自动创建会话 |
+| `agentTerminalPanel.terminalImages.enabled` | `false` | 启用 Sixel/iTerm 图片及 Codex Pets 兼容环境 |
+| `agentTerminalPanel.sessionHistory.maxResults` | `100` | 当前 workspace 历史选择器最大结果数 |
+| `agentTerminalPanel.sessionHistory.codexCommand` | `codex` | Codex Resume / Fork 命令前缀 |
+| `agentTerminalPanel.sessionHistory.claudeCommand` | `claude` | Claude Code Resume / Fork 命令前缀 |
+| `agentTerminalPanel.notifications.showToast` | `true` | 后台审批、等待输入和完成 Toast |
 | `agentTerminalPanel.notifications.completionSound` | `whenHidden` | `never`、`whenHidden` 或 `always` |
 
-终端显示直接读取 `terminal.integrated.*` 设置以及 `terminal.*` 主题颜色，不维护第二套字体或配色配置。
+Codex Pets 用户可启用 `agentTerminalPanel.terminalImages.enabled` 后新建或重启会话。插件会加载 xterm.js image addon，设置 `TERM=xterm-sixel`，并移除会覆盖图片能力探测的 `TERM_PROGRAM` / `TERM_PROGRAM_VERSION`。兼容方案已在 [openai/codex#27335](https://github.com/openai/codex/issues/27335) 中验证。
 
-图片粘贴与拖放单张上限为 25 MB、单次总量上限为 50 MB。图片放在当前 workspace 对应的 VS Code 扩展存储中，因此在 WSL/Remote SSH 窗口里会保存到远端 workspace host，而不是本地 UI 机器；不会在项目目录生成未跟踪文件。
+## 平台与远程开发
 
-Codex Pets 用户可启用 `agentTerminalPanel.terminalImages.enabled` 后新建或重启会话。扩展会加载 Sixel 图片解码，并采用 [openai/codex#27335](https://github.com/openai/codex/issues/27335) 验证过的兼容环境：`TERM=xterm-sixel` 且不向子进程暴露 `TERM_PROGRAM=vscode`。
+Marketplace 会按当前 extension host 自动安装对应目标。GitHub `releases/v0.5.0/` 同时提供：
 
-## 开发与验证
+- Windows x64 / ARM64
+- Linux x64 / ARM64（包括 WSL 与 Remote SSH workspace host）
+- macOS Intel / Apple Silicon
 
-```bash
-npm install
-npm run check
-npm test
-npm run build
-npm run package
-```
+每个 VSIX 只携带目标平台对应的 `node-pty` 原生预编译，不需要为同一个平台安装“通用包 + 原生包”。扩展声明 `extensionKind: ["workspace"]`，远程窗口应安装在远端环境。
 
-Marketplace 发布由 `.github/workflows/marketplace-publish.yml` 完成。工作流通过
-GitHub Environment `marketplace-publish` 与 Azure 托管身份进行 OIDC 登录，不保存
-PAT；推送匹配当前 `package.json` 版本的 `v*` 标签或手动运行工作流即可发布六个平台包。
+## 隐私与边界
 
-单元及集成测试覆盖状态机、通知可见性、Bracketed Paste、中文 PTY 输入、resize、可配置 CLI 启动、图片路径转义，以及 Codex/Claude Code JSONL 历史发现与 workspace 边界过滤。`test/browser-harness.html` 用真实 Chromium/xterm 检查 OSC 10/11/12、IME、文本/图片粘贴、图片拖放、窄/宽布局及带灰色输入区的 Codex CLI 兼容显示。
+插件自身不提供云服务，也不上传终端内容、历史记录或图片。启动的 Agent CLI 是否联网、经过何种账号或代理，完全由你的命令与环境决定。历史发现只读取本机或远端 workspace host 上的 provider 记录，并按当前 workspace cwd 过滤。
 
 ## 项目
 
-- GitHub：[Cx330-502/agent-terminal-panel](https://github.com/Cx330-502/agent-terminal-panel)
-- Issues：[问题与建议](https://github.com/Cx330-502/agent-terminal-panel/issues)
+- 作者：[Cx330-502](https://github.com/Cx330-502)
+- 源码与问题：[Cx330-502/agent-terminal-panel](https://github.com/Cx330-502/agent-terminal-panel)
+- Roadmap：[TODO.md](https://github.com/Cx330-502/agent-terminal-panel/blob/main/TODO.md)
 - License：MIT
-- Roadmap：[TODO.md](./TODO.md)

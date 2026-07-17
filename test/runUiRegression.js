@@ -36,6 +36,33 @@ async (page) => {
     });
     const ariaSnapshot = await page.locator('body').ariaSnapshot();
 
+    await page.evaluate(() => {
+      window.__hostSend({
+        type: 'state',
+        sessions: [{
+          id: 'session-1',
+          name: 'Agent 1',
+          cwd: '/workspace/中文项目',
+          status: 'running',
+          unread: false,
+          isActive: true,
+          canRestart: true,
+          spawnDurationMs: 6,
+          startupElapsedMs: 5200
+        }],
+        activeId: 'session-1'
+      });
+    });
+    await page.screenshot({
+      path: `test/v050-${position}-${width}x${height}-startup.png`,
+      fullPage: true
+    });
+    const startupProbe = await page.evaluate(() => ({
+      visible: !document.querySelector('#startup-overlay').hidden,
+      title: document.querySelector('#startup-title').textContent,
+      detail: document.querySelector('#startup-detail').textContent
+    }));
+
     const historyButton = page.locator('#session-history');
     if (await historyButton.isVisible()) await historyButton.click();
     await page.evaluate(() => {
@@ -89,10 +116,15 @@ async (page) => {
         occluded,
         restartDisabled: document.querySelector('#restart-session')?.disabled === true,
         rightLayout: document.querySelector('#app')?.classList.contains('session-list-right') === true,
-        historyPosted: window.__webviewMessages.some((message) => message.type === 'openSessionHistory')
+        historyPosted: window.__webviewMessages.some((message) => message.type === 'openSessionHistory'),
+        startupHiddenAfterOutput: document.querySelector('#startup-overlay')?.hidden === true,
+        iconButtonCount: document.querySelectorAll('.icon-button').length,
+        missingButtonIcons: [...document.querySelectorAll('.icon-button')]
+          .filter((element) => element.querySelectorAll('.ui-icon').length !== 1)
+          .map((element) => element.getAttribute('aria-label'))
       };
     });
-    results.push({ width, height, position, ariaLength: ariaSnapshot.length, ...probe });
+    results.push({ width, height, position, ariaLength: ariaSnapshot.length, startupProbe, ...probe });
   }
 
   return { results, consoleErrors, failedRequests };

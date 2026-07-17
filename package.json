@@ -2,7 +2,7 @@
   "name": "agent-terminal-panel",
   "displayName": "Agent Terminal Panel",
   "description": "在可移动的 VS Code 视图中管理多个 Agent CLI 终端会话",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "publisher": "Cx330-502",
   "author": "Cx330-502",
   "license": "MIT",
@@ -59,7 +59,7 @@
         {
           "id": "agentTerminalPanel",
           "title": "Agent Terminal",
-          "icon": "$(terminal)"
+          "icon": "media/sidebar.svg"
         }
       ]
     },
@@ -91,7 +91,7 @@
         "command": "agentTerminalPanel.newCustomSession",
         "title": "使用自定义命令新建会话",
         "category": "Agent Terminal Panel",
-        "icon": "$(terminal-new)"
+        "icon": "$(terminal)"
       },
       {
         "command": "agentTerminalPanel.openSessionHistory",

@@ -1,37 +1,51 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
   <defs>
-    <linearGradient id="shell" x1="32" y1="20" x2="224" y2="236" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#17243A"/>
-      <stop offset="1" stop-color="#0B1220"/>
+    <linearGradient id="background" x1="36" y1="22" x2="224" y2="238" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#111735"/>
+      <stop offset="0.52" stop-color="#17133F"/>
+      <stop offset="1" stop-color="#071A31"/>
     </linearGradient>
-    <linearGradient id="terminal" x1="98" y1="42" x2="218" y2="214" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#213653"/>
-      <stop offset="1" stop-color="#132235"/>
+    <radialGradient id="aurora" cx="0" cy="0" r="1" gradientTransform="translate(132 124) rotate(90) scale(108)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8B5CF6" stop-opacity="0.22"/>
+      <stop offset="0.48" stop-color="#22D3EE" stop-opacity="0.11"/>
+      <stop offset="1" stop-color="#0B1029" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="orbit" x1="44" y1="178" x2="218" y2="72" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#67E8F9" stop-opacity="0.18"/>
+      <stop offset="0.46" stop-color="#67E8F9"/>
+      <stop offset="1" stop-color="#C084FC"/>
     </linearGradient>
-    <linearGradient id="prompt" x1="112" y1="85" x2="204" y2="167" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#78D7FF"/>
-      <stop offset="1" stop-color="#4B91FF"/>
+    <linearGradient id="prompt" x1="76" y1="101" x2="171" y2="161" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#67E8F9"/>
+      <stop offset="0.52" stop-color="#818CF8"/>
+      <stop offset="1" stop-color="#E879F9"/>
     </linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#020617" flood-opacity=".42"/>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#020617" flood-opacity="0.58"/>
+    </filter>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="7" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
     </filter>
   </defs>
 
-  <rect x="8" y="8" width="240" height="240" rx="52" fill="url(#shell)" filter="url(#shadow)"/>
-  <rect x="24" y="28" width="58" height="200" rx="20" fill="#0A1322" stroke="#2A405E" stroke-width="3"/>
-  <path d="M53 68v120" stroke="#304968" stroke-width="5" stroke-linecap="round"/>
-  <circle cx="53" cy="68" r="12" fill="#F4C978"/>
-  <circle cx="53" cy="128" r="12" fill="#64C8FF"/>
-  <circle cx="53" cy="188" r="12" fill="#8BE0B0"/>
-  <circle cx="53" cy="68" r="4" fill="#FFF2C7"/>
-  <circle cx="53" cy="128" r="4" fill="#DDF5FF"/>
-  <circle cx="53" cy="188" r="4" fill="#E3FFEE"/>
+  <rect x="10" y="10" width="236" height="236" rx="58" fill="url(#background)" filter="url(#shadow)"/>
+  <rect x="11.5" y="11.5" width="233" height="233" rx="56.5" fill="none" stroke="#C4B5FD" stroke-opacity="0.18" stroke-width="3"/>
+  <rect x="10" y="10" width="236" height="236" rx="58" fill="url(#aurora)"/>
 
-  <rect x="94" y="28" width="138" height="200" rx="28" fill="url(#terminal)" stroke="#345177" stroke-width="3"/>
-  <circle cx="120" cy="55" r="6" fill="#F4C978"/>
-  <circle cx="140" cy="55" r="6" fill="#64C8FF" opacity=".85"/>
-  <circle cx="160" cy="55" r="6" fill="#8BE0B0" opacity=".8"/>
-  <path d="M119 92l33 34-33 34" fill="none" stroke="url(#prompt)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
-  <rect x="158" y="151" width="47" height="14" rx="7" fill="#F4C978"/>
-  <path d="M196 91l6 12 13 2-9 9 2 13-12-6-12 6 2-13-9-9 13-2 6-12z" fill="#78D7FF" opacity=".9"/>
+  <g transform="rotate(-18 128 128)">
+    <ellipse cx="128" cy="128" rx="91" ry="54" fill="none" stroke="url(#orbit)" stroke-width="3"/>
+    <circle cx="205" cy="99" r="5" fill="#C084FC" filter="url(#glow)"/>
+  </g>
+
+  <rect x="52" y="61" width="152" height="134" rx="36" fill="#FFFFFF" fill-opacity="0.055" stroke="#E0E7FF" stroke-opacity="0.13" stroke-width="2"/>
+  <path d="M84 105L113 128L84 151" fill="none" stroke="url(#prompt)" stroke-width="15" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
+  <path d="M130 153H171" fill="none" stroke="#C084FC" stroke-width="13" stroke-linecap="round"/>
+
+  <path d="M177 78L180.5 87.5L190 91L180.5 94.5L177 104L173.5 94.5L164 91L173.5 87.5L177 78Z" fill="#E0E7FF"/>
+  <circle cx="73" cy="82" r="3" fill="#67E8F9"/>
+  <circle cx="187" cy="170" r="2.5" fill="#E879F9"/>
 </svg>

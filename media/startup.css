@@ -1,0 +1,87 @@
+.startup-overlay {
+  position: absolute;
+  z-index: 10;
+  inset: var(--header-height) 0 0;
+  display: grid;
+  min-width: 0;
+  place-content: center;
+  padding: 16px;
+  color: var(--vscode-foreground);
+  pointer-events: none;
+}
+
+.startup-overlay[hidden] {
+  display: none;
+}
+
+.startup-card {
+  display: flex;
+  max-width: min(430px, calc(100vw - 32px));
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+  border-radius: 7px;
+  background: color-mix(
+    in srgb,
+    var(--vscode-editor-background) 94%,
+    var(--vscode-focusBorder) 6%
+  );
+  box-shadow: 0 4px 18px var(--vscode-widget-shadow, rgb(0 0 0 / 24%));
+}
+
+.startup-spinner {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  border: 1.5px solid color-mix(in srgb, var(--vscode-progressBar-background) 35%, transparent);
+  border-top-color: var(--vscode-progressBar-background, var(--vscode-focusBorder));
+  border-radius: 50%;
+  animation: startup-spin 0.8s linear infinite;
+}
+
+.startup-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.startup-title,
+.startup-detail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.startup-title {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.startup-detail {
+  color: var(--vscode-descriptionForeground);
+  font-size: 11px;
+}
+
+@keyframes startup-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 340px) {
+  .startup-overlay {
+    padding: 8px;
+  }
+
+  .startup-card {
+    max-width: calc(100vw - 16px);
+    padding: 8px 9px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .startup-spinner {
+    animation: none;
+  }
+}

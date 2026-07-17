@@ -100,12 +100,6 @@ button {
   gap: 1px;
 }
 
-.custom-session-button {
-  font-family: var(--vscode-editor-font-family, monospace);
-  font-size: 11px;
-  font-weight: 700;
-}
-
 .icon-button,
 .session-close {
   display: inline-grid;
@@ -117,6 +111,13 @@ button {
   border-radius: 4px;
   background: transparent;
   cursor: pointer;
+}
+
+.ui-icon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  pointer-events: none;
 }
 
 .icon-button:hover,
@@ -298,6 +299,7 @@ button {
 }
 
 .terminal-pane {
+  position: relative;
   display: flex;
   min-width: 0;
   min-height: 0;

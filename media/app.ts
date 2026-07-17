@@ -1,7 +1,9 @@
 import type { HostMessage, SessionSnapshot, VSCodeApi, WebviewMessage } from '../src/shared';
 import { AttachmentController } from './attachmentController';
+import { hydrateIcons } from './icons';
 import { SessionList, statusLabel } from './sessionList';
 import { SidebarResize } from './sidebarResize';
+import { StartupIndicator } from './startupIndicator';
 import { TerminalController } from './terminalController';
 
 export class WebviewApp {
@@ -10,6 +12,7 @@ export class WebviewApp {
   private readonly attachmentController: AttachmentController;
   private readonly sessionList: SessionList;
   private readonly sidebarResize: SidebarResize;
+  private readonly startupIndicator: StartupIndicator;
   private readonly activeHeader = requiredElement<HTMLElement>('active-header');
   private readonly activeName = requiredElement<HTMLElement>('active-name');
   private readonly activeCwd = requiredElement<HTMLElement>('active-cwd');
@@ -22,6 +25,7 @@ export class WebviewApp {
   private lastSoundAt = 0;
 
   constructor(private readonly vscode: VSCodeApi) {
+    hydrateIcons(document);
     this.root = requiredElement<HTMLElement>('app');
     const stack = requiredElement<HTMLElement>('terminal-stack');
     const splitter = requiredElement<HTMLElement>('session-splitter');
@@ -43,6 +47,11 @@ export class WebviewApp {
       closeSession: (id) => this.post({ type: 'closeSession', id })
     });
     this.sidebarResize = new SidebarResize(this.root, splitter, vscode);
+    this.startupIndicator = new StartupIndicator(
+      requiredElement('startup-overlay'),
+      requiredElement('startup-title'),
+      requiredElement('startup-detail')
+    );
     this.bindControls();
     this.bindWindowEvents();
   }
@@ -57,6 +66,7 @@ export class WebviewApp {
 
   dispose(): void {
     this.attachmentController.dispose();
+    this.startupIndicator.dispose();
     this.terminalController.dispose();
     void this.audioContext?.close();
   }
@@ -117,6 +127,7 @@ export class WebviewApp {
     this.attachmentController.setActiveId(activeId);
     this.sessionList.render(sessions);
     this.terminalController.syncSessions(sessions, activeId, replays);
+    this.startupIndicator.render(sessions.find((session) => session.id === activeId));
     this.renderActiveHeader();
     this.emptyState.hidden = sessions.length > 0;
   }

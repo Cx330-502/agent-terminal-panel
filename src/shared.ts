@@ -11,6 +11,9 @@ export interface SessionSnapshot {
   isActive: boolean;
   canRestart: boolean;
   exitCode?: number;
+  spawnDurationMs?: number;
+  startupElapsedMs?: number;
+  startupDurationMs?: number;
 }
 
 export interface TerminalSettings {

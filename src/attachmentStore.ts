@@ -41,7 +41,7 @@ export class AttachmentStore {
 
     for (const value of [...new Set(uriValues)]) {
       try {
-        const uri = vscode.Uri.parse(value, true);
+        const uri = parseAttachmentUri(value);
         if (!isImagePath(uri.path)) throw new Error('不是受支持的图片文件');
         const info = await vscode.workspace.fs.stat(uri);
         if ((info.type & vscode.FileType.File) === 0) throw new Error('不是文件');
@@ -74,6 +74,11 @@ export class AttachmentStore {
     await vscode.workspace.fs.writeFile(destination, data);
     return destination.fsPath;
   }
+}
+
+function parseAttachmentUri(value: string): vscode.Uri {
+  if (/^(?:\/|[a-z]:[\\/]|\\\\)/iu.test(value)) return vscode.Uri.file(value);
+  return vscode.Uri.parse(value, true);
 }
 
 function errorMessage(error: unknown): string {

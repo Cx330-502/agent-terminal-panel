@@ -16,13 +16,24 @@ export interface PtyCallbacks {
   onError(id: string, error: Error): void;
 }
 
+export interface PtySpawnInfo {
+  pid: number;
+  durationMs: number;
+}
+
 export class PtyHost {
   private readonly processes = new Map<string, IPty>();
 
   constructor(private readonly callbacks: PtyCallbacks) {}
 
-  spawn(id: string, cwd: string, size: PtySize, config: AgentProcessConfig): void {
+  spawn(
+    id: string,
+    cwd: string,
+    size: PtySize,
+    config: AgentProcessConfig
+  ): PtySpawnInfo | undefined {
     this.kill(id);
+    const startedAt = process.hrtime.bigint();
     try {
       const environment = buildTerminalEnvironment(process.env, config.environment, {
         imagesEnabled: config.terminalImagesEnabled,
@@ -43,8 +54,13 @@ export class PtyHost {
         this.processes.delete(id);
         this.callbacks.onExit(id, exitCode);
       });
+      return {
+        pid: ptyProcess.pid,
+        durationMs: elapsedMilliseconds(startedAt)
+      };
     } catch (error) {
       this.callbacks.onError(id, error instanceof Error ? error : new Error(String(error)));
+      return undefined;
     }
   }
 
@@ -80,4 +96,8 @@ export class PtyHost {
 
 function clampDimension(value: number, fallback: number): number {
   return Number.isFinite(value) ? Math.max(2, Math.floor(value)) : fallback;
+}
+
+function elapsedMilliseconds(startedAt: bigint): number {
+  return Math.round(Number(process.hrtime.bigint() - startedAt) / 1_000_000);
 }

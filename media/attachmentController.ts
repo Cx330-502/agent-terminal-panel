@@ -4,10 +4,18 @@ const MAX_FILES = 8;
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
 const MAX_TOTAL_BYTES = 50 * 1024 * 1024;
 const IMAGE_EXTENSION = /\.(?:avif|bmp|gif|heic|heif|jpe?g|png|svg|tiff?|webp)$/iu;
+const FILE_TRANSFER_TYPE = 'files';
+const URI_TRANSFER_TYPES = [
+  'text/uri-list',
+  'application/vnd.code.uri-list',
+  'resourceurls',
+  'codefiles',
+  'codeeditors'
+] as const;
 
 export class AttachmentController {
   private activeId: string | undefined;
-  private dragDepth = 0;
+  private readonly dragTarget: HTMLElement;
   private statusTimer: number | undefined;
   private readonly pending = new Map<string, string[]>();
 
@@ -19,11 +27,12 @@ export class AttachmentController {
     private readonly insertText: (id: string, text: string) => void,
     private readonly requestTextPaste: (id: string) => void
   ) {
+    this.dragTarget = target.closest<HTMLElement>('.terminal-pane') ?? target;
     target.addEventListener('paste', this.handlePaste, true);
-    target.addEventListener('dragenter', this.handleDragEnter);
-    target.addEventListener('dragover', this.handleDragOver);
-    target.addEventListener('dragleave', this.handleDragLeave);
-    target.addEventListener('drop', this.handleDrop);
+    this.dragTarget.addEventListener('dragenter', this.handleDragEnter, true);
+    this.dragTarget.addEventListener('dragover', this.handleDragOver, true);
+    this.dragTarget.addEventListener('dragleave', this.handleDragLeave, true);
+    this.dragTarget.addEventListener('drop', this.handleDrop, true);
   }
 
   setActiveId(id: string | undefined): void {
@@ -52,10 +61,10 @@ export class AttachmentController {
 
   dispose(): void {
     this.target.removeEventListener('paste', this.handlePaste, true);
-    this.target.removeEventListener('dragenter', this.handleDragEnter);
-    this.target.removeEventListener('dragover', this.handleDragOver);
-    this.target.removeEventListener('dragleave', this.handleDragLeave);
-    this.target.removeEventListener('drop', this.handleDrop);
+    this.dragTarget.removeEventListener('dragenter', this.handleDragEnter, true);
+    this.dragTarget.removeEventListener('dragover', this.handleDragOver, true);
+    this.dragTarget.removeEventListener('dragleave', this.handleDragLeave, true);
+    this.dragTarget.removeEventListener('drop', this.handleDrop, true);
     if (this.statusTimer !== undefined) window.clearTimeout(this.statusTimer);
   }
 
@@ -82,30 +91,27 @@ export class AttachmentController {
   };
 
   private readonly handleDragEnter = (event: DragEvent): void => {
-    if (!hasImageTransfer(event.dataTransfer)) return;
+    if (!event.dataTransfer) return;
     event.preventDefault();
-    this.dragDepth++;
-    this.overlay.hidden = false;
+    if (hasPotentialAttachmentTransfer(event.dataTransfer)) this.overlay.hidden = false;
   };
 
   private readonly handleDragOver = (event: DragEvent): void => {
-    if (!hasImageTransfer(event.dataTransfer)) return;
+    if (!event.dataTransfer) return;
     event.preventDefault();
-    if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
-    this.overlay.hidden = false;
+    event.dataTransfer.dropEffect = 'copy';
+    if (hasPotentialAttachmentTransfer(event.dataTransfer)) this.overlay.hidden = false;
   };
 
-  private readonly handleDragLeave = (): void => {
-    if (this.overlay.hidden) return;
-    this.dragDepth = Math.max(0, this.dragDepth - 1);
-    if (this.dragDepth === 0) this.overlay.hidden = true;
+  private readonly handleDragLeave = (event: DragEvent): void => {
+    const next = event.relatedTarget;
+    if (!(next instanceof Node) || !this.dragTarget.contains(next)) this.overlay.hidden = true;
   };
 
   private readonly handleDrop = (event: DragEvent): void => {
-    if (!hasImageTransfer(event.dataTransfer)) return;
+    if (!event.dataTransfer) return;
     event.preventDefault();
     event.stopPropagation();
-    this.dragDepth = 0;
     this.overlay.hidden = true;
     const id = this.activeId;
     if (!id || !event.dataTransfer) {
@@ -115,7 +121,7 @@ export class AttachmentController {
     const files = imageFiles(event.dataTransfer);
     const uris = files.length === 0 ? imageUris(event.dataTransfer) : [];
     if (files.length === 0 && uris.length === 0) {
-      this.showStatus('拖入的内容中没有受支持的图片', 'error');
+      this.showStatus('未收到可读取的图片；从 VS Code 资源管理器拖入时可改用复制粘贴', 'error');
       return;
     }
     void this.submit(id, files, uris);
@@ -201,24 +207,94 @@ function imageFiles(transfer: DataTransfer): File[] {
 }
 
 function imageUris(transfer: DataTransfer): string[] {
-  const raw = transfer.getData('text/uri-list');
-  if (!raw) return [];
+  const values = [
+    ...parseUriList(readTransferData(transfer, 'text/uri-list')),
+    ...parseUriList(readTransferData(transfer, 'application/vnd.code.uri-list')),
+    ...parseJsonStringArray(readTransferData(transfer, 'resourceurls')),
+    ...parseJsonStringArray(readTransferData(transfer, 'codefiles')),
+    ...parseCodeEditors(readTransferData(transfer, 'codeeditors'))
+  ];
+  if (values.length === 0) {
+    values.push(...parsePlainReferences(readTransferData(transfer, 'text/plain')));
+  }
+  return [...new Set(values.map(unquote).filter(isImageReference))];
+}
+
+function hasPotentialAttachmentTransfer(transfer: DataTransfer): boolean {
+  const types = Array.from(transfer.types, (value) => value.toLowerCase());
+  return (
+    transfer.files.length > 0 ||
+    types.length === 0 ||
+    types.includes(FILE_TRANSFER_TYPE) ||
+    URI_TRANSFER_TYPES.some((type) => types.includes(type))
+  );
+}
+
+function readTransferData(transfer: DataTransfer, expectedType: string): string {
+  const actualType = Array.from(transfer.types).find(
+    (value) => value.toLowerCase() === expectedType.toLowerCase()
+  );
+  return transfer.getData(actualType ?? expectedType);
+}
+
+function parseUriList(raw: string): string[] {
   return raw
     .split(/\r?\n/u)
     .map((value) => value.trim())
-    .filter((value) => value && !value.startsWith('#'))
-    .filter((value) => {
-      try {
-        return IMAGE_EXTENSION.test(decodeURIComponent(value).split(/[?#]/u)[0] ?? '');
-      } catch {
-        return IMAGE_EXTENSION.test(value.split(/[?#]/u)[0] ?? '');
-      }
-    });
+    .filter((value) => value && !value.startsWith('#'));
 }
 
-function hasImageTransfer(transfer: DataTransfer | null): boolean {
-  if (!transfer) return false;
-  return transfer.types.includes('Files') || transfer.types.includes('text/uri-list');
+function parseJsonStringArray(raw: string): string[] {
+  if (!raw) return [];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+function parseCodeEditors(raw: string): string[] {
+  if (!raw) return [];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.flatMap((entry) => serializedResource(entry));
+  } catch {
+    return [];
+  }
+}
+
+function serializedResource(value: unknown): string[] {
+  if (!value || typeof value !== 'object') return [];
+  const resource = (value as { resource?: unknown }).resource;
+  if (typeof resource === 'string') return [resource];
+  if (!resource || typeof resource !== 'object') return [];
+  const candidate = resource as { scheme?: unknown; authority?: unknown; path?: unknown };
+  if (typeof candidate.path !== 'string') return [];
+  if (typeof candidate.scheme !== 'string' || !candidate.scheme) return [candidate.path];
+  const authority = typeof candidate.authority === 'string' ? candidate.authority : '';
+  return [`${candidate.scheme}://${authority}${candidate.path}`];
+}
+
+function parsePlainReferences(raw: string): string[] {
+  return raw
+    .split(/\r?\n/u)
+    .map((value) => value.trim())
+    .filter((value) => /^(?:[a-z][a-z\d+.-]*:|\/|[a-z]:[\\/]|\\\\)/iu.test(unquote(value)));
+}
+
+function unquote(value: string): string {
+  const trimmed = value.trim();
+  return /^(['"]).*\1$/u.test(trimmed) ? trimmed.slice(1, -1) : trimmed;
+}
+
+function isImageReference(value: string): boolean {
+  try {
+    return IMAGE_EXTENSION.test(decodeURIComponent(value).split(/[?#]/u)[0] ?? '');
+  } catch {
+    return IMAGE_EXTENSION.test(value.split(/[?#]/u)[0] ?? '');
+  }
 }
 
 async function toUpload(file: File, index: number): Promise<AttachmentUpload> {

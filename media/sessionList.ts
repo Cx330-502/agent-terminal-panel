@@ -1,4 +1,5 @@
 import type { SessionSnapshot } from '../src/shared';
+import { createIcon } from './icons';
 
 export interface SessionListCallbacks {
   switchSession(id: string): void;
@@ -46,7 +47,7 @@ export class SessionList {
     const close = document.createElement('button');
     close.className = 'session-close';
     close.type = 'button';
-    close.textContent = '×';
+    close.append(createIcon('close'));
     close.title = '关闭会话';
     close.setAttribute('aria-label', `关闭 ${session.name}`);
     close.addEventListener('click', (event) => {

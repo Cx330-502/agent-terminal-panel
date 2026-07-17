@@ -1,11 +1,16 @@
 .gitignore
+.github/**
 .vscode/**
 .playwright-cli/**
+docs/**
 releases/**
 src/**
 test/**
 media/*.ts
 media/icon.svg
+media/screenshots/*.png
+README.en.md
+TODO.md
 tsconfig.json
 esbuild.mjs
 scripts/**

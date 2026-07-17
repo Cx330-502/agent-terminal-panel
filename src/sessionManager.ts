@@ -18,6 +18,10 @@ interface SessionRecord {
   output: OutputBuffer;
   launchCommand?: string;
   canRestart: boolean;
+  startedAt: number;
+  pid?: number;
+  spawnDurationMs?: number;
+  startupDurationMs?: number;
 }
 
 export interface SessionCreateOptions {
@@ -37,6 +41,16 @@ export interface SessionManagerCallbacks {
   onClear(id: string): void;
   onStateChanged(): void;
   onAttention(event: SessionAttention): void;
+  onStartupTiming(event: SessionStartupTiming): void;
+}
+
+export interface SessionStartupTiming {
+  id: string;
+  name: string;
+  phase: 'spawned' | 'firstOutput' | 'exitedBeforeOutput' | 'failedBeforeOutput';
+  durationMs: number;
+  pid?: number;
+  detail?: string;
 }
 
 export class SessionManager {
@@ -69,6 +83,7 @@ export class SessionManager {
       activityEpoch: 0,
       output: new OutputBuffer(),
       canRestart: options.canRestart ?? true,
+      startedAt: Date.now(),
       ...(options.launchCommand?.trim() ? { launchCommand: options.launchCommand.trim() } : {})
     };
     this.sessions.set(id, session);
@@ -99,6 +114,10 @@ export class SessionManager {
     session.exitCode = undefined;
     session.unread = false;
     session.status = 'running';
+    session.startedAt = Date.now();
+    session.pid = undefined;
+    session.spawnDurationMs = undefined;
+    session.startupDurationMs = undefined;
     session.activityEpoch++;
     session.lastAttentionKey = undefined;
     this.callbacks.onClear(id);
@@ -232,15 +251,30 @@ export class SessionManager {
 
   private spawn(session: SessionRecord): void {
     const config = this.getProcessConfig();
-    this.ptyHost.spawn(session.id, session.cwd, session.size, {
+    const info = this.ptyHost.spawn(session.id, session.cwd, session.size, {
       ...config,
       launchCommand: session.launchCommand ?? config.launchCommand
     });
+    if (!info) return;
+    session.pid = info.pid;
+    session.spawnDurationMs = info.durationMs;
+    this.callbacks.onStartupTiming({
+      id: session.id,
+      name: session.name,
+      phase: 'spawned',
+      durationMs: info.durationMs,
+      pid: info.pid
+    });
+    this.callbacks.onStateChanged();
   }
 
   private handlePtyData(id: string, data: string): void {
     const session = this.sessions.get(id);
     if (!session) return;
+    if (session.startupDurationMs === undefined) {
+      this.finishStartup(session, 'firstOutput');
+      this.callbacks.onStateChanged();
+    }
     session.output.append(data);
     this.callbacks.onOutput(id, data);
   }
@@ -248,6 +282,9 @@ export class SessionManager {
   private handlePtyExit(id: string, exitCode: number): void {
     const session = this.sessions.get(id);
     if (!session) return;
+    if (session.startupDurationMs === undefined) {
+      this.finishStartup(session, 'exitedBeforeOutput', `exit ${exitCode}`);
+    }
     session.exitCode = exitCode;
     const message = `\r\n[Agent process exited with code ${exitCode}]\r\n`;
     session.output.append(message);
@@ -258,11 +295,30 @@ export class SessionManager {
   private handlePtyError(id: string, error: Error): void {
     const session = this.sessions.get(id);
     if (!session) return;
+    if (session.startupDurationMs === undefined) {
+      this.finishStartup(session, 'failedBeforeOutput', error.message);
+    }
     session.exitCode = -1;
     const message = `\r\n[Unable to start Agent CLI: ${error.message}]\r\n`;
     session.output.append(message);
     this.callbacks.onOutput(id, message);
     this.setDetectedStatus(id, 'completed', true, error.message);
+  }
+
+  private finishStartup(
+    session: SessionRecord,
+    phase: Exclude<SessionStartupTiming['phase'], 'spawned'>,
+    detail?: string
+  ): void {
+    session.startupDurationMs = Math.max(0, Date.now() - session.startedAt);
+    this.callbacks.onStartupTiming({
+      id: session.id,
+      name: session.name,
+      phase,
+      durationMs: session.startupDurationMs,
+      ...(session.pid === undefined ? {} : { pid: session.pid }),
+      ...(detail ? { detail } : {})
+    });
   }
 
   private snapshot(session: SessionRecord): SessionSnapshot {
@@ -274,6 +330,12 @@ export class SessionManager {
       unread: session.unread,
       isActive: session.id === this.activeId,
       canRestart: session.canRestart,
+      ...(session.spawnDurationMs === undefined
+        ? {}
+        : { spawnDurationMs: session.spawnDurationMs }),
+      ...(session.startupDurationMs === undefined
+        ? { startupElapsedMs: Math.max(0, Date.now() - session.startedAt) }
+        : { startupDurationMs: session.startupDurationMs }),
       ...(session.exitCode === undefined ? {} : { exitCode: session.exitCode })
     };
   }

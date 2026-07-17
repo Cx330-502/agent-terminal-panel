@@ -112,6 +112,50 @@ async (page) => {
     return { saveCount: save ? 1 : 0, uris: save?.uris || [] };
   });
 
+  const vscodeTransfers = await page.evaluate(async () => {
+    const cases = [
+      {
+        type: 'ResourceURLs',
+        value: JSON.stringify(['vscode-remote://ssh-remote+demo/workspace/资源图.png'])
+      },
+      {
+        type: 'application/vnd.code.uri-list',
+        value: 'file:///tmp/internal-uri.webp'
+      },
+      {
+        type: 'CodeFiles',
+        value: JSON.stringify(['/tmp/code-file.jpg'])
+      },
+      {
+        type: 'text/plain',
+        value: '/tmp/plain-path.gif'
+      }
+    ];
+    const results = [];
+    for (const item of cases) {
+      window.__webviewMessages.length = 0;
+      const transfer = new DataTransfer();
+      transfer.setData(item.type, item.value);
+      document.querySelector('#active-header').dispatchEvent(new DragEvent('drop', {
+        dataTransfer: transfer,
+        bubbles: true,
+        cancelable: true
+      }));
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      const save = window.__webviewMessages.find((message) => message.type === 'saveAttachments');
+      results.push({ type: item.type, saveCount: save ? 1 : 0, uris: save?.uris || [] });
+    }
+    const unknownTransfer = new DataTransfer();
+    unknownTransfer.setData('application/x-agent-terminal-test', 'unknown');
+    const dragOver = new DragEvent('dragover', {
+      dataTransfer: unknownTransfer,
+      bubbles: true,
+      cancelable: true
+    });
+    document.querySelector('#terminal-stack').dispatchEvent(dragOver);
+    return { results, unknownDragAccepted: dragOver.defaultPrevented };
+  });
+
   const layoutResults = [];
   for (const [width, height] of [[620, 620], [320, 720]]) {
     await page.setViewportSize({ width, height });
@@ -166,6 +210,7 @@ async (page) => {
     imagePaste,
     dragDrop,
     uriDrop,
+    vscodeTransfers,
     layoutResults,
     consoleErrors,
     failedRequests
