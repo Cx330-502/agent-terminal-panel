@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.2
+
+- 新增默认关闭的 Sixel/iTerm 终端图片开关，为 Codex Pets 等终端图片功能加载官方 xterm.js image addon。
+- 图片模式会向子进程声明 `TERM=xterm-sixel`，并移除会覆盖 Codex Sixel 检测的 `TERM_PROGRAM` / `TERM_PROGRAM_VERSION`。
+- 设置可即时控制 Webview 图片解码；进程环境在新建或重启会话时生效。
+- 限制单终端图片缓存和单图解码尺寸，避免多后台会话无界占用 Webview 内存。
+
 ## 0.4.1
 
 - 补充 Windows x64 与 Windows ARM64 的 `node-pty` 原生 VSIX。

@@ -1,4 +1,5 @@
 import { FitAddon } from '@xterm/addon-fit';
+import { ImageAddon } from '@xterm/addon-image';
 import { Terminal } from '@xterm/xterm';
 import type {
   SessionSnapshot,
@@ -14,6 +15,7 @@ interface TerminalEntry {
   fitAddon: FitAddon;
   element: HTMLElement;
   detector: StatusDetector;
+  imageAddon?: ImageAddon;
   settleTimer?: number;
   signalTimer?: number;
   replaying: boolean;
@@ -101,7 +103,10 @@ export class TerminalController {
 
   updateSettings(settings: TerminalSettings): void {
     this.settings = settings;
-    for (const entry of this.entries.values()) applyTerminalSettings(entry.terminal, settings);
+    for (const entry of this.entries.values()) {
+      applyTerminalSettings(entry.terminal, settings);
+      this.updateImageAddon(entry, settings.imagesEnabled);
+    }
     this.scheduleFit();
   }
 
@@ -152,6 +157,8 @@ export class TerminalController {
     applyTerminalSettings(terminal, this.settings);
     const fitAddon = new FitAddon();
     terminal.loadAddon(fitAddon);
+    const imageAddon = this.createImageAddon();
+    if (imageAddon) terminal.loadAddon(imageAddon);
     terminal.open(element);
 
     const detector = new StatusDetector((update) => {
@@ -162,6 +169,7 @@ export class TerminalController {
       fitAddon,
       element,
       detector,
+      ...(imageAddon ? { imageAddon } : {}),
       replaying: false
     };
     this.entries.set(id, entry);
@@ -194,6 +202,33 @@ export class TerminalController {
     entry.terminal.dispose();
     entry.element.remove();
     this.entries.delete(id);
+  }
+
+  private createImageAddon(): ImageAddon | undefined {
+    if (!this.settings?.imagesEnabled) return undefined;
+    return new ImageAddon({
+      enableSizeReports: true,
+      pixelLimit: 4_194_304,
+      sixelSupport: true,
+      sixelSizeLimit: 8_000_000,
+      storageLimit: 24,
+      showPlaceholder: false,
+      iipSupport: true,
+      iipSizeLimit: 8_000_000
+    });
+  }
+
+  private updateImageAddon(entry: TerminalEntry, enabled: boolean): void {
+    if (enabled === Boolean(entry.imageAddon)) return;
+    if (!enabled) {
+      entry.imageAddon?.dispose();
+      entry.imageAddon = undefined;
+      return;
+    }
+    const addon = this.createImageAddon();
+    if (!addon) return;
+    entry.terminal.loadAddon(addon);
+    entry.imageAddon = addon;
   }
 
   private handleKeyEvent(terminal: Terminal, event: KeyboardEvent): boolean {

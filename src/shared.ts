@@ -34,6 +34,7 @@ export interface TerminalSettings {
   drawBoldTextInBrightColors: boolean;
   customGlyphs: boolean;
   rightClickBehavior: string;
+  imagesEnabled: boolean;
 }
 
 export interface AttachmentUpload {

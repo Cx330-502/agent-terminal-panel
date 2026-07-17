@@ -3,6 +3,7 @@ import type { IPty } from 'node-pty';
 import * as nodePty from 'node-pty';
 import type { AgentProcessConfig } from './config';
 import { resolveLaunchCommand } from './launchCommand';
+import { buildTerminalEnvironment } from './terminalEnvironment';
 
 export interface PtySize {
   cols: number;
@@ -23,10 +24,13 @@ export class PtyHost {
   spawn(id: string, cwd: string, size: PtySize, config: AgentProcessConfig): void {
     this.kill(id);
     try {
-      const environment = buildEnvironment(config.environment);
+      const environment = buildTerminalEnvironment(process.env, config.environment, {
+        imagesEnabled: config.terminalImagesEnabled,
+        vscodeVersion: vscode.version
+      });
       const launch = resolveLaunchCommand(config.launchCommand, process.platform, environment);
       const ptyProcess = nodePty.spawn(launch.command, launch.args, {
-        name: 'xterm-256color',
+        name: config.terminalImagesEnabled ? 'xterm-sixel' : 'xterm-256color',
         cols: clampDimension(size.cols, 80),
         rows: clampDimension(size.rows, 24),
         cwd,
@@ -76,19 +80,4 @@ export class PtyHost {
 
 function clampDimension(value: number, fallback: number): number {
   return Number.isFinite(value) ? Math.max(2, Math.floor(value)) : fallback;
-}
-
-function buildEnvironment(extra: Record<string, string>): Record<string, string> {
-  const environment: Record<string, string> = {};
-  for (const [key, value] of Object.entries(process.env)) {
-    if (value !== undefined) environment[key] = value;
-  }
-  return {
-    ...environment,
-    ...extra,
-    TERM: 'xterm-256color',
-    COLORTERM: 'truecolor',
-    TERM_PROGRAM: 'vscode',
-    TERM_PROGRAM_VERSION: vscode.version
-  };
 }

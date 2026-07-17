@@ -4,6 +4,7 @@ import type { TerminalSettings } from './shared';
 export interface AgentProcessConfig {
   launchCommand: string;
   environment: Record<string, string>;
+  terminalImagesEnabled: boolean;
 }
 
 export type CompletionSoundMode = 'never' | 'whenHidden' | 'always';
@@ -35,7 +36,8 @@ export function getAgentProcessConfig(): AgentProcessConfig {
   const config = vscode.workspace.getConfiguration(SECTION);
   return {
     launchCommand: config.get<string>('launchCommand', '').trim(),
-    environment: config.get<Record<string, string>>('environment', {})
+    environment: config.get<Record<string, string>>('environment', {}),
+    terminalImagesEnabled: config.get<boolean>('terminalImages.enabled', false)
   };
 }
 
@@ -93,7 +95,10 @@ export function getTerminalSettings(): TerminalSettings {
     minimumContrastRatio: config.get<number>('minimumContrastRatio', 4.5),
     drawBoldTextInBrightColors: config.get<boolean>('drawBoldTextInBrightColors', true),
     customGlyphs: config.get<boolean>('customGlyphs', true),
-    rightClickBehavior: config.get<string>('rightClickBehavior', 'copyPaste')
+    rightClickBehavior: config.get<string>('rightClickBehavior', 'copyPaste'),
+    imagesEnabled: vscode.workspace
+      .getConfiguration(SECTION)
+      .get<boolean>('terminalImages.enabled', false)
   };
 }
 

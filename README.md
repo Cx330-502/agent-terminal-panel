@@ -18,6 +18,7 @@
 - 设置按钮直接打开完整的 VS Code 扩展设置页。
 - 切换视图或隐藏 Panel 后 PTY 继续在后台运行；Webview 重建时回放近期终端内容。
 - xterm.js + node-pty，支持 resize、Bracketed Paste、中文 IME、真彩色和 OSC 10/11/12。
+- 可选启用 Sixel/iTerm 终端图片及 Codex Pets 兼容环境；默认关闭，避免无图片需求时增加内存占用。
 - 支持直接粘贴剪贴板图片，或把本机/远端图片拖到终端；图片保存到 workspace host 的扩展存储后，将安全转义的绝对路径插入当前输入区。
 - 字体、字号、字重、行高、字距、光标、滚动和颜色均跟随 VS Code 原生终端设置及主题。
 - 通用 Agent 状态：运行中、等待输入、等待审批、已完成；保留常见 Codex CLI 屏幕的兼容检测。
@@ -68,6 +69,7 @@
 | `agentTerminalPanel.environment` | `{}` | 会话附加环境变量 |
 | `agentTerminalPanel.sessionListPosition` | `left` | 会话列表放在终端左侧或右侧 |
 | `agentTerminalPanel.startSessionOnOpen` | `true` | 首次打开时自动创建会话 |
+| `agentTerminalPanel.terminalImages.enabled` | `false` | 启用 Sixel/iTerm 图片与 Codex Pets 兼容环境；新建或重启会话后生效 |
 | `agentTerminalPanel.sessionHistory.maxResults` | `100` | 历史会话选择器的最大结果数 |
 | `agentTerminalPanel.sessionHistory.codexCommand` | `codex` | Codex Resume/Fork 命令前缀 |
 | `agentTerminalPanel.sessionHistory.claudeCommand` | `claude` | Claude Code Resume/Fork 命令前缀 |
@@ -77,6 +79,8 @@
 终端显示直接读取 `terminal.integrated.*` 设置以及 `terminal.*` 主题颜色，不维护第二套字体或配色配置。
 
 图片粘贴与拖放单张上限为 25 MB、单次总量上限为 50 MB。图片放在当前 workspace 对应的 VS Code 扩展存储中，因此在 WSL/Remote SSH 窗口里会保存到远端 workspace host，而不是本地 UI 机器；不会在项目目录生成未跟踪文件。
+
+Codex Pets 用户可启用 `agentTerminalPanel.terminalImages.enabled` 后新建或重启会话。扩展会加载 Sixel 图片解码，并采用 [openai/codex#27335](https://github.com/openai/codex/issues/27335) 验证过的兼容环境：`TERM=xterm-sixel` 且不向子进程暴露 `TERM_PROGRAM=vscode`。
 
 ## 开发与验证
 

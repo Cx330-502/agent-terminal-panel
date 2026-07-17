@@ -76,6 +76,9 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
         if (event.affectsConfiguration('terminal.integrated')) {
           this.post({ type: 'terminalSettings', settings: getTerminalSettings() });
         }
+        if (event.affectsConfiguration('agentTerminalPanel.terminalImages.enabled')) {
+          this.post({ type: 'terminalSettings', settings: getTerminalSettings() });
+        }
         if (event.affectsConfiguration('agentTerminalPanel.sessionListPosition')) {
           this.post({ type: 'layoutSettings', settings: getLayoutSettings() });
         }

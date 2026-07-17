@@ -6,8 +6,8 @@
 - Offer an undo/quick-reopen action without silently restarting commands.
 - Decide how long output, cwd, name, custom command and provider metadata should remain recoverable.
 
-## Terminal pets
+## Communication health
 
-- Explore an optional, disabled-by-default terminal pet layer.
-- Keep it independent from PTY output and xterm input handling.
-- Respect reduced-motion, accessibility, performance and narrow-panel layouts.
+- Show source-labelled PTY, process-network and provider telemetry without conflating them.
+- Detect long silent periods while an Agent still reports running.
+- Explore Codex/Claude local session metrics plus cc-switch/CPA proxy correlation.
