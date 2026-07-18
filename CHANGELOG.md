@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.1
+
+- 修复 Webview CSP 拦截 xterm.js image addon 的 WebAssembly Sixel 解码器，导致 Codex Pets 不再报终端不支持、但实际图像仍静默消失的问题。
+- CSP 仅增加 `wasm-unsafe-eval`，不开放 JavaScript `unsafe-eval`；增加 Sixel 在受限/允许 CSP 下的正反浏览器回归。
+
 ## 0.6.0
 
 - 新增响应式通信健康条，显示活跃、静默、疑似停滞和空闲状态；窄侧栏自动收缩为短标签，不遮挡会话名与操作按钮。

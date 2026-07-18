@@ -115,7 +115,7 @@ Codex Pets 用户可启用 `agentTerminalPanel.terminalImages.enabled` 后新建
 
 ## 平台与远程开发
 
-Marketplace 会按当前 extension host 自动安装对应目标。GitHub `releases/v0.6.0/` 同时提供：
+Marketplace 会按当前 extension host 自动安装对应目标。GitHub `releases/v0.6.1/` 同时提供：
 
 - Windows x64 / ARM64
 - Linux x64 / ARM64（包括 WSL 与 Remote SSH workspace host）

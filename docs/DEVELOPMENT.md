@@ -122,10 +122,11 @@ Then run the Playwright scripts with a real Chromium page:
 playwright-cli open http://127.0.0.1:4173/test/browser-harness.html
 playwright-cli run-code --filename=test/runAttachmentRegression.js
 playwright-cli run-code --filename=test/runSelectionScrollRegression.js
+playwright-cli run-code --filename=test/runTerminalImageRegression.js
 playwright-cli run-code --filename=test/runUiRegression.js
 ```
 
-The standard UI matrix contains six desktop sizes, a same-width reduced-height pair, two narrow/mobile-like sizes, and a 320 px stress case. Review generated baseline, interaction, active/quiet/stalled communication states, dense-control, attachment-overlay, and startup screenshots in addition to automated overflow/occlusion probes.
+The terminal-image regression proves that the Webview CSP blocks Sixel WebAssembly without `wasm-unsafe-eval` and renders non-transparent pixels with the narrow directive enabled. The standard UI matrix contains six desktop sizes, a same-width reduced-height pair, two narrow/mobile-like sizes, and a 320 px stress case. Review generated baseline, interaction, active/quiet/stalled communication states, dense-control, attachment-overlay, and startup screenshots in addition to automated overflow/occlusion probes.
 
 The harness is not a substitute for an Extension Development Host check of:
 
