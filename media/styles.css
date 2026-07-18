@@ -95,11 +95,6 @@ button {
   white-space: nowrap;
 }
 
-.session-actions {
-  display: flex;
-  gap: 1px;
-}
-
 .icon-button,
 .session-close {
   display: inline-grid;
@@ -467,9 +462,7 @@ button {
 
   .session-heading,
   .session-cwd,
-  .session-close,
-  #new-custom-session,
-  #new-session-folder {
+  .session-close {
     display: none;
   }
 

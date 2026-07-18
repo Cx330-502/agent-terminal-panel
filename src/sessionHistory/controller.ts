@@ -1,8 +1,6 @@
 import * as vscode from 'vscode';
 import { getSessionHistoryConfig } from '../config';
-import { ClaudeSessionProvider } from './claudeProvider';
-import { CodexSessionProvider } from './codexProvider';
-import { SessionHistoryRegistry } from './registry';
+import { createSessionHistoryRegistry } from './createRegistry';
 import type { HistoricalSession, SessionLaunchMode } from './types';
 
 export interface HistoricalSessionLaunch {
@@ -35,10 +33,7 @@ export class SessionHistoryController {
     }
 
     const config = getSessionHistoryConfig();
-    const registry = new SessionHistoryRegistry([
-      new CodexSessionProvider(config.codexCommand),
-      new ClaudeSessionProvider(config.claudeCommand)
-    ]);
+    const registry = createSessionHistoryRegistry();
     const discovery = await vscode.window.withProgress(
       { location: vscode.ProgressLocation.Window, title: '扫描当前 workspace 的 Agent 会话…' },
       () => registry.discover(workspaceRoots, config.maxResults)

@@ -4,6 +4,7 @@ import type { AgentProcessConfig, CommunicationHealthConfig } from './config';
 import { isApprovalDecisionInput, isSubmissionInput } from './input';
 import { OutputBuffer } from './outputBuffer';
 import { PtyHost, type PtySize } from './ptyHost';
+import type { AgentSessionIdentity } from './sessionHistory/types';
 import type { SessionSnapshot, SessionStatus } from './shared';
 
 interface SessionRecord {
@@ -23,12 +24,25 @@ interface SessionRecord {
   pid?: number;
   spawnDurationMs?: number;
   startupDurationMs?: number;
+  windowRestoreEligible: boolean;
+  resumeIdentity?: AgentSessionIdentity;
 }
 
 export interface SessionCreateOptions {
   name?: string;
   launchCommand?: string;
   canRestart?: boolean;
+  windowRestoreEligible?: boolean;
+  resumeIdentity?: AgentSessionIdentity;
+}
+
+export interface RestorableSessionState {
+  id: string;
+  name: string;
+  cwd: string;
+  isActive: boolean;
+  startedAt: number;
+  identity?: AgentSessionIdentity;
 }
 
 export interface SessionAttention {
@@ -90,6 +104,8 @@ export class SessionManager {
       output: new OutputBuffer(),
       canRestart: options.canRestart ?? true,
       startedAt: Date.now(),
+      windowRestoreEligible: options.windowRestoreEligible ?? false,
+      ...(options.resumeIdentity ? { resumeIdentity: options.resumeIdentity } : {}),
       ...(options.launchCommand?.trim() ? { launchCommand: options.launchCommand.trim() } : {})
     };
     this.sessions.set(id, session);
@@ -114,9 +130,9 @@ export class SessionManager {
     this.callbacks.onStateChanged();
   }
 
-  restart(id: string): void {
+  restart(id: string): number | undefined {
     const session = this.sessions.get(id);
-    if (!session || !session.canRestart) return;
+    if (!session || !session.canRestart) return undefined;
     this.ptyHost.kill(id);
     this.communication.restart(id);
     session.output.clear();
@@ -132,6 +148,7 @@ export class SessionManager {
     this.callbacks.onClear(id);
     this.callbacks.onStateChanged();
     this.spawn(session);
+    return session.startedAt;
   }
 
   write(id: string, data: string): void {
@@ -242,6 +259,47 @@ export class SessionManager {
 
   requiresDefaultLaunchCommand(id: string): boolean {
     return !this.sessions.get(id)?.launchCommand;
+  }
+
+  clearResumeIdentity(id: string): void {
+    const session = this.sessions.get(id);
+    if (!session?.resumeIdentity) return;
+    session.resumeIdentity = undefined;
+    this.callbacks.onStateChanged();
+  }
+
+  setResumeIdentity(id: string, identity: AgentSessionIdentity): void {
+    const session = this.sessions.get(id);
+    if (!session || !session.windowRestoreEligible) return;
+    if (
+      session.resumeIdentity?.providerId === identity.providerId &&
+      session.resumeIdentity.sessionId === identity.sessionId
+    ) {
+      return;
+    }
+    session.resumeIdentity = identity;
+    this.callbacks.onStateChanged();
+  }
+
+  restorableSessions(): RestorableSessionState[] {
+    return [...this.sessions.values()].flatMap((session) =>
+      session.windowRestoreEligible
+        ? [
+            {
+              id: session.id,
+              name: session.name,
+              cwd: session.cwd,
+              isActive: session.id === this.activeId,
+              startedAt: session.startedAt,
+              ...(session.resumeIdentity ? { identity: session.resumeIdentity } : {})
+            }
+          ]
+        : []
+    );
+  }
+
+  restorableSession(id: string): RestorableSessionState | undefined {
+    return this.restorableSessions().find((session) => session.id === id);
   }
 
   refreshCommunicationHealth(): void {

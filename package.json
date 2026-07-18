@@ -2,7 +2,7 @@
   "name": "agent-terminal-panel",
   "displayName": "Agent Terminal Panel",
   "description": "在可移动的 VS Code 视图中管理多个 Agent CLI 会话，支持真实 PTY、历史恢复、图片输入与通信健康监测",
-  "version": "0.6.2",
+  "version": "0.7.0",
   "publisher": "Cx330-502",
   "author": "Cx330-502",
   "license": "MIT",
@@ -48,7 +48,9 @@
     "onCommand:agentTerminalPanel.newSession",
     "onCommand:agentTerminalPanel.newSessionInFolder",
     "onCommand:agentTerminalPanel.newCustomSession",
+    "onCommand:agentTerminalPanel.showNewSessionMenu",
     "onCommand:agentTerminalPanel.openSessionHistory",
+    "onCommand:agentTerminalPanel.restoreWorkspaceSessions",
     "onCommand:agentTerminalPanel.renameSession",
     "onCommand:agentTerminalPanel.closeSession",
     "onCommand:agentTerminalPanel.restartSession",
@@ -82,9 +84,15 @@
     "commands": [
       {
         "command": "agentTerminalPanel.newSession",
-        "title": "新建 Agent 会话",
+        "title": "使用默认命令新建 Agent 会话",
         "category": "Agent Terminal Panel",
         "icon": "$(add)"
+      },
+      {
+        "command": "agentTerminalPanel.showNewSessionMenu",
+        "title": "选择 Agent 会话启动方式",
+        "category": "Agent Terminal Panel",
+        "icon": "$(chevron-down)"
       },
       {
         "command": "agentTerminalPanel.newSessionInFolder",
@@ -103,6 +111,12 @@
         "title": "从 Agent 历史会话启动",
         "category": "Agent Terminal Panel",
         "icon": "$(history)"
+      },
+      {
+        "command": "agentTerminalPanel.restoreWorkspaceSessions",
+        "title": "恢复上次窗口的 Agent 会话",
+        "category": "Agent Terminal Panel",
+        "icon": "$(window)"
       },
       {
         "command": "agentTerminalPanel.renameSession",
@@ -151,29 +165,19 @@
           "group": "navigation@1"
         },
         {
-          "command": "agentTerminalPanel.newCustomSession",
+          "command": "agentTerminalPanel.showNewSessionMenu",
           "when": "view == agentTerminalPanel.terminalView",
           "group": "navigation@2"
         },
         {
-          "command": "agentTerminalPanel.openSessionHistory",
+          "command": "agentTerminalPanel.restartSession",
           "when": "view == agentTerminalPanel.terminalView",
           "group": "navigation@3"
         },
         {
-          "command": "agentTerminalPanel.newSessionInFolder",
-          "when": "view == agentTerminalPanel.terminalView",
-          "group": "navigation@4"
-        },
-        {
-          "command": "agentTerminalPanel.restartSession",
-          "when": "view == agentTerminalPanel.terminalView",
-          "group": "navigation@5"
-        },
-        {
           "command": "agentTerminalPanel.openSettings",
           "when": "view == agentTerminalPanel.terminalView",
-          "group": "navigation@6"
+          "group": "navigation@4"
         }
       ]
     },
@@ -235,7 +239,7 @@
         "agentTerminalPanel.startSessionOnOpen": {
           "type": "boolean",
           "default": true,
-          "description": "首次打开视图时自动创建一个 Agent 会话。"
+          "description": "首次打开视图时自动创建一个 Agent 会话；存在上次窗口待恢复会话时会暂停自动创建。"
         },
         "agentTerminalPanel.terminalImages.enabled": {
           "type": "boolean",

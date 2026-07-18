@@ -1,9 +1,12 @@
 export type SessionLaunchMode = 'resume' | 'fork';
 
-export interface HistoricalSession {
+export interface AgentSessionIdentity {
   providerId: string;
   providerName: string;
   sessionId: string;
+}
+
+export interface HistoricalSession extends AgentSessionIdentity {
   cwd: string;
   title: string;
   updatedAt: number;

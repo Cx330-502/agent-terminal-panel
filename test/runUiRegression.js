@@ -246,12 +246,8 @@ async (page) => {
     }));
     await page.keyboard.press('Escape');
 
-    const historyButton = page.locator('#session-history');
-    if (await historyButton.isVisible()) await historyButton.click();
-    const customButton = page.locator('#new-custom-session');
-    const customVisible = await customButton.isVisible();
-    await page.evaluate((visible) => { window.__customVisible = visible; }, customVisible);
-    if (customVisible) await customButton.click();
+    await page.locator('#new-session-menu').click();
+    await page.locator('#restore-workspace-sessions').click();
     await page.locator('#active-name').dblclick();
     await page.locator('#restart-session').hover();
     await page.locator('.session-row').first().focus();
@@ -325,8 +321,9 @@ async (page) => {
         communicationClipped: summary ? summary.scrollWidth > summary.clientWidth + 1 : false,
         restartDisabled: document.querySelector('#restart-session')?.disabled === true,
         rightLayout: document.querySelector('#app')?.classList.contains('session-list-right') === true,
-        historyPosted: window.__webviewMessages.some((message) => message.type === 'openSessionHistory'),
-        customInteractionOk: !window.__customVisible || window.__webviewMessages.some((message) => message.type === 'newCustomSession'),
+        launchMenuPosted: window.__webviewMessages.some((message) => message.type === 'showNewSessionMenu'),
+        restorePosted: window.__webviewMessages.some((message) => message.type === 'restoreWorkspaceSessions'),
+        restoreVisible: document.querySelector('#workspace-restore')?.hidden === false,
         renamePosted: window.__webviewMessages.some((message) => message.type === 'promptRenameSession'),
         startupHiddenAfterOutput: document.querySelector('#startup-overlay')?.hidden === true,
         iconButtonCount: document.querySelectorAll('.icon-button').length,

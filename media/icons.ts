@@ -1,5 +1,6 @@
 const ICON_PATHS = {
   add: '<path d="M8 3v10M3 8h10"/>',
+  chevronDown: '<path d="m4 6 4 4 4-4"/>',
   history:
     '<path d="M2.5 5.5V2.75M2.5 5.5h2.75"/><path d="M3.1 5.1A5.5 5.5 0 1 1 2.5 9"/><path d="M8 5v3.25l2.25 1.25"/>',
   terminal:

@@ -1,0 +1,113 @@
+.session-actions {
+  display: flex;
+  gap: 1px;
+}
+
+.new-session-split {
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.new-session-split .icon-button {
+  border-radius: 0;
+}
+
+.new-session-split .split-primary {
+  width: 24px;
+}
+
+.new-session-split .split-secondary {
+  width: 18px;
+  border-left: 1px solid var(--vscode-toolbar-hoverOutline, var(--vscode-panel-border));
+}
+
+.new-session-split .split-secondary .ui-icon {
+  width: 13px;
+  height: 13px;
+}
+
+.workspace-restore {
+  display: flex;
+  min-width: 0;
+  min-height: 42px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 7px 5px 9px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  color: var(--vscode-notifications-foreground, var(--vscode-foreground));
+  background: var(--vscode-notifications-background, var(--vscode-editorWidget-background));
+}
+
+.workspace-restore[hidden] {
+  display: none;
+}
+
+.workspace-restore-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.workspace-restore-copy strong,
+.workspace-restore-copy span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-restore-copy strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.workspace-restore-copy span {
+  color: var(--vscode-descriptionForeground);
+  font-size: 11px;
+}
+
+.workspace-restore-actions {
+  display: flex;
+  flex: none;
+  gap: 4px;
+}
+
+.compact-button {
+  min-height: 24px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+@container panel (max-width: 420px) {
+  .workspace-restore {
+    min-height: 38px;
+    gap: 6px;
+    padding-left: 7px;
+  }
+
+  .workspace-restore-copy span {
+    display: none;
+  }
+
+  .compact-button {
+    padding-inline: 6px;
+  }
+}
+
+@container panel (max-width: 300px) {
+  .workspace-restore-copy {
+    display: none;
+  }
+
+  .workspace-restore-actions {
+    width: 100%;
+  }
+
+  .workspace-restore-actions .primary-button {
+    flex: 1;
+  }
+}

@@ -68,6 +68,11 @@ export interface SessionSnapshot {
   communication?: CommunicationSnapshot;
 }
 
+export interface WorkspaceRestoreSummary {
+  count: number;
+  names: string[];
+}
+
 export interface TerminalSettings {
   fontFamily: string;
   fontSize: number;
@@ -106,6 +111,7 @@ export type HostMessage =
       replays: Record<string, string>;
       terminalSettings: TerminalSettings;
       layoutSettings: LayoutSettings;
+      workspaceRestore: WorkspaceRestoreSummary;
       platform: NodeJS.Platform;
     }
   | { type: 'state'; sessions: SessionSnapshot[]; activeId?: string }
@@ -123,6 +129,7 @@ export type HostMessage =
     }
   | { type: 'terminalSettings'; settings: TerminalSettings }
   | { type: 'layoutSettings'; settings: LayoutSettings }
+  | { type: 'workspaceRestore'; restore: WorkspaceRestoreSummary }
   | { type: 'refreshTheme' }
   | { type: 'playCompletionSound' };
 
@@ -132,7 +139,10 @@ export type WebviewMessage =
   | { type: 'resize'; id: string; cols: number; rows: number }
   | { type: 'newSession'; chooseCwd: boolean }
   | { type: 'newCustomSession'; chooseCwd: boolean }
+  | { type: 'showNewSessionMenu' }
   | { type: 'openSessionHistory' }
+  | { type: 'restoreWorkspaceSessions' }
+  | { type: 'dismissWorkspaceRestore' }
   | { type: 'switchSession'; id: string }
   | { type: 'renameSession'; id: string; name: string }
   | { type: 'promptRenameSession'; id: string }

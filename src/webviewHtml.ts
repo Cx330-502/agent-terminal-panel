@@ -14,6 +14,9 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
   const communicationStyles = webview.asWebviewUri(
     vscode.Uri.joinPath(extensionUri, 'media', 'communication.css')
   );
+  const sessionControlsStyles = webview.asWebviewUri(
+    vscode.Uri.joinPath(extensionUri, 'media', 'sessionControls.css')
+  );
   const script = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'main.js'));
 
   return `<!doctype html>
@@ -27,6 +30,7 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
   <link rel="stylesheet" href="${attachmentStyles}">
   <link rel="stylesheet" href="${startupStyles}">
   <link rel="stylesheet" href="${communicationStyles}">
+  <link rel="stylesheet" href="${sessionControlsStyles}">
   <title>Agent Terminal Panel</title>
 </head>
 <body>
@@ -35,10 +39,10 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
       <header class="session-header">
         <span class="session-heading">会话</span>
         <span class="session-actions">
-          <button id="new-session" class="icon-button" type="button" title="新建会话" aria-label="新建会话" data-icon="add"></button>
-          <button id="session-history" class="icon-button" type="button" title="从 Agent 历史会话启动" aria-label="从 Agent 历史会话启动" data-icon="history"></button>
-          <button id="new-custom-session" class="icon-button" type="button" title="使用自定义命令新建" aria-label="使用自定义命令新建" data-icon="terminal"></button>
-          <button id="new-session-folder" class="icon-button" type="button" title="选择工作目录并新建" aria-label="选择工作目录并新建" data-icon="folder"></button>
+          <span class="new-session-split">
+            <button id="new-session" class="icon-button split-primary" type="button" title="使用默认命令新建会话" aria-label="使用默认命令新建会话" data-icon="add"></button>
+            <button id="new-session-menu" class="icon-button split-secondary" type="button" title="选择其他启动方式" aria-label="选择其他启动方式" data-icon="chevronDown"></button>
+          </span>
         </span>
       </header>
       <div id="session-list" class="session-list" role="tablist" aria-label="Agent 会话"></div>
@@ -66,6 +70,16 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
           <button id="restart-session" class="icon-button" type="button" title="重启当前会话" aria-label="重启当前会话" data-icon="restart"></button>
         </span>
       </header>
+      <section id="workspace-restore" class="workspace-restore" aria-live="polite" hidden>
+        <span class="workspace-restore-copy">
+          <strong id="workspace-restore-title"></strong>
+          <span id="workspace-restore-detail"></span>
+        </span>
+        <span class="workspace-restore-actions">
+          <button id="restore-workspace-sessions" class="primary-button compact-button" type="button">恢复全部</button>
+          <button id="dismiss-workspace-restore" class="secondary-button compact-button" type="button">忽略</button>
+        </span>
+      </section>
       <div id="terminal-stack" class="terminal-stack" aria-live="off"></div>
       <div id="startup-overlay" class="startup-overlay" role="status" aria-live="polite" hidden>
         <div class="startup-card">
@@ -83,9 +97,8 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
       <div id="attachment-status" class="attachment-status" role="status" aria-live="polite" hidden></div>
       <div id="empty-state" class="empty-state">
         <p>还没有 Agent 会话</p>
-        <button id="empty-new-session" class="primary-button" type="button">新建会话</button>
-        <button id="empty-custom-session" class="secondary-button" type="button">自定义命令新建</button>
-        <button id="empty-session-history" class="secondary-button" type="button">恢复历史会话</button>
+        <button id="empty-new-session" class="primary-button" type="button">使用默认命令新建</button>
+        <button id="empty-new-session-menu" class="secondary-button" type="button">选择其他启动方式</button>
       </div>
     </main>
   </div>

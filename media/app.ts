@@ -1,4 +1,10 @@
-import type { HostMessage, SessionSnapshot, VSCodeApi, WebviewMessage } from '../src/shared';
+import type {
+  HostMessage,
+  SessionSnapshot,
+  VSCodeApi,
+  WebviewMessage,
+  WorkspaceRestoreSummary
+} from '../src/shared';
 import { AttachmentController } from './attachmentController';
 import { CommunicationIndicator } from './communicationIndicator';
 import { hydrateIcons } from './icons';
@@ -21,6 +27,13 @@ export class WebviewApp {
   private readonly activeStatus = requiredElement<HTMLElement>('active-status');
   private readonly restartButton = requiredElement<HTMLButtonElement>('restart-session');
   private readonly emptyState = requiredElement<HTMLElement>('empty-state');
+  private readonly workspaceRestore = requiredElement<HTMLElement>('workspace-restore');
+  private readonly workspaceRestoreTitle = requiredElement<HTMLElement>(
+    'workspace-restore-title'
+  );
+  private readonly workspaceRestoreDetail = requiredElement<HTMLElement>(
+    'workspace-restore-detail'
+  );
   private sessions: SessionSnapshot[] = [];
   private activeId: string | undefined;
   private audioContext: AudioContext | undefined;
@@ -86,6 +99,7 @@ export class WebviewApp {
       case 'initialize':
         this.applyLayoutSettings(message.layoutSettings.sessionListPosition);
         this.terminalController.initialize(message.terminalSettings, message.platform);
+        this.renderWorkspaceRestore(message.workspaceRestore);
         this.applyState(message.sessions, message.activeId, message.replays);
         return;
       case 'state':
@@ -117,6 +131,9 @@ export class WebviewApp {
         return;
       case 'layoutSettings':
         this.applyLayoutSettings(message.settings.sessionListPosition);
+        return;
+      case 'workspaceRestore':
+        this.renderWorkspaceRestore(message.restore);
         return;
       case 'refreshTheme':
         this.terminalController.refreshTheme();
@@ -168,14 +185,8 @@ export class WebviewApp {
     requiredElement<HTMLButtonElement>('new-session').addEventListener('click', () => {
       this.post({ type: 'newSession', chooseCwd: false });
     });
-    requiredElement<HTMLButtonElement>('new-session-folder').addEventListener('click', () => {
-      this.post({ type: 'newSession', chooseCwd: true });
-    });
-    requiredElement<HTMLButtonElement>('new-custom-session').addEventListener('click', () => {
-      this.post({ type: 'newCustomSession', chooseCwd: false });
-    });
-    requiredElement<HTMLButtonElement>('session-history').addEventListener('click', () => {
-      this.post({ type: 'openSessionHistory' });
+    requiredElement<HTMLButtonElement>('new-session-menu').addEventListener('click', () => {
+      this.post({ type: 'showNewSessionMenu' });
     });
     requiredElement<HTMLButtonElement>('pick-attachments').addEventListener('click', () => {
       this.attachmentController.pickFiles();
@@ -183,11 +194,19 @@ export class WebviewApp {
     requiredElement<HTMLButtonElement>('empty-new-session').addEventListener('click', () => {
       this.post({ type: 'newSession', chooseCwd: false });
     });
-    requiredElement<HTMLButtonElement>('empty-custom-session').addEventListener('click', () => {
-      this.post({ type: 'newCustomSession', chooseCwd: false });
+    requiredElement<HTMLButtonElement>('empty-new-session-menu').addEventListener('click', () => {
+      this.post({ type: 'showNewSessionMenu' });
     });
-    requiredElement<HTMLButtonElement>('empty-session-history').addEventListener('click', () => {
-      this.post({ type: 'openSessionHistory' });
+    requiredElement<HTMLButtonElement>('restore-workspace-sessions').addEventListener(
+      'click',
+      () => this.post({ type: 'restoreWorkspaceSessions' })
+    );
+    requiredElement<HTMLButtonElement>('dismiss-workspace-restore').addEventListener(
+      'click',
+      () => this.post({ type: 'dismissWorkspaceRestore' })
+    );
+    this.workspaceRestore.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') this.post({ type: 'dismissWorkspaceRestore' });
     });
     this.restartButton.addEventListener('click', () => {
       if (this.activeId) this.post({ type: 'restartSession', id: this.activeId });
@@ -203,6 +222,17 @@ export class WebviewApp {
   private applyLayoutSettings(position: 'left' | 'right'): void {
     this.root.classList.toggle('session-list-right', position === 'right');
     this.sidebarResize.setPosition(position);
+  }
+
+  private renderWorkspaceRestore(restore: WorkspaceRestoreSummary): void {
+    this.workspaceRestore.hidden = restore.count === 0;
+    if (restore.count === 0) return;
+    this.workspaceRestoreTitle.textContent = `上次窗口保留了 ${restore.count} 个会话`;
+    const remaining = restore.count - restore.names.length;
+    const names = restore.names.join('、');
+    this.workspaceRestoreDetail.textContent = `${names}${
+      remaining > 0 ? ` 等 ${restore.count} 个` : ''
+    } · 准备好代理或网络环境后再恢复`;
   }
 
   private bindWindowEvents(): void {

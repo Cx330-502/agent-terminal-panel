@@ -8,13 +8,19 @@ import {
   getTerminalSettings,
   shouldStartSessionOnOpen
 } from './config';
+import { promptCustomSessionOptions } from './customSessionPrompt';
+import { configureDefaultLaunchCommand } from './defaultLaunchCommand';
 import { CompletionNotifier } from './notifications';
+import { normalizePtySize } from './ptySize';
+import { pickSessionLaunchAction } from './sessionLaunchMenu';
+import { createSessionHistoryRegistry } from './sessionHistory/createRegistry';
 import {
   SessionHistoryController,
   type HistoricalSessionLaunch
 } from './sessionHistory/controller';
 import {
   SessionManager,
+  type SessionCreateOptions,
   type SessionAttention,
   type SessionStartupTiming
 } from './sessionManager';
@@ -22,6 +28,11 @@ import type { HostMessage, WebviewMessage } from './shared';
 import { StartupLogger } from './startupLogger';
 import { getWebviewHtml } from './webviewHtml';
 import { defaultWorkingDirectory, pickWorkingDirectory } from './workingDirectory';
+import {
+  detectLaunchProvider,
+  WorkspaceSessionRestore
+} from './workspaceSessionRestore';
+import { launchWorkspaceRestore } from './workspaceSessionRestoreLaunch';
 
 export const VIEW_ID = 'agentTerminalPanel.terminalView';
 
@@ -32,6 +43,8 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
   private readonly sessions: SessionManager;
   private readonly notifier: CompletionNotifier;
   private readonly sessionHistory: SessionHistoryController;
+  private readonly workspaceRestore: WorkspaceSessionRestore;
+  private readonly sessionRegistry = createSessionHistoryRegistry();
   private readonly attachments: AttachmentController;
   private readonly startupLogger = new StartupLogger();
   private view: vscode.WebviewView | undefined;
@@ -45,7 +58,8 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
     private readonly extensionUri: vscode.Uri,
     private readonly extensionId: string,
     storageUri: vscode.Uri | undefined,
-    globalStorageUri: vscode.Uri
+    globalStorageUri: vscode.Uri,
+    workspaceState: vscode.Memento
   ) {
     this.attachments = new AttachmentController(
       storageUri ?? globalStorageUri,
@@ -69,9 +83,19 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
     this.sessionHistory = new SessionHistoryController((options) =>
       this.launchHistoricalSession(options)
     );
+    this.workspaceRestore = new WorkspaceSessionRestore(
+      workspaceState,
+      (vscode.workspace.workspaceFolders ?? []).map((folder) => folder.uri.fsPath),
+      this.sessionRegistry,
+      {
+        onIdentity: (id, identity) => this.sessions.setResumeIdentity(id, identity),
+        onPendingChanged: () => this.postWorkspaceRestore()
+      }
+    );
 
     this.disposables.push(
       this.startupLogger,
+      this.workspaceRestore,
       vscode.window.onDidChangeWindowState((state) => {
         this.windowFocused = state.focused;
         if (state.focused) this.acknowledgeVisibleSession();
@@ -126,40 +150,47 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
 
   async createSession(chooseCwd = false): Promise<string | undefined> {
     if (!(await this.ensureLaunchCommand())) return undefined;
-    return this.createSessionWithOptions(chooseCwd);
+    return this.createSessionWithOptions(chooseCwd, { windowRestoreEligible: true });
   }
 
   async createCustomSession(chooseCwd = false): Promise<string | undefined> {
-    const launchCommand = await vscode.window.showInputBox({
-      title: '新建自定义命令会话',
-      prompt: '此命令只属于新会话，不会修改默认启动命令',
-      placeHolder: 'agent-cli --flag value',
-      value: getLaunchCommand(),
-      ignoreFocusOut: true,
-      validateInput: (value) => (value.trim() ? undefined : '启动命令不能为空')
-    });
-    if (launchCommand === undefined) return undefined;
-    const name = await vscode.window.showInputBox({
-      title: '命名新会话',
-      prompt: '会话创建后仍可双击名称或使用重命名按钮修改',
-      value: 'Custom Agent',
-      ignoreFocusOut: true,
-      validateInput: (value) => (value.trim() ? undefined : '会话名称不能为空')
-    });
-    if (name === undefined) return undefined;
-    return this.createSessionWithOptions(chooseCwd, {
-      name,
-      launchCommand
-    });
+    const options = await promptCustomSessionOptions();
+    return options ? this.createSessionWithOptions(chooseCwd, options) : undefined;
+  }
+
+  async showNewSessionMenu(): Promise<void> {
+    const action = await pickSessionLaunchAction(this.workspaceRestore.summary().count);
+    if (action === 'default') await this.createSession(false);
+    else if (action === 'defaultCwd') await this.createSession(true);
+    else if (action === 'custom') await this.createCustomSession(false);
+    else if (action === 'providerHistory') await this.openSessionHistory();
+    else if (action === 'workspaceRestore') await this.restoreWorkspaceSessions();
   }
 
   async openSessionHistory(): Promise<void> {
     await this.sessionHistory.open();
   }
 
+  async restoreWorkspaceSessions(): Promise<void> {
+    if (!this.workspaceRestore.hasPending) return;
+    this.didAutoStart = true;
+    await launchWorkspaceRestore({
+      restore: this.workspaceRestore,
+      registry: this.sessionRegistry,
+      sessions: this.sessions,
+      size: this.lastSize,
+      prepareView: () => this.prepareView(),
+      reveal: (id) => this.revealRestoredSession(id)
+    });
+  }
+
+  dismissWorkspaceRestore(): void {
+    this.workspaceRestore.dismissPending();
+  }
+
   private async createSessionWithOptions(
     chooseCwd: boolean,
-    options: { name?: string; launchCommand?: string; canRestart?: boolean } = {}
+    options: SessionCreateOptions = {}
   ): Promise<string | undefined> {
     const cwd = chooseCwd ? await pickWorkingDirectory() : defaultWorkingDirectory();
     if (!cwd) return undefined;
@@ -169,6 +200,11 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
       await this.waitForWebviewReady();
     }
     const id = this.sessions.create(cwd, this.lastSize, options);
+    const restorable = this.sessions.restorableSession(id);
+    const providerId = detectLaunchProvider(getLaunchCommand());
+    if (restorable && !restorable.identity && !options.launchCommand && providerId) {
+      this.workspaceRestore.trackDefaultSession(restorable, providerId);
+    }
     await this.show();
     this.post({ type: 'focusSession', id });
     this.acknowledgeVisibleSession();
@@ -190,28 +226,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
   }
 
   async configureLaunchCommand(showConfirmation = true): Promise<string | undefined> {
-    const config = vscode.workspace.getConfiguration('agentTerminalPanel');
-    const launchCommand = await vscode.window.showInputBox({
-      title: '配置 Agent 启动命令',
-      prompt: '输入在 workspace extension host 中执行的完整命令行',
-      placeHolder: 'agent-cli --flag value',
-      value: getLaunchCommand(),
-      ignoreFocusOut: true,
-      validateInput: (value) => (value.trim() ? undefined : '启动命令不能为空')
-    });
-    if (launchCommand === undefined) return undefined;
-
-    const inspected = config.inspect<string>('launchCommand');
-    const target =
-      inspected?.workspaceValue !== undefined
-        ? vscode.ConfigurationTarget.Workspace
-        : vscode.ConfigurationTarget.Global;
-    const trimmed = launchCommand.trim();
-    await config.update('launchCommand', trimmed, target);
-    if (showConfirmation) {
-      void vscode.window.showInformationMessage('Agent 启动命令已更新，新建或重启会话时生效。');
-    }
-    return trimmed;
+    return configureDefaultLaunchCommand(showConfirmation);
   }
 
   async renameActiveSession(): Promise<void> {
@@ -250,9 +265,14 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
         this.webviewReady = true;
         this.startupLogger.webviewReady();
         for (const waiter of [...this.readyWaiters]) waiter();
-        this.lastSize = normalizeSize(message.cols, message.rows);
+        this.lastSize = normalizePtySize(message.cols, message.rows);
         this.postInitialize();
-        if (!this.didAutoStart && this.sessions.count === 0 && shouldStartSessionOnOpen()) {
+        if (
+          !this.didAutoStart &&
+          this.sessions.count === 0 &&
+          !this.workspaceRestore.hasPending &&
+          shouldStartSessionOnOpen()
+        ) {
           this.didAutoStart = true;
           await this.createSession(false);
         }
@@ -261,7 +281,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
         this.sessions.write(message.id, message.data);
         return;
       case 'resize':
-        this.lastSize = normalizeSize(message.cols, message.rows);
+        this.lastSize = normalizePtySize(message.cols, message.rows);
         this.sessions.resize(message.id, this.lastSize);
         return;
       case 'newSession':
@@ -270,8 +290,17 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
       case 'newCustomSession':
         await this.createCustomSession(message.chooseCwd);
         return;
+      case 'showNewSessionMenu':
+        await this.showNewSessionMenu();
+        return;
       case 'openSessionHistory':
         await this.openSessionHistory();
+        return;
+      case 'restoreWorkspaceSessions':
+        await this.restoreWorkspaceSessions();
+        return;
+      case 'dismissWorkspaceRestore':
+        this.dismissWorkspaceRestore();
         return;
       case 'switchSession':
         this.sessions.activate(message.id);
@@ -324,6 +353,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
   }
 
   private handleStateChanged(): void {
+    this.workspaceRestore.syncCurrent(this.sessions.restorableSessions());
     this.post({
       type: 'state',
       sessions: this.sessions.snapshots(),
@@ -349,6 +379,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
       replays: this.sessions.replays(),
       terminalSettings: getTerminalSettings(),
       layoutSettings: getLayoutSettings(),
+      workspaceRestore: this.workspaceRestore.summary(),
       platform: process.platform
     });
     const activeId = this.sessions.getActiveId();
@@ -358,6 +389,10 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
   private post(message: HostMessage): void {
     if (!this.webviewReady || !this.view) return;
     void this.view.webview.postMessage(message);
+  }
+
+  private postWorkspaceRestore(): void {
+    this.post({ type: 'workspaceRestore', restore: this.workspaceRestore.summary() });
   }
 
   private acknowledgeVisibleSession(): void {
@@ -391,8 +426,18 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
       );
       return;
     }
-    if (this.sessions.requiresDefaultLaunchCommand(id) && !(await this.ensureLaunchCommand())) return;
-    this.sessions.restart(id);
+    const usesDefaultCommand = this.sessions.requiresDefaultLaunchCommand(id);
+    if (usesDefaultCommand && !(await this.ensureLaunchCommand())) return;
+    if (usesDefaultCommand) this.sessions.clearResumeIdentity(id);
+    const startedAt = this.sessions.restart(id);
+    const restorable = this.sessions.restorableSession(id);
+    const providerId = detectLaunchProvider(getLaunchCommand());
+    if (usesDefaultCommand && startedAt !== undefined && restorable && providerId) {
+      this.workspaceRestore.trackDefaultSession(
+        { ...restorable, startedAt },
+        providerId
+      );
+    }
   }
 
   private async launchHistoricalSession(options: HistoricalSessionLaunch): Promise<void> {
@@ -404,6 +449,18 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
     const id = this.sessions.create(options.cwd, this.lastSize, options);
     await this.show();
     this.post({ type: 'focusSession', id });
+    this.acknowledgeVisibleSession();
+  }
+
+  private async prepareView(): Promise<void> {
+    if (this.webviewReady) return;
+    await this.show();
+    await this.waitForWebviewReady();
+  }
+
+  private async revealRestoredSession(id: string | undefined): Promise<void> {
+    await this.show();
+    if (id) this.post({ type: 'focusSession', id });
     this.acknowledgeVisibleSession();
   }
 
@@ -435,11 +492,4 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
   private clearViewDisposables(): void {
     for (const disposable of this.viewDisposables.splice(0)) disposable.dispose();
   }
-}
-
-function normalizeSize(cols: number, rows: number): { cols: number; rows: number } {
-  return {
-    cols: Number.isFinite(cols) ? Math.max(2, Math.floor(cols)) : 80,
-    rows: Number.isFinite(rows) ? Math.max(2, Math.floor(rows)) : 24
-  };
 }

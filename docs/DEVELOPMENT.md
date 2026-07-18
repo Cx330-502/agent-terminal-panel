@@ -24,6 +24,7 @@ VS Code workspace extension host
         process tree -> Linux ss / macOS nettop / Windows TCP connections
         CodexSessionTracker -> process-open rollout JSONL metadata
     SessionHistoryController -> Codex / Claude provider adapters
+    WorkspaceSessionRestore -> workspaceState snapshot + provider identity correlation
     AttachmentStore -> workspace/global extension storage
     CompletionNotifier
 
@@ -64,6 +65,12 @@ The xterm DOM renderer uses a custom scroll model, so browser-native text select
 
 Providers implement discovery, workspace matching, presentation, and native resume/fork command generation. New providers should be added under `src/sessionHistory/` and registered by `SessionHistoryController`. Do not guess undocumented resume arguments: provider support should ship only with verified commands and fixtures.
 
+### Previous-window restore
+
+`WorkspaceSessionRestore` is distinct from the Provider history picker. It continuously serializes only default-launch sessions that have a verified Provider session identity. Explicit closes remove entries through the normal `SessionManager` state update; custom commands and manually launched history sessions never become eligible.
+
+The snapshot lives in `ExtensionContext.workspaceState` and contains no launch command or terminal output. On the next activation it remains pending until the user selects **Restore all** or **Ignore**. Pending recovery suppresses automatic session creation so proxy or network dependencies can be prepared first. Identity correlation polls current-workspace Codex/Claude history only while a new default session is unresolved, then stops after a bounded window.
+
 ### Communication health
 
 `CommunicationMonitor` samples PTY counters for every session and optionally adds process-network and provider layers. A snapshot always labels its health basis so Webview code cannot silently present PTY bytes as network traffic.
@@ -81,6 +88,7 @@ Do not derive TPOT from terminal output timing or token-count deltas. Codex expo
 | --- | --- |
 | `src/` | Extension-host orchestration, PTY, communication probes, storage, notifications, configuration |
 | `src/sessionHistory/` | Provider-specific history discovery and launch adapters |
+| `src/workspaceSessionRestore.ts` | Workspace snapshot persistence and default-session identity correlation |
 | `media/` | Webview TypeScript, CSS, icons, generated browser bundle |
 | `test/*.test.ts` | Node unit and PTY integration tests |
 | `test/browser-harness.html` | Standalone Webview/xterm Chromium harness |

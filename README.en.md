@@ -17,6 +17,7 @@ Agent Terminal Panel is provider-agnostic. You supply the launch command; it sup
 - **Parallel sessions**: create, switch, rename, close, and restart. PTYs continue in the background and recent output is replayed when the Webview is rebuilt.
 - **Per-session context**: choose a cwd or launch a named one-off custom command without changing the default.
 - **Continue old work**: discover only Codex and Claude Code sessions belonging to the current workspace, then invoke each provider's native resume or fork command.
+- **Restore a whole window in one click**: remember current-workspace sessions created with the default `+`, recognized as Codex or Claude, and not explicitly closed; then manually resume all of them after your proxy environment is ready.
 - **Useful attention signals**: running, waiting for input, awaiting approval, and completed states, plus unread dots, a View badge, native toasts, and deduplicated completion sound.
 - **See real activity behind “Working”**: layered PTY, process-socket, silence, and provider telemetry distinguishes useful work from a session that may be stuck without pretending terminal bytes are network traffic.
 - **Terminal visible immediately**: the startup overlay only covers PTY creation and never blocks the terminal while an Agent or network is waiting for first output. Open `Output > Agent Terminal Panel` for Webview, spawn, and first-byte timings.
@@ -33,8 +34,8 @@ Agent Terminal Panel is provider-agnostic. You supply the launch command; it sup
 1. Install from the Marketplace and open the Agent Terminal icon in the Activity Bar.
 2. Press `+`. On first use, enter a complete command available on the workspace host.
 3. Examples include `codex`, `claude`, `gemini --model ...`, a `cc-switch-cli` wrapper, or a script with arguments and environment prefixes.
-4. Use the terminal icon for a named one-off custom command.
-5. Use the folder icon to choose a cwd, or the history icon to resume/fork a session from the current workspace.
+4. Use the arrow beside `+` to choose a cwd, enter a one-off custom command, or browse Provider history.
+5. When a previous-window banner appears, prepare any proxy or network dependency and then select **Restore all**.
 
 There is no hidden Codex default. Commands run through the workspace host's system shell and the latest configuration is read for every new or restarted session.
 
@@ -45,6 +46,17 @@ There is no hidden Codex default. Commands run through the workspace host's syst
 - Put the session list on the left or right with `agentTerminalPanel.sessionListPosition`.
 - Move the entire view through VS Code's **Move View** action or by dragging the view title.
 - The settings button opens the complete extension settings page.
+
+### Previous-window session restore
+
+This is intentionally separate from Provider-wide history and from a future short-lived “undo close” feature:
+
+- VS Code `workspaceState` scopes the snapshot to the current workspace; sessions from other workspaces are never mixed in.
+- Only default-`+` sessions correlated with a built-in Codex or Claude session ID, plus their later restored continuations, are recorded. One-off custom commands and manually selected Provider-history sessions are excluded.
+- Explicitly closing a tab removes it immediately. Running, waiting, approval, and completed-but-still-open tabs remain eligible.
+- Reopening a window shows a prompt but does not start Agents automatically. Pending recovery also suppresses `startSessionOnOpen`, leaving time to start cc-switch, a VPN, or another dependency first.
+- **Restore all** invokes the configured native Codex or Claude Code resume command while preserving names, cwd values, relative order, and the active tab.
+- The snapshot contains only Provider identity, session ID, name, cwd, and layout metadata—never the full command, custom arguments, or terminal output.
 
 Shortcuts apply only while the Agent Terminal view is focused:
 
@@ -85,7 +97,7 @@ The extension does not fabricate TPOT/TBT. Exact values are shown only when a pr
 | `agentTerminalPanel.launchCommand` | empty | Complete command executed by the workspace-host system shell |
 | `agentTerminalPanel.environment` | `{}` | Environment variables added to Agent sessions |
 | `agentTerminalPanel.sessionListPosition` | `left` | Place the session list left or right of the terminal |
-| `agentTerminalPanel.startSessionOnOpen` | `true` | Create a session when the view first opens |
+| `agentTerminalPanel.startSessionOnOpen` | `true` | Create a session when the view first opens; paused while window recovery is pending |
 | `agentTerminalPanel.terminalImages.enabled` | `false` | Enable Sixel/iTerm images and the Codex Pets compatibility environment |
 | `agentTerminalPanel.communicationHealth.enabled` | `true` | Show source-labelled communication health |
 | `agentTerminalPanel.communicationHealth.sampleIntervalMs` | `2000` | UI and PTY refresh interval; platform probes may sample less often |
@@ -103,7 +115,7 @@ For Codex Pets, enable `agentTerminalPanel.terminalImages.enabled` and create or
 
 ## Platforms and remote development
 
-The Marketplace selects the package for the current extension host. `releases/v0.6.2/` also contains native packages for:
+The Marketplace selects the package for the current extension host. `releases/v0.7.0/` also contains native packages for:
 
 - Windows x64 and ARM64
 - Linux x64 and ARM64, including WSL and Remote SSH workspace hosts
@@ -113,7 +125,7 @@ Each VSIX carries only the matching `node-pty` prebuild. The extension declares 
 
 ## Privacy
 
-The extension has no cloud service and does not upload terminal output, history, communication metrics, or images. Any network traffic, account routing, or proxy behavior belongs to the Agent command and environment you configure. History discovery reads provider records on the workspace host and filters them by the current workspace cwd. When Codex communication metadata is enabled, the extension reads only rollout JSONL files already opened by that Codex process and retains event phase, timing, and token numbers—not prompt or response text. Process-network and Codex metadata probes can be disabled independently.
+The extension has no cloud service and does not upload terminal output, history, communication metrics, or images. Any network traffic, account routing, or proxy behavior belongs to the Agent command and environment you configure. History discovery reads provider records on the workspace host and filters them by the current workspace cwd. Previous-window recovery stores only Provider/session identity, name, cwd, and order in VS Code workspace state—not full commands or output. When Codex communication metadata is enabled, the extension reads only rollout JSONL files already opened by that Codex process and retains event phase, timing, and token numbers—not prompt or response text. Process-network and Codex metadata probes can be disabled independently.
 
 ## Project
 

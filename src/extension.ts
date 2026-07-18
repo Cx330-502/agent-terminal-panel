@@ -6,7 +6,8 @@ export function activate(context: vscode.ExtensionContext): void {
     context.extensionUri,
     context.extension.id,
     context.storageUri,
-    context.globalStorageUri
+    context.globalStorageUri,
+    context.workspaceState
   );
   context.subscriptions.push(
     provider,
@@ -22,8 +23,14 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('agentTerminalPanel.newCustomSession', () =>
       provider.createCustomSession(false)
     ),
+    vscode.commands.registerCommand('agentTerminalPanel.showNewSessionMenu', () =>
+      provider.showNewSessionMenu()
+    ),
     vscode.commands.registerCommand('agentTerminalPanel.openSessionHistory', () =>
       provider.openSessionHistory()
+    ),
+    vscode.commands.registerCommand('agentTerminalPanel.restoreWorkspaceSessions', () =>
+      provider.restoreWorkspaceSessions()
     ),
     vscode.commands.registerCommand('agentTerminalPanel.renameSession', () =>
       provider.renameActiveSession()
