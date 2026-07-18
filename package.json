@@ -2,7 +2,7 @@
   "name": "agent-terminal-panel",
   "displayName": "Agent Terminal Panel",
   "description": "在可移动的 VS Code 视图中管理多个 Agent CLI 会话，支持真实 PTY、历史恢复、图片输入与通信健康监测",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "publisher": "Cx330-502",
   "author": "Cx330-502",
   "license": "MIT",

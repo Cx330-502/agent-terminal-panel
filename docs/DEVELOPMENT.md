@@ -86,6 +86,7 @@ Do not derive TPOT from terminal output timing or token-count deltas. Codex expo
 | `test/browser-harness.html` | Standalone Webview/xterm Chromium harness |
 | `test/runUiRegression.js` | Multi-viewport layout and interaction probes |
 | `test/runAttachmentRegression.js` | Clipboard and drag/drop regression flow |
+| `test/runTerminalGutterRegression.js` | Terminal resize, right-gutter background, and Sixel repaint regression |
 | `scripts/package.mjs` | Six-target VSIX packaging and native-prebuild validation |
 
 Frontend files should stay below 500 lines where practical. Repeated icon and startup UI behavior belongs in reusable modules rather than duplicated HTML or app logic.
@@ -123,10 +124,11 @@ playwright-cli open http://127.0.0.1:4173/test/browser-harness.html
 playwright-cli run-code --filename=test/runAttachmentRegression.js
 playwright-cli run-code --filename=test/runSelectionScrollRegression.js
 playwright-cli run-code --filename=test/runTerminalImageRegression.js
+playwright-cli run-code --filename=test/runTerminalGutterRegression.js
 playwright-cli run-code --filename=test/runUiRegression.js
 ```
 
-The terminal-image regression proves that the Webview CSP blocks Sixel WebAssembly without `wasm-unsafe-eval` and renders non-transparent pixels with the narrow directive enabled. The standard UI matrix contains six desktop sizes, a same-width reduced-height pair, two narrow/mobile-like sizes, and a 320 px stress case. Review generated baseline, interaction, active/quiet/stalled communication states, dense-control, attachment-overlay, and startup screenshots in addition to automated overflow/occlusion probes.
+The terminal-image regression proves that the Webview CSP blocks Sixel WebAssembly without `wasm-unsafe-eval` and renders non-transparent pixels with the narrow directive enabled. The terminal-gutter regression verifies pre-paint resize fitting, theme-matched viewport background, stable same-session state refreshes, and Sixel repaint geometry. The standard UI matrix contains six desktop sizes, a same-width reduced-height pair, two narrow/mobile-like sizes, and a 320 px stress case. Review generated baseline, interaction, active/quiet/stalled communication states, dense-control, attachment-overlay, and startup screenshots in addition to automated overflow/occlusion probes.
 
 The harness is not a substitute for an Extension Development Host check of:
 

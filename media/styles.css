@@ -356,7 +356,6 @@ button {
   position: absolute;
   inset: 0;
   display: none;
-  padding: 5px 6px 5px 8px;
   overflow: hidden;
   background: var(--vscode-terminal-background, var(--vscode-editor-background));
 }
@@ -365,10 +364,19 @@ button {
   display: block;
 }
 
-.terminal-surface .xterm,
+.terminal-surface .xterm {
+  height: 100%;
+  padding: 5px 6px 5px 8px;
+  background-color: var(--vscode-terminal-background, var(--vscode-editor-background));
+}
+
 .terminal-surface .xterm-screen,
 .terminal-surface .xterm-viewport {
   height: 100%;
+}
+
+.terminal-surface .xterm-viewport {
+  background-color: var(--vscode-terminal-background, var(--vscode-editor-background));
 }
 
 .empty-state {

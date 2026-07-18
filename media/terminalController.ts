@@ -36,7 +36,7 @@ export class TerminalController {
     private readonly stack: HTMLElement,
     private readonly vscode: VSCodeApi
   ) {
-    this.resizeObserver = new ResizeObserver(() => this.scheduleFit());
+    this.resizeObserver = new ResizeObserver(() => this.fitActive());
     this.resizeObserver.observe(stack);
   }
 
@@ -91,12 +91,19 @@ export class TerminalController {
   }
 
   activate(id: string | undefined, focus = true): void {
+    const activeChanged =
+      this.activeId !== id ||
+      (id !== undefined && !this.entries.get(id)?.element.classList.contains('active'));
     this.activeId = id;
     for (const [entryId, entry] of this.entries) {
       entry.element.classList.toggle('active', entryId === id);
       entry.element.setAttribute('aria-hidden', String(entryId !== id));
     }
     if (!id) return;
+    if (!activeChanged) {
+      if (focus) this.entries.get(id)?.terminal.focus();
+      return;
+    }
     requestAnimationFrame(() => {
       this.fitActive();
       if (focus) this.entries.get(id)?.terminal.focus();

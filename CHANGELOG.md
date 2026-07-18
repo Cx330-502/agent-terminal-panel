@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.2
+
+- 修复面板或会话列改变宽度后，xterm 画布延迟多个绘制阶段才跟随容器，导致 Codex 灰色输入区右侧短暂露出宽黑条并闪烁的问题。
+- 将终端留白放回 FitAddon 可感知的 xterm 层，避免字符画布压入滚动条；右侧栅格余量改为跟随 VS Code 原生终端背景。
+- 同一活动会话的通信状态刷新不再重复请求 fit；新增八视口、左右会话列、连续状态更新和 Sixel 重绘回归。
+
 ## 0.6.1
 
 - 修复 Webview CSP 拦截 xterm.js image addon 的 WebAssembly Sixel 解码器，导致 Codex Pets 不再报终端不支持、但实际图像仍静默消失的问题。
