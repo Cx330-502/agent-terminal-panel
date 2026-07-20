@@ -337,6 +337,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
       }
       case 'clipboardWrite':
         await vscode.env.clipboard.writeText(message.text);
+        vscode.window.setStatusBarMessage('$(check) 已复制到剪贴板', 1500);
         return;
       case 'pickAttachments':
         if (this.sessions.get(message.id)) await this.attachments.pick(message.id);

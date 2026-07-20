@@ -1,5 +1,6 @@
 import { FitAddon } from '@xterm/addon-fit';
 import { ImageAddon } from '@xterm/addon-image';
+import { WebglAddon } from '@xterm/addon-webgl';
 import { Terminal } from '@xterm/xterm';
 import type {
   SessionSnapshot,
@@ -17,6 +18,7 @@ interface TerminalEntry {
   element: HTMLElement;
   detector: StatusDetector;
   selectionAutoScroll: SelectionAutoScroll;
+  webglAddon?: WebglAddon;
   imageAddon?: ImageAddon;
   settleTimer?: number;
   signalTimer?: number;
@@ -104,10 +106,8 @@ export class TerminalController {
       if (focus) this.entries.get(id)?.terminal.focus();
       return;
     }
-    requestAnimationFrame(() => {
-      this.fitActive();
-      if (focus) this.entries.get(id)?.terminal.focus();
-    });
+    this.fitActive();
+    if (focus) requestAnimationFrame(() => this.entries.get(id)?.terminal.focus());
   }
 
   updateSettings(settings: TerminalSettings): void {
@@ -161,13 +161,12 @@ export class TerminalController {
       allowProposedApi: true,
       allowTransparency: false,
       convertEol: false,
-      cursorInactiveStyle: 'outline'
+      cursorInactiveStyle: 'outline',
+      overviewRuler: { width: 10 }
     });
     applyTerminalSettings(terminal, this.settings);
     const fitAddon = new FitAddon();
     terminal.loadAddon(fitAddon);
-    const imageAddon = this.createImageAddon();
-    if (imageAddon) terminal.loadAddon(imageAddon);
     terminal.open(element);
 
     const detector = new StatusDetector((update) => {
@@ -180,10 +179,11 @@ export class TerminalController {
       element,
       detector,
       selectionAutoScroll,
-      ...(imageAddon ? { imageAddon } : {}),
       replaying: false
     };
     this.entries.set(id, entry);
+    this.loadWebglRenderer(entry);
+    this.updateImageAddon(entry, this.settings.imagesEnabled);
 
     terminal.onData((data) => {
       if (entry.replaying) return;
@@ -230,9 +230,29 @@ export class TerminalController {
     });
   }
 
+  private loadWebglRenderer(entry: TerminalEntry): void {
+    const addon = new WebglAddon();
+    try {
+      entry.terminal.loadAddon(addon);
+      entry.webglAddon = addon;
+      addon.onContextLoss(() => {
+        if (entry.webglAddon !== addon) return;
+        entry.imageAddon?.dispose();
+        entry.imageAddon = undefined;
+        entry.webglAddon = undefined;
+        addon.dispose();
+        entry.terminal.refresh(0, entry.terminal.rows - 1);
+        if (entry.element.dataset.id === this.activeId) this.scheduleFit();
+      });
+    } catch {
+      addon.dispose();
+    }
+  }
+
   private updateImageAddon(entry: TerminalEntry, enabled: boolean): void {
-    if (enabled === Boolean(entry.imageAddon)) return;
-    if (!enabled) {
+    const shouldEnable = enabled && Boolean(entry.webglAddon);
+    if (shouldEnable === Boolean(entry.imageAddon)) return;
+    if (!shouldEnable) {
       entry.imageAddon?.dispose();
       entry.imageAddon = undefined;
       return;

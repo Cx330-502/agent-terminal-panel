@@ -123,11 +123,11 @@ Toast 与完成声音会结合“当前会话、视图是否可见、VS Code 是
 | `agentTerminalPanel.notifications.showToast` | `true` | 后台审批、等待输入和完成 Toast |
 | `agentTerminalPanel.notifications.completionSound` | `whenHidden` | `never`、`whenHidden` 或 `always` |
 
-Codex Pets 用户可启用 `agentTerminalPanel.terminalImages.enabled` 后新建或重启会话。插件会加载 xterm.js image addon，设置 `TERM=xterm-sixel`，并移除会覆盖图片能力探测的 `TERM_PROGRAM` / `TERM_PROGRAM_VERSION`。兼容方案已在 [openai/codex#27335](https://github.com/openai/codex/issues/27335) 中验证。
+Codex Pets 用户可启用 `agentTerminalPanel.terminalImages.enabled` 后新建或重启会话。插件会使用与 VS Code 原生终端一致的 WebGL 优先渲染并加载 xterm.js image addon，设置 `TERM=xterm-sixel`，同时移除会覆盖图片能力探测的 `TERM_PROGRAM` / `TERM_PROGRAM_VERSION`。兼容方案已在 [openai/codex#27335](https://github.com/openai/codex/issues/27335) 中验证。
 
 ## 平台与远程开发
 
-Marketplace 会按当前 extension host 自动安装对应目标。GitHub `releases/v0.7.0/` 同时提供：
+Marketplace 会按当前 extension host 自动安装对应目标。GitHub `releases/v0.7.1/` 同时提供：
 
 - Windows x64 / ARM64
 - Linux x64 / ARM64（包括 WSL 与 Remote SSH workspace host）

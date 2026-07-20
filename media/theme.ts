@@ -13,6 +13,26 @@ export function buildTheme(): ITheme {
       undefined,
       '#3a3d41'
     ),
+    scrollbarSliderBackground: cssColor(
+      '--vscode-scrollbarSlider-background',
+      undefined,
+      'rgba(121, 121, 121, 0.4)'
+    ),
+    scrollbarSliderHoverBackground: cssColor(
+      '--vscode-scrollbarSlider-hoverBackground',
+      undefined,
+      'rgba(100, 100, 100, 0.7)'
+    ),
+    scrollbarSliderActiveBackground: cssColor(
+      '--vscode-scrollbarSlider-activeBackground',
+      undefined,
+      'rgba(191, 191, 191, 0.4)'
+    ),
+    overviewRulerBorder: cssColor(
+      '--vscode-terminalOverviewRuler-border',
+      '--vscode-terminal-background',
+      'transparent'
+    ),
     black: cssColor('--vscode-terminal-ansiBlack', undefined, '#000000'),
     red: cssColor('--vscode-terminal-ansiRed', undefined, '#cd3131'),
     green: cssColor('--vscode-terminal-ansiGreen', undefined, '#0dbc79'),

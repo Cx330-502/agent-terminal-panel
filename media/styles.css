@@ -370,6 +370,7 @@ button {
   height: 100%;
 }
 
+.terminal-surface .xterm-screen,
 .terminal-surface .xterm-viewport {
   background-color: var(--vscode-terminal-background, var(--vscode-editor-background));
 }

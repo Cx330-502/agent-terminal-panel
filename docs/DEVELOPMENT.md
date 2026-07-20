@@ -30,7 +30,7 @@ VS Code workspace extension host
 
 Webview
   WebviewApp
-    TerminalController -> xterm.js + fit/image addons
+    TerminalController -> xterm.js + fit/WebGL/image addons
     SessionList / SidebarResize
     StatusDetector
     AttachmentController
@@ -59,7 +59,7 @@ The controller understands browser files, `text/uri-list`, `application/vnd.code
 
 ### Terminal selection scrolling
 
-The xterm DOM renderer uses a custom scroll model, so browser-native text selection does not automatically move scrollback near the top or bottom edge. `SelectionAutoScroll` observes a left-button selection drag without cancelling xterm events, then calls `Terminal.scrollLines` at a distance-proportional rate until mouseup. Keep this behavior isolated from HTML file drag/drop.
+The xterm viewport uses a custom scroll model, so browser-native text selection does not automatically move scrollback near the top or bottom edge. `SelectionAutoScroll` observes a left-button selection drag without cancelling xterm events, then calls `Terminal.scrollLines` at a distance-proportional rate until mouseup. Keep this behavior isolated from HTML file drag/drop.
 
 ### Session history providers
 
@@ -94,7 +94,7 @@ Do not derive TPOT from terminal output timing or token-count deltas. Codex expo
 | `test/browser-harness.html` | Standalone Webview/xterm Chromium harness |
 | `test/runUiRegression.js` | Multi-viewport layout and interaction probes |
 | `test/runAttachmentRegression.js` | Clipboard and drag/drop regression flow |
-| `test/runTerminalGutterRegression.js` | Terminal resize, right-gutter background, and Sixel repaint regression |
+| `test/runTerminalGutterRegression.js` | WebGL renderer, terminal resize, plain/Pets gutter, and Sixel repaint regression |
 | `scripts/package.mjs` | Six-target VSIX packaging and native-prebuild validation |
 
 Frontend files should stay below 500 lines where practical. Repeated icon and startup UI behavior belongs in reusable modules rather than duplicated HTML or app logic.
@@ -136,7 +136,7 @@ playwright-cli run-code --filename=test/runTerminalGutterRegression.js
 playwright-cli run-code --filename=test/runUiRegression.js
 ```
 
-The terminal-image regression proves that the Webview CSP blocks Sixel WebAssembly without `wasm-unsafe-eval` and renders non-transparent pixels with the narrow directive enabled. The terminal-gutter regression verifies pre-paint resize fitting, theme-matched viewport background, stable same-session state refreshes, and Sixel repaint geometry. The standard UI matrix contains six desktop sizes, a same-width reduced-height pair, two narrow/mobile-like sizes, and a 320 px stress case. Review generated baseline, interaction, active/quiet/stalled communication states, dense-control, attachment-overlay, and startup screenshots in addition to automated overflow/occlusion probes.
+The terminal-image regression proves that the Webview CSP blocks Sixel WebAssembly without `wasm-unsafe-eval` and renders non-transparent pixels with the narrow directive enabled. The terminal-gutter regression verifies WebGL activation, pre-paint resize fitting, native 10 px scrollbar geometry, theme-matched screen/viewport backgrounds, stable same-session state refreshes, and both plain and Sixel/Pets repaint paths. The standard UI matrix contains six desktop sizes, a same-width reduced-height pair, two narrow/mobile-like sizes, and a 320 px stress case. Review generated baseline, interaction, active/quiet/stalled communication states, dense-control, attachment-overlay, and startup screenshots in addition to automated overflow/occlusion probes.
 
 The harness is not a substitute for an Extension Development Host check of:
 

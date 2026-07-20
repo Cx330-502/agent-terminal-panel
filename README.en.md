@@ -111,11 +111,11 @@ The extension does not fabricate TPOT/TBT. Exact values are shown only when a pr
 | `agentTerminalPanel.notifications.showToast` | `true` | Background approval, input, and completion toasts |
 | `agentTerminalPanel.notifications.completionSound` | `whenHidden` | `never`, `whenHidden`, or `always` |
 
-For Codex Pets, enable `agentTerminalPanel.terminalImages.enabled` and create or restart the session. The extension loads the xterm.js image addon, sets `TERM=xterm-sixel`, and removes terminal identity overrides that can hide image capabilities. The compatibility path was verified in [openai/codex#27335](https://github.com/openai/codex/issues/27335).
+For Codex Pets, enable `agentTerminalPanel.terminalImages.enabled` and create or restart the session. The extension uses the same WebGL-first rendering path as VS Code's native terminal, loads the xterm.js image addon, sets `TERM=xterm-sixel`, and removes terminal identity overrides that can hide image capabilities. The compatibility path was verified in [openai/codex#27335](https://github.com/openai/codex/issues/27335).
 
 ## Platforms and remote development
 
-The Marketplace selects the package for the current extension host. `releases/v0.7.0/` also contains native packages for:
+The Marketplace selects the package for the current extension host. `releases/v0.7.1/` also contains native packages for:
 
 - Windows x64 and ARM64
 - Linux x64 and ARM64, including WSL and Remote SSH workspace hosts
