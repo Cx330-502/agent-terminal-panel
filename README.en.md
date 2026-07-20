@@ -34,10 +34,22 @@ Agent Terminal Panel is provider-agnostic. You supply the launch command; it sup
 1. Install from the Marketplace and open the Agent Terminal icon in the Activity Bar.
 2. Press `+`. On first use, enter a complete command available on the workspace host.
 3. Examples include `codex`, `claude`, `gemini --model ...`, a `cc-switch-cli` wrapper, or a script with arguments and environment prefixes.
-4. Use the arrow beside `+` to choose a cwd, enter a one-off custom command, or browse Provider history.
+4. The arrow beside `+` opens an anchored menu with saved launch profiles, cwd selection, one-off commands, and Provider history.
 5. When a previous-window banner appears, prepare any proxy or network dependency and then select **Restore all**.
 
 There is no hidden Codex default. Commands run through the workspace host's system shell and the latest configuration is read for every new or restarted session.
+
+Use `launchProfiles` for frequently used alternatives. The primary `+` still runs the default command; profiles appear only in the adjacent menu:
+
+```json
+"agentTerminalPanel.launchCommand": "codex",
+"agentTerminalPanel.launchProfiles": [
+  { "name": "Claude", "command": "claude" },
+  { "name": "Codex Full Auto", "command": "codex --full-auto" }
+]
+```
+
+Array order becomes menu order, and `name` is also the new terminal's initial title. Configuration changes refresh the menu without reloading the window.
 
 ## Sessions and layout
 
@@ -52,7 +64,7 @@ There is no hidden Codex default. Commands run through the workspace host's syst
 This is intentionally separate from Provider-wide history and from a future short-lived “undo close” feature:
 
 - VS Code `workspaceState` scopes the snapshot to the current workspace; sessions from other workspaces are never mixed in.
-- Only default-`+` sessions correlated with a built-in Codex or Claude session ID, plus their later restored continuations, are recorded. One-off custom commands and manually selected Provider-history sessions are excluded.
+- Only default-`+` sessions correlated with a built-in Codex or Claude session ID, plus their later restored continuations, are recorded. Launch profiles, one-off commands, and manually selected Provider-history sessions are excluded.
 - Explicitly closing a tab removes it immediately. Running, waiting, approval, and completed-but-still-open tabs remain eligible.
 - Reopening a window shows a prompt but does not start Agents automatically. Pending recovery also suppresses `startSessionOnOpen`, leaving time to start cc-switch, a VPN, or another dependency first.
 - **Restore all** invokes the configured native Codex or Claude Code resume command while preserving names, cwd values, relative order, and the active tab.
@@ -95,6 +107,7 @@ The extension does not fabricate TPOT/TBT. Exact values are shown only when a pr
 | Setting | Default | Purpose |
 | --- | --- | --- |
 | `agentTerminalPanel.launchCommand` | empty | Complete command executed by the workspace-host system shell |
+| `agentTerminalPanel.launchProfiles` | `[]` | Ordered name/command entries shown in the menu beside `+` |
 | `agentTerminalPanel.environment` | `{}` | Environment variables added to Agent sessions |
 | `agentTerminalPanel.sessionListPosition` | `left` | Place the session list left or right of the terminal |
 | `agentTerminalPanel.startSessionOnOpen` | `true` | Create a session when the view first opens; paused while window recovery is pending |
@@ -115,7 +128,7 @@ For Codex Pets, enable `agentTerminalPanel.terminalImages.enabled` and create or
 
 ## Platforms and remote development
 
-The Marketplace selects the package for the current extension host. `releases/v0.7.2/` also contains native packages for:
+The Marketplace selects the package for the current extension host. `releases/v0.8.0/` also contains native packages for:
 
 - Windows x64 and ARM64
 - Linux x64 and ARM64, including WSL and Remote SSH workspace hosts

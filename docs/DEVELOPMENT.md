@@ -51,6 +51,12 @@ Webview
 
 Startup timings are written to the `Agent Terminal Panel` LogOutputChannel. Do not log launch-command contents because they may include sensitive arguments.
 
+### Launch profiles and menu
+
+`src/launchProfiles.ts` normalizes the ordered `launchProfiles` setting. The primary `+` remains the only default-launch path; profile sessions carry their own name and command and therefore stay outside previous-window default-session recovery.
+
+`media/launchMenu.ts` owns the anchored Webview menu, focus navigation, outside-click dismissal, and left/right collision handling. Keep the menu in the Webview document top level so the resizable session sidebar cannot clip it. The Extension Host resolves profile IDs against the latest configuration before starting a PTY.
+
 ### Attachment flow
 
 Clipboard image bytes are encoded in the Webview and written by `AttachmentStore`. Dropped file/remote URI references and native-picker selections are validated through `vscode.workspace.fs`. Saved paths are quoted for the workspace-host platform before being pasted into xterm.js.
@@ -93,6 +99,7 @@ Do not derive TPOT from terminal output timing or token-count deltas. Codex expo
 | `test/*.test.ts` | Node unit and PTY integration tests |
 | `test/browser-harness.html` | Standalone Webview/xterm Chromium harness |
 | `test/runUiRegression.js` | Multi-viewport layout and interaction probes |
+| `test/runLaunchMenuRegression.js` | Launch-profile menu positioning, refresh, action, and keyboard regression |
 | `test/runAttachmentRegression.js` | Clipboard and drag/drop regression flow |
 | `test/runTerminalGutterRegression.js` | WebGL renderer, terminal resize, plain/Pets gutter, and Sixel repaint regression |
 | `scripts/package.mjs` | Six-target VSIX packaging and native-prebuild validation |
@@ -132,6 +139,7 @@ playwright-cli open http://127.0.0.1:4173/test/browser-harness.html
 playwright-cli run-code --filename=test/runAttachmentRegression.js
 playwright-cli run-code --filename=test/runSelectionScrollRegression.js
 playwright-cli run-code --filename=test/runOutputFollowRegression.js
+playwright-cli run-code --filename=test/runLaunchMenuRegression.js
 playwright-cli run-code --filename=test/runTerminalImageRegression.js
 playwright-cli run-code --filename=test/runTerminalGutterRegression.js
 playwright-cli run-code --filename=test/runUiRegression.js

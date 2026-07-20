@@ -73,6 +73,12 @@ export interface WorkspaceRestoreSummary {
   names: string[];
 }
 
+export interface LaunchProfileSnapshot {
+  id: string;
+  name: string;
+  command: string;
+}
+
 export interface TerminalSettings {
   fontFamily: string;
   fontSize: number;
@@ -111,6 +117,7 @@ export type HostMessage =
       replays: Record<string, string>;
       terminalSettings: TerminalSettings;
       layoutSettings: LayoutSettings;
+      launchProfiles: LaunchProfileSnapshot[];
       workspaceRestore: WorkspaceRestoreSummary;
       platform: NodeJS.Platform;
     }
@@ -129,6 +136,8 @@ export type HostMessage =
     }
   | { type: 'terminalSettings'; settings: TerminalSettings }
   | { type: 'layoutSettings'; settings: LayoutSettings }
+  | { type: 'launchProfiles'; profiles: LaunchProfileSnapshot[] }
+  | { type: 'openLaunchMenu' }
   | { type: 'workspaceRestore'; restore: WorkspaceRestoreSummary }
   | { type: 'refreshTheme' }
   | { type: 'playCompletionSound' };
@@ -138,9 +147,10 @@ export type WebviewMessage =
   | { type: 'input'; id: string; data: string }
   | { type: 'resize'; id: string; cols: number; rows: number }
   | { type: 'newSession'; chooseCwd: boolean }
+  | { type: 'newProfileSession'; id: string }
   | { type: 'newCustomSession'; chooseCwd: boolean }
-  | { type: 'showNewSessionMenu' }
   | { type: 'openSessionHistory' }
+  | { type: 'openSettings' }
   | { type: 'restoreWorkspaceSessions' }
   | { type: 'dismissWorkspaceRestore' }
   | { type: 'switchSession'; id: string }

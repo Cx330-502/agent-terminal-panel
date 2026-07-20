@@ -41,7 +41,7 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
         <span class="session-actions">
           <span class="new-session-split">
             <button id="new-session" class="icon-button split-primary" type="button" title="使用默认命令新建会话" aria-label="使用默认命令新建会话" data-icon="add"></button>
-            <button id="new-session-menu" class="icon-button split-secondary" type="button" title="选择其他启动方式" aria-label="选择其他启动方式" data-icon="chevronDown"></button>
+            <button id="new-session-menu" class="icon-button split-secondary" type="button" title="选择其他启动方式" aria-label="选择其他启动方式" aria-haspopup="menu" aria-controls="launch-menu" aria-expanded="false" data-icon="chevronDown"></button>
           </span>
         </span>
       </header>
@@ -98,10 +98,11 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
       <div id="empty-state" class="empty-state">
         <p>还没有 Agent 会话</p>
         <button id="empty-new-session" class="primary-button" type="button">使用默认命令新建</button>
-        <button id="empty-new-session-menu" class="secondary-button" type="button">选择其他启动方式</button>
+        <button id="empty-new-session-menu" class="secondary-button" type="button" aria-haspopup="menu" aria-controls="launch-menu" aria-expanded="false">选择其他启动方式</button>
       </div>
     </main>
   </div>
+  <div id="launch-menu" class="launch-menu" role="menu" aria-label="Agent 会话启动方式" hidden></div>
   <script nonce="${nonce}" src="${script}"></script>
 </body>
 </html>`;

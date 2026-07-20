@@ -247,6 +247,28 @@ async (page) => {
     await page.keyboard.press('Escape');
 
     await page.locator('#new-session-menu').click();
+    const launchMenuAria = await page.locator('#launch-menu').ariaSnapshot();
+    const launchMenuProbe = await page.evaluate(() => {
+      const menu = document.querySelector('#launch-menu');
+      const trigger = document.querySelector('#new-session-menu');
+      const menuRect = menu?.getBoundingClientRect();
+      const triggerRect = trigger?.getBoundingClientRect();
+      return {
+        visible: menu?.hidden === false,
+        withinViewport: Boolean(menuRect && menuRect.left >= 3 && menuRect.right <= innerWidth - 3),
+        belowTrigger: Boolean(
+          menuRect && triggerRect &&
+          menuRect.top >= triggerRect.bottom - 1 && menuRect.top <= triggerRect.bottom + 8
+        ),
+        labels: [...(menu?.querySelectorAll('[role="menuitem"]') ?? [])]
+          .map((element) => element.textContent?.trim())
+      };
+    });
+    await page.screenshot({
+      path: `test/v080-${position}-${width}x${height}-launch-menu.png`,
+      fullPage: true
+    });
+    await page.locator('#launch-menu').getByRole('menuitem', { name: /Claude/ }).click();
     await page.locator('#restore-workspace-sessions').click();
     await page.locator('#active-name').dblclick();
     await page.locator('#restart-session').hover();
@@ -321,7 +343,10 @@ async (page) => {
         communicationClipped: summary ? summary.scrollWidth > summary.clientWidth + 1 : false,
         restartDisabled: document.querySelector('#restart-session')?.disabled === true,
         rightLayout: document.querySelector('#app')?.classList.contains('session-list-right') === true,
-        launchMenuPosted: window.__webviewMessages.some((message) => message.type === 'showNewSessionMenu'),
+        profileLaunchPosted: window.__webviewMessages.some(
+          (message) => message.type === 'newProfileSession' && message.id === 'profile-0'
+        ),
+        launchMenuHidden: document.querySelector('#launch-menu')?.hidden === true,
         restorePosted: window.__webviewMessages.some((message) => message.type === 'restoreWorkspaceSessions'),
         restoreVisible: document.querySelector('#workspace-restore')?.hidden === false,
         renamePosted: window.__webviewMessages.some((message) => message.type === 'promptRenameSession'),
@@ -344,6 +369,8 @@ async (page) => {
       stalledProbe,
       completedProbe,
       inlineRenamePreserved,
+      launchMenuAriaLength: launchMenuAria.length,
+      launchMenuProbe,
       ...probe
     });
   }

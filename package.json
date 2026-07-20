@@ -2,7 +2,7 @@
   "name": "agent-terminal-panel",
   "displayName": "Agent Terminal Panel",
   "description": "在可移动的 VS Code 视图中管理多个 Agent CLI 会话，支持真实 PTY、历史恢复、图片输入与通信健康监测",
-  "version": "0.7.2",
+  "version": "0.8.0",
   "publisher": "Cx330-502",
   "author": "Cx330-502",
   "license": "MIT",
@@ -165,11 +165,6 @@
           "group": "navigation@1"
         },
         {
-          "command": "agentTerminalPanel.showNewSessionMenu",
-          "when": "view == agentTerminalPanel.terminalView",
-          "group": "navigation@2"
-        },
-        {
           "command": "agentTerminalPanel.restartSession",
           "when": "view == agentTerminalPanel.terminalView",
           "group": "navigation@3"
@@ -214,6 +209,31 @@
           "type": "string",
           "default": "",
           "description": "在 workspace extension host 的系统 shell 中执行的完整启动命令。首次新建会话时会提示配置。"
+        },
+        "agentTerminalPanel.launchProfiles": {
+          "type": "array",
+          "default": [],
+          "description": "显示在会话栏加号旁下拉菜单中的其他启动配置。按数组顺序显示；配置启动不会替换默认命令。",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "command"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "菜单标签和新会话初始名称。"
+              },
+              "command": {
+                "type": "string",
+                "minLength": 1,
+                "description": "在 workspace host 系统 shell 中执行的完整命令。"
+              }
+            }
+          }
         },
         "agentTerminalPanel.environment": {
           "type": "object",

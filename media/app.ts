@@ -8,6 +8,7 @@ import type {
 import { AttachmentController } from './attachmentController';
 import { CommunicationIndicator } from './communicationIndicator';
 import { hydrateIcons } from './icons';
+import { LaunchMenu } from './launchMenu';
 import { SessionList, statusLabel } from './sessionList';
 import { SidebarResize } from './sidebarResize';
 import { StartupIndicator } from './startupIndicator';
@@ -21,6 +22,7 @@ export class WebviewApp {
   private readonly sidebarResize: SidebarResize;
   private readonly startupIndicator: StartupIndicator;
   private readonly communicationIndicator: CommunicationIndicator;
+  private readonly launchMenu: LaunchMenu;
   private readonly activeHeader = requiredElement<HTMLElement>('active-header');
   private readonly activeName = requiredElement<HTMLElement>('active-name');
   private readonly activeCwd = requiredElement<HTMLElement>('active-cwd');
@@ -75,6 +77,12 @@ export class WebviewApp {
       requiredElement('communication-traffic'),
       requiredElement('communication-latency')
     );
+    this.launchMenu = new LaunchMenu(
+      requiredElement('launch-menu'),
+      [requiredElement('new-session-menu'), requiredElement('empty-new-session-menu')],
+      this.root,
+      (message) => this.post(message)
+    );
     this.bindControls();
     this.bindWindowEvents();
   }
@@ -89,6 +97,7 @@ export class WebviewApp {
 
   dispose(): void {
     this.attachmentController.dispose();
+    this.launchMenu.dispose();
     this.startupIndicator.dispose();
     this.terminalController.dispose();
     void this.audioContext?.close();
@@ -98,6 +107,7 @@ export class WebviewApp {
     switch (message.type) {
       case 'initialize':
         this.applyLayoutSettings(message.layoutSettings.sessionListPosition);
+        this.launchMenu.setProfiles(message.launchProfiles);
         this.terminalController.initialize(message.terminalSettings, message.platform);
         this.renderWorkspaceRestore(message.workspaceRestore);
         this.applyState(message.sessions, message.activeId, message.replays);
@@ -131,6 +141,12 @@ export class WebviewApp {
         return;
       case 'layoutSettings':
         this.applyLayoutSettings(message.settings.sessionListPosition);
+        return;
+      case 'launchProfiles':
+        this.launchMenu.setProfiles(message.profiles);
+        return;
+      case 'openLaunchMenu':
+        this.launchMenu.open();
         return;
       case 'workspaceRestore':
         this.renderWorkspaceRestore(message.restore);
@@ -185,8 +201,9 @@ export class WebviewApp {
     requiredElement<HTMLButtonElement>('new-session').addEventListener('click', () => {
       this.post({ type: 'newSession', chooseCwd: false });
     });
-    requiredElement<HTMLButtonElement>('new-session-menu').addEventListener('click', () => {
-      this.post({ type: 'showNewSessionMenu' });
+    const newSessionMenu = requiredElement<HTMLButtonElement>('new-session-menu');
+    newSessionMenu.addEventListener('click', () => {
+      this.launchMenu.toggle(newSessionMenu);
     });
     requiredElement<HTMLButtonElement>('pick-attachments').addEventListener('click', () => {
       this.attachmentController.pickFiles();
@@ -194,8 +211,9 @@ export class WebviewApp {
     requiredElement<HTMLButtonElement>('empty-new-session').addEventListener('click', () => {
       this.post({ type: 'newSession', chooseCwd: false });
     });
-    requiredElement<HTMLButtonElement>('empty-new-session-menu').addEventListener('click', () => {
-      this.post({ type: 'showNewSessionMenu' });
+    const emptyNewSessionMenu = requiredElement<HTMLButtonElement>('empty-new-session-menu');
+    emptyNewSessionMenu.addEventListener('click', () => {
+      this.launchMenu.toggle(emptyNewSessionMenu);
     });
     requiredElement<HTMLButtonElement>('restore-workspace-sessions').addEventListener(
       'click',
@@ -220,11 +238,13 @@ export class WebviewApp {
   }
 
   private applyLayoutSettings(position: 'left' | 'right'): void {
+    this.launchMenu.close();
     this.root.classList.toggle('session-list-right', position === 'right');
     this.sidebarResize.setPosition(position);
   }
 
   private renderWorkspaceRestore(restore: WorkspaceRestoreSummary): void {
+    this.launchMenu.setRestoreCount(restore.count);
     this.workspaceRestore.hidden = restore.count === 0;
     if (restore.count === 0) return;
     this.workspaceRestoreTitle.textContent = `上次窗口保留了 ${restore.count} 个会话`;

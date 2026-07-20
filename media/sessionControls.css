@@ -28,6 +28,106 @@
   height: 13px;
 }
 
+.launch-menu {
+  position: fixed;
+  z-index: 30;
+  width: min(276px, calc(100vw - 8px));
+  max-height: calc(100vh - 44px);
+  padding: 4px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border: 1px solid var(--vscode-menu-border, var(--vscode-widget-border, var(--vscode-panel-border)));
+  border-radius: 5px;
+  color: var(--vscode-menu-foreground, var(--vscode-foreground));
+  background: var(--vscode-menu-background, var(--vscode-editorWidget-background, var(--vscode-editor-background)));
+  box-shadow: 0 5px 18px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.36));
+}
+
+.launch-menu[hidden] {
+  display: none;
+}
+
+.launch-menu-group {
+  padding: 4px 7px 3px;
+  color: var(--vscode-descriptionForeground);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.launch-menu-empty {
+  padding: 6px 7px 7px;
+  color: var(--vscode-descriptionForeground);
+  font-size: 11px;
+}
+
+.launch-menu-item {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  padding: 4px 7px;
+  border: 0;
+  border-radius: 3px;
+  color: inherit;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.launch-menu-item:hover,
+.launch-menu-item:focus-visible {
+  outline: 0;
+  color: var(--vscode-menu-selectionForeground, var(--vscode-list-activeSelectionForeground));
+  background: var(--vscode-menu-selectionBackground, var(--vscode-list-activeSelectionBackground));
+}
+
+.launch-menu-item .ui-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.launch-menu-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.launch-menu-label,
+.launch-menu-description {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.launch-menu-label {
+  line-height: 17px;
+}
+
+.launch-menu-description {
+  color: var(--vscode-descriptionForeground);
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.launch-menu-item:hover .launch-menu-description,
+.launch-menu-item:focus-visible .launch-menu-description {
+  color: currentColor;
+  opacity: 0.78;
+}
+
+.launch-menu-separator {
+  height: 1px;
+  margin: 4px 3px;
+  background: var(--vscode-menu-separatorBackground, var(--vscode-panel-border));
+}
+
 .workspace-restore {
   display: flex;
   min-width: 0;

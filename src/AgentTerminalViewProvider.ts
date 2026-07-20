@@ -5,6 +5,7 @@ import {
   getCommunicationHealthConfig,
   getLayoutSettings,
   getLaunchCommand,
+  getLaunchProfiles,
   getTerminalSettings,
   shouldStartSessionOnOpen
 } from './config';
@@ -12,7 +13,6 @@ import { promptCustomSessionOptions } from './customSessionPrompt';
 import { configureDefaultLaunchCommand } from './defaultLaunchCommand';
 import { CompletionNotifier } from './notifications';
 import { normalizePtySize } from './ptySize';
-import { pickSessionLaunchAction } from './sessionLaunchMenu';
 import { createSessionHistoryRegistry } from './sessionHistory/createRegistry';
 import {
   SessionHistoryController,
@@ -35,7 +35,6 @@ import {
 import { launchWorkspaceRestore } from './workspaceSessionRestoreLaunch';
 
 export const VIEW_ID = 'agentTerminalPanel.terminalView';
-
 export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   private readonly disposables: vscode.Disposable[] = [];
   private readonly viewDisposables: vscode.Disposable[] = [];
@@ -111,6 +110,8 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
         if (event.affectsConfiguration('agentTerminalPanel.sessionListPosition')) {
           this.post({ type: 'layoutSettings', settings: getLayoutSettings() });
         }
+        if (event.affectsConfiguration('agentTerminalPanel.launchProfiles'))
+          this.post({ type: 'launchProfiles', profiles: getLaunchProfiles() });
         if (event.affectsConfiguration('agentTerminalPanel.communicationHealth')) {
           this.sessions.refreshCommunicationHealth();
         }
@@ -152,25 +153,23 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
     if (!(await this.ensureLaunchCommand())) return undefined;
     return this.createSessionWithOptions(chooseCwd, { windowRestoreEligible: true });
   }
-
   async createCustomSession(chooseCwd = false): Promise<string | undefined> {
     const options = await promptCustomSessionOptions();
     return options ? this.createSessionWithOptions(chooseCwd, options) : undefined;
   }
-
-  async showNewSessionMenu(): Promise<void> {
-    const action = await pickSessionLaunchAction(this.workspaceRestore.summary().count);
-    if (action === 'default') await this.createSession(false);
-    else if (action === 'defaultCwd') await this.createSession(true);
-    else if (action === 'custom') await this.createCustomSession(false);
-    else if (action === 'providerHistory') await this.openSessionHistory();
-    else if (action === 'workspaceRestore') await this.restoreWorkspaceSessions();
+  async createProfileSession(id: string): Promise<string | undefined> {
+    const profile = getLaunchProfiles().find((item) => item.id === id);
+    if (!profile) return undefined;
+    return this.createSessionWithOptions(false, { name: profile.name, launchCommand: profile.command });
   }
-
+  async showNewSessionMenu(): Promise<void> {
+    await this.show();
+    await this.waitForWebviewReady();
+    this.post({ type: 'openLaunchMenu' });
+  }
   async openSessionHistory(): Promise<void> {
     await this.sessionHistory.open();
   }
-
   async restoreWorkspaceSessions(): Promise<void> {
     if (!this.workspaceRestore.hasPending) return;
     this.didAutoStart = true;
@@ -287,14 +286,17 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
       case 'newSession':
         await this.createSession(message.chooseCwd);
         return;
+      case 'newProfileSession':
+        await this.createProfileSession(message.id);
+        return;
       case 'newCustomSession':
         await this.createCustomSession(message.chooseCwd);
         return;
-      case 'showNewSessionMenu':
-        await this.showNewSessionMenu();
-        return;
       case 'openSessionHistory':
         await this.openSessionHistory();
+        return;
+      case 'openSettings':
+        this.openSettings();
         return;
       case 'restoreWorkspaceSessions':
         await this.restoreWorkspaceSessions();
@@ -380,6 +382,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
       replays: this.sessions.replays(),
       terminalSettings: getTerminalSettings(),
       layoutSettings: getLayoutSettings(),
+      launchProfiles: getLaunchProfiles(),
       workspaceRestore: this.workspaceRestore.summary(),
       platform: process.platform
     });

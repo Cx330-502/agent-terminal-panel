@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
-import type { TerminalSettings } from './shared';
+import { normalizeLaunchProfiles } from './launchProfiles';
+import type { LaunchProfileSnapshot, TerminalSettings } from './shared';
 
 export interface AgentProcessConfig {
   launchCommand: string;
@@ -39,6 +40,12 @@ const SECTION = 'agentTerminalPanel';
 
 export function getLaunchCommand(): string {
   return vscode.workspace.getConfiguration(SECTION).get<string>('launchCommand', '').trim();
+}
+
+export function getLaunchProfiles(): LaunchProfileSnapshot[] {
+  return normalizeLaunchProfiles(
+    vscode.workspace.getConfiguration(SECTION).get<unknown>('launchProfiles', [])
+  );
 }
 
 export function getAgentProcessConfig(): AgentProcessConfig {
