@@ -115,7 +115,7 @@ For Codex Pets, enable `agentTerminalPanel.terminalImages.enabled` and create or
 
 ## Platforms and remote development
 
-The Marketplace selects the package for the current extension host. `releases/v0.7.1/` also contains native packages for:
+The Marketplace selects the package for the current extension host. `releases/v0.7.2/` also contains native packages for:
 
 - Windows x64 and ARM64
 - Linux x64 and ARM64, including WSL and Remote SSH workspace hosts

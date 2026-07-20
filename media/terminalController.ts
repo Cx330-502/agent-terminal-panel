@@ -77,10 +77,7 @@ export class TerminalController {
   write(id: string, data: string): void {
     const entry = this.entries.get(id);
     if (!entry) return;
-    const buffer = entry.terminal.buffer.active;
-    const atBottom = buffer.viewportY >= buffer.baseY;
     entry.terminal.write(data, () => {
-      if (atBottom) entry.terminal.scrollToBottom();
       if (!entry.replaying) this.scheduleScreenEvaluation(entry);
     });
   }

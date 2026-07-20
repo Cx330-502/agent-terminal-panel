@@ -131,6 +131,7 @@ Then run the Playwright scripts with a real Chromium page:
 playwright-cli open http://127.0.0.1:4173/test/browser-harness.html
 playwright-cli run-code --filename=test/runAttachmentRegression.js
 playwright-cli run-code --filename=test/runSelectionScrollRegression.js
+playwright-cli run-code --filename=test/runOutputFollowRegression.js
 playwright-cli run-code --filename=test/runTerminalImageRegression.js
 playwright-cli run-code --filename=test/runTerminalGutterRegression.js
 playwright-cli run-code --filename=test/runUiRegression.js
