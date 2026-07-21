@@ -99,11 +99,16 @@ jobs:
       - name: Package six platform VSIX files
         run: npm run package
 
+      - name: Resolve current release directory
+        id: release
+        shell: bash
+        run: echo "directory=releases/v$(node -p 'require(\"./package.json\").version')" >> "$GITHUB_OUTPUT"
+
       - name: Verify package count
         shell: bash
         run: |
           shopt -s nullglob
-          packages=(releases/v*/*.vsix)
+          packages=("${{ steps.release.outputs.directory }}"/*.vsix)
           if [[ ${#packages[@]} -ne 6 ]]; then
             echo "Expected 6 platform packages, found ${#packages[@]}." >&2
             exit 1
@@ -113,4 +118,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: vsix-matrix
-          path: releases/v*/*.vsix
+          path: ${{ steps.release.outputs.directory }}/*.vsix
