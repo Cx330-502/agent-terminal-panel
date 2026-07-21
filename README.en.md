@@ -42,7 +42,7 @@ Agent Terminal Panel is provider-agnostic. You supply the launch command; it sup
 4. The arrow beside `+` opens an anchored menu with saved launch profiles, cwd selection, one-off commands, and Provider history.
 5. When a previous-window banner appears, prepare any proxy or network dependency and then select **Restore all**.
 
-There is no hidden Codex default. Commands run through the workspace host's system shell and the latest configuration is read for every new or restarted session.
+There is no hidden Codex default. Commands run through the workspace host's interactive system shell, loading the normal shell rc/PATH used by a native terminal, and the latest configuration is read for every new or restarted session.
 
 Use `launchProfiles` for frequently used alternatives. The primary `+` still runs the default command; profiles appear only in the adjacent menu:
 

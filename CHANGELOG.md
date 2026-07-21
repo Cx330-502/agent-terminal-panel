@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1
+
+- Unix/WSL/Remote SSH 会话改为通过 workspace host 的交互式 shell 启动，加载与原生终端一致的常规 shell rc 和 PATH。
+- 修复 Codex、Claude 或其他 CLI 安装在 NVM、Volta、mise、Homebrew 等仅由交互式 shell 初始化的目录时出现 `command not found` / 退出码 127。
+- 新增真实 PTY 回归：extension host 初始 PATH 不含工具目录时，仍能从交互式 shell 启动文件补全 PATH 并执行命令。
+
 ## 1.0.0
 
 - 修复 Codex/ratatui 在 xterm.js 中使用顶部对齐局部滚动区域与 `CSI S` 时，已完成输出会从 scrollback 中永久消失的问题。

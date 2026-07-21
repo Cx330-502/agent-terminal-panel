@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 import * as nodePty from 'node-pty';
 import { resolveLaunchCommand } from '../src/launchCommand';
@@ -91,4 +94,49 @@ test('node-pty launches a full custom command line', { timeout: 10_000 }, async 
   });
   assert.equal(await exited, 0);
   assert.match(output, /CUSTOM\[自定义 参数\]/);
+});
+
+test('Unix launch resolves commands added by interactive shell startup', { timeout: 10_000 }, async (t) => {
+  if (process.platform === 'win32') return t.skip('Unix shell startup only');
+  const home = await mkdtemp(join(tmpdir(), 'agent-panel-shell-'));
+  const bin = join(home, 'interactive-bin');
+  const command = join(bin, 'agent-panel-rc-tool');
+  await mkdir(bin);
+  await writeFile(join(home, '.bashrc'), 'export PATH="$HOME/interactive-bin:$PATH"\n');
+  await writeFile(command, '#!/bin/sh\nprintf "RC_PATH_OK\\n"\n');
+  await chmod(command, 0o755);
+  t.after(() => rm(home, { recursive: true, force: true }));
+
+  const launch = resolveLaunchCommand('agent-panel-rc-tool', 'linux', {
+    SHELL: '/bin/bash'
+  });
+  const pty = nodePty.spawn(launch.command, launch.args, {
+    name: 'xterm-256color',
+    cols: 80,
+    rows: 24,
+    cwd: home,
+    env: {
+      HOME: home,
+      PATH: '/usr/bin:/bin',
+      SHELL: '/bin/bash',
+      TERM: 'xterm-256color'
+    }
+  });
+  let output = '';
+  const exited = new Promise<number>((resolve) => {
+    pty.onData((data) => {
+      output += data;
+    });
+    pty.onExit(({ exitCode }) => resolve(exitCode));
+  });
+  t.after(() => {
+    try {
+      pty.kill();
+    } catch {
+      // Already exited.
+    }
+  });
+
+  assert.equal(await exited, 0);
+  assert.match(output, /RC_PATH_OK/);
 });

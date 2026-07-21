@@ -5,11 +5,11 @@ import { resolveLaunchCommand } from '../src/launchCommand';
 test('Unix launch commands run through the workspace host shell', () => {
   assert.deepEqual(resolveLaunchCommand(' agent-cli --flag value ', 'linux', { SHELL: '/bin/zsh' }), {
     command: '/bin/zsh',
-    args: ['-lc', 'agent-cli --flag value']
+    args: ['-ic', 'agent-cli --flag value']
   });
   assert.deepEqual(resolveLaunchCommand('agent-cli', 'darwin', {}), {
     command: '/bin/sh',
-    args: ['-lc', 'agent-cli']
+    args: ['-ic', 'agent-cli']
   });
 });
 

@@ -20,6 +20,6 @@ export function resolveLaunchCommand(
 
   return {
     command: environment.SHELL?.trim() || '/bin/sh',
-    args: ['-lc', commandLine]
+    args: ['-ic', commandLine]
   };
 }
