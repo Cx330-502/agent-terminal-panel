@@ -27,6 +27,7 @@ VS Code workspace extension host
     WorkspaceSessionRestore -> workspaceState snapshot + provider identity correlation
     AttachmentStore -> workspace/global extension storage
     CompletionNotifier
+    ProviderViewState -> configuration subscriptions, initialization payload, View Badge
 
 Webview
   WebviewApp
@@ -36,6 +37,7 @@ Webview
     AttachmentController
     StartupIndicator
     CommunicationIndicator
+    shared English / Simplified Chinese strings
 ```
 
 `src/shared.ts` is the message contract between the extension host and Webview. Keep it serializable and make message variants explicit.
@@ -104,6 +106,8 @@ Do not derive TPOT from terminal output timing or token-count deltas. Codex expo
 | `test/runTerminalGutterRegression.js` | WebGL renderer, terminal resize, plain/Pets gutter, and Sixel repaint regression |
 | `test/runTerminalRenderingRegression.js` | Immediate WebGL context-loss fallback and atomic TUI/Pets repaint regression |
 | `test/runTerminalSearchRegression.js` | Terminal find widget, result navigation, shortcut, and narrow-layout regression |
+| `test/runI18nRegression.js` | English/Chinese static and dynamic UI, accessibility, and narrow-layout regression |
+| `test/runBrowserRegressions.mjs` | Isolated Chromium runner, harness lifecycle, JSON report, and failure screenshots |
 | `scripts/package.mjs` | Six-target VSIX packaging and native-prebuild validation |
 
 Frontend files should stay below 500 lines where practical. Repeated icon and startup UI behavior belongs in reusable modules rather than duplicated HTML or app logic.
@@ -122,21 +126,24 @@ npm ci
 npm run check
 npm test
 npm run build
+npx playwright install chromium
+npm run test:browser
 ```
 
 Press `F5` in VS Code to launch an Extension Development Host. Configure `agentTerminalPanel.launchCommand` there and verify both an ordinary shell command and the intended Agent CLI.
 
 ## Browser UI validation
 
-Start the harness:
+The standard browser gate builds the Webview, starts the harness when needed, and runs every regression in an isolated browser context:
+
+```bash
+npm run test:browser
+```
+
+Failure evidence is written to `artifacts/browser/`. For interactive debugging, start the harness and run one script manually:
 
 ```bash
 node test/serveHarness.mjs
-```
-
-Then run the Playwright scripts with a real Chromium page:
-
-```bash
 playwright-cli open http://127.0.0.1:4173/test/browser-harness.html
 playwright-cli run-code --filename=test/runAttachmentRegression.js
 playwright-cli run-code --filename=test/runSelectionScrollRegression.js
@@ -146,6 +153,7 @@ playwright-cli run-code --filename=test/runTerminalImageRegression.js
 playwright-cli run-code --filename=test/runTerminalGutterRegression.js
 playwright-cli run-code --filename=test/runTerminalRenderingRegression.js
 playwright-cli run-code --filename=test/runTerminalSearchRegression.js
+playwright-cli run-code --filename=test/runI18nRegression.js
 playwright-cli run-code --filename=test/runUiRegression.js
 ```
 
@@ -158,6 +166,12 @@ The harness is not a substitute for an Extension Development Host check of:
 - IME behavior in the VS Code Webview iframe;
 - OS file-manager drag/drop;
 - Marketplace target installation.
+
+## Continuous integration and localization
+
+`.github/workflows/ci.yml` runs on pull requests and pushes to `main`. Its runtime matrix executes the build, unit suite, and real PTY integration tests on Ubuntu, Windows, and macOS. A separate Ubuntu Chromium job runs the browser suite, and the package job creates all six target VSIX files only after both gates pass.
+
+Manifest strings live in `package.nls.json` and `package.nls.zh-cn.json`. Extension-host prompts use `vscode.l10n.t` with translations in `l10n/bundle.l10n.zh-cn.json`. Webview strings live in the typed `src/webviewStrings.ts` dictionaries. `test/localization.test.ts` verifies manifest keys, runtime bundle coverage, dictionary parity, and the absence of hard-coded Chinese outside the localization source.
 
 ## Packaging
 
@@ -182,8 +196,8 @@ Every package excludes the other five native prebuilds. Inspect package contents
 ## Release workflow
 
 1. Update `package.json`, `package-lock.json`, `CHANGELOG.md`, and Marketplace screenshots.
-2. Run TypeScript checks, Node tests, browser regression, and `npm run package`.
+2. Run `npm run verify` and `npm run package`.
 3. Commit the version, create `v<version>`, and push `main` plus the tag.
-4. `.github/workflows/marketplace-publish.yml` verifies the tag/version match, rebuilds all targets, signs into Azure through GitHub OIDC, verifies publisher access, and publishes the six VSIX files.
+4. `.github/workflows/marketplace-publish.yml` verifies the tag/version match, repeats unit and Chromium gates, rebuilds all targets, signs into Azure through GitHub OIDC, verifies publisher access, and publishes the six VSIX files.
 
 The workflow stores no long-lived Marketplace PAT. Publishing depends on the GitHub Environment variables and Azure federated identity configured for this repository.

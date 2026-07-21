@@ -224,6 +224,56 @@ async (page) => {
     layoutResults.push({ width, height, overlayProbe, statusProbe });
   }
 
+  const failures = [];
+  if (textPaste.inputCount !== 1 || textPaste.data !== '中文粘贴' || textPaste.attachmentCount !== 0) {
+    failures.push(`plain text paste: ${JSON.stringify(textPaste)}`);
+  }
+  if (keyboardPaste.inputCount !== 1 || keyboardPaste.data !== '快捷键粘贴') {
+    failures.push(`keyboard paste: ${JSON.stringify(keyboardPaste)}`);
+  }
+  if (
+    imagePaste.saveCount !== 1 ||
+    imagePaste.uploadCount !== 1 ||
+    imagePaste.uploadName !== '截图.png' ||
+    imagePaste.uploadMime !== 'image/png' ||
+    imagePaste.decodedBytes !== 4 ||
+    imagePaste.inputCount !== 1 ||
+    !imagePaste.inserted.includes('pasted-image.png')
+  ) {
+    failures.push(`image paste: ${JSON.stringify(imagePaste)}`);
+  }
+  if (!filePicker.pickerPosted || filePicker.inputCount !== 1 || !filePicker.inserted.includes('picked-image.png')) {
+    failures.push(`file picker: ${JSON.stringify(filePicker)}`);
+  }
+  if (!dragDrop.overlayDuring || dragDrop.overlayAfter || dragDrop.saveCount !== 1 || dragDrop.inputCount !== 1) {
+    failures.push(`file drag: ${JSON.stringify(dragDrop)}`);
+  }
+  if (uriDrop.saveCount !== 1 || uriDrop.uris[0] !== 'file:///tmp/example%20image.png') {
+    failures.push(`URI drag: ${JSON.stringify(uriDrop)}`);
+  }
+  if (
+    vscodeTransfers.results.some((item) => item.saveCount !== 1 || item.uris.length !== 1) ||
+    !vscodeTransfers.unknownDragAccepted
+  ) {
+    failures.push(`VS Code drag payloads: ${JSON.stringify(vscodeTransfers)}`);
+  }
+  for (const result of layoutResults) {
+    if (
+      !result.overlayProbe.visible ||
+      !result.overlayProbe.withinViewport ||
+      result.overlayProbe.clipped ||
+      !result.statusProbe.visible ||
+      !result.statusProbe.withinViewport ||
+      result.statusProbe.clipped
+    ) {
+      failures.push(`attachment layout ${result.width}x${result.height}: ${JSON.stringify(result)}`);
+    }
+  }
+  if (consoleErrors.length > 0 || failedRequests.length > 0) {
+    failures.push(`browser diagnostics: ${JSON.stringify({ consoleErrors, failedRequests })}`);
+  }
+  if (failures.length > 0) throw new Error(failures.join('\n'));
+
   return {
     textPaste,
     keyboardPaste,

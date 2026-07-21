@@ -20,7 +20,10 @@ export async function handleWebviewUtilityMessage(
     }
     case 'clipboardWrite':
       await vscode.env.clipboard.writeText(message.text);
-      vscode.window.setStatusBarMessage('$(check) 已复制到剪贴板', 1500);
+      vscode.window.setStatusBarMessage(
+        `$(check) ${vscode.l10n.t('Copied to clipboard')}`,
+        1500
+      );
       return true;
     case 'pickAttachments':
       if (context.hasSession(message.id)) await context.attachments.pick(message.id);

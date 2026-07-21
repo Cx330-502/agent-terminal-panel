@@ -16,10 +16,11 @@ export class ClosedSessionRecovery implements vscode.Disposable {
     if (!session) return;
     const entry = this.store.add(session);
     this.changed();
+    const reopenLabel = vscode.l10n.t('Reopen');
     void vscode.window
-      .showInformationMessage(`已关闭“${session.name}”`, '重新打开')
+      .showInformationMessage(vscode.l10n.t('Closed “{0}”', session.name), reopenLabel)
       .then((action) => {
-        if (action === '重新打开') void this.reopenEntry(entry.id);
+        if (action === reopenLabel) void this.reopenEntry(entry.id);
       });
   }
 
@@ -40,7 +41,9 @@ export class ClosedSessionRecovery implements vscode.Disposable {
     const entry = this.store.take(id);
     if (!entry) {
       this.changed();
-      void vscode.window.showInformationMessage('没有可重新打开的已关闭会话。');
+      void vscode.window.showInformationMessage(
+        vscode.l10n.t('There are no closed sessions to reopen.')
+      );
       return false;
     }
     this.changed();

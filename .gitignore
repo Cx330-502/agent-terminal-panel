@@ -9,5 +9,6 @@ media/xterm.css
 *.log
 .vscode-test/
 .playwright-cli/
+artifacts/
 test/*.png
 test/*.yml

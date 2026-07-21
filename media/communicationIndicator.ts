@@ -3,6 +3,7 @@ import type {
   NetworkProbeSource,
   SessionSnapshot
 } from '../src/shared';
+import { formatWebviewString, type WebviewStrings } from '../src/webviewStrings';
 
 export class CommunicationIndicator {
   constructor(
@@ -11,7 +12,8 @@ export class CommunicationIndicator {
     private readonly fullLabel: HTMLElement,
     private readonly compactLabel: HTMLElement,
     private readonly traffic: HTMLElement,
-    private readonly latency: HTMLElement
+    private readonly latency: HTMLElement,
+    private readonly strings: WebviewStrings
   ) {}
 
   render(session: SessionSnapshot | undefined): void {
@@ -21,39 +23,57 @@ export class CommunicationIndicator {
 
     this.element.className = `communication-summary communication-${communication.health}`;
     this.dot.className = `communication-dot communication-${communication.health}`;
-    const labels = healthLabels(communication);
+    const labels = healthLabels(communication, this.strings);
     this.fullLabel.textContent = labels.full;
     this.compactLabel.textContent = labels.compact;
-    this.traffic.textContent = trafficLabel(communication);
-    const latency = latencyLabel(communication);
+    this.traffic.textContent = trafficLabel(communication, this.strings);
+    const latency = latencyLabel(communication, this.strings);
     this.latency.textContent = latency;
     this.latency.hidden = !latency;
-    this.element.title = communicationDetails(communication);
+    this.element.title = communicationDetails(communication, this.strings);
   }
 }
 
-export function communicationStatusLabel(session: SessionSnapshot): string | undefined {
+export function communicationStatusLabel(
+  session: SessionSnapshot,
+  strings: WebviewStrings
+): string | undefined {
   const communication = session.communication;
   if (!communication) return undefined;
-  const labels = healthLabels(communication);
-  return `${labels.full} · ${trafficLabel(communication)}`;
+  const labels = healthLabels(communication, strings);
+  return `${labels.full} · ${trafficLabel(communication, strings)}`;
 }
 
-function healthLabels(communication: CommunicationSnapshot): { full: string; compact: string } {
+function healthLabels(
+  communication: CommunicationSnapshot,
+  strings: WebviewStrings
+): { full: string; compact: string } {
   const duration = formatDuration(communication.silentForMs);
-  if (communication.health === 'quiet') return { full: `通信静默 ${duration}`, compact: duration };
-  if (communication.health === 'stalled') {
-    return { full: `疑似停滞 ${duration}`, compact: duration };
+  if (communication.health === 'quiet') {
+    return { full: formatWebviewString(strings.communicationQuiet, duration), compact: duration };
   }
-  if (communication.health === 'idle') return { full: '通信空闲', compact: '空闲' };
-  if (communication.health === 'unavailable') return { full: '监测待就绪', compact: '待就绪' };
+  if (communication.health === 'stalled') {
+    return { full: formatWebviewString(strings.communicationStalled, duration), compact: duration };
+  }
+  if (communication.health === 'idle') {
+    return { full: strings.communicationIdle, compact: strings.communicationIdleCompact };
+  }
+  if (communication.health === 'unavailable') {
+    return {
+      full: strings.communicationUnavailable,
+      compact: strings.communicationUnavailableCompact
+    };
+  }
   const waiting = communication.provider?.waitingForFirstEventMs;
   return waiting === undefined
-    ? { full: '通信活跃', compact: '活跃' }
-    : { full: `等待首响应 ${formatDuration(waiting)}`, compact: formatDuration(waiting) };
+    ? { full: strings.communicationActive, compact: strings.communicationActiveCompact }
+    : {
+        full: formatWebviewString(strings.waitingFirstResponse, formatDuration(waiting)),
+        compact: formatDuration(waiting)
+      };
 }
 
-function trafficLabel(communication: CommunicationSnapshot): string {
+function trafficLabel(communication: CommunicationSnapshot, strings: WebviewStrings): string {
   const network = communication.network;
   if (network?.available && network.hasByteCounters && network.connectionCount > 0) {
     if (network.loopback && network.proxy) {
@@ -62,76 +82,97 @@ function trafficLabel(communication: CommunicationSnapshot): string {
     return `Socket ↓${formatRate(network.receiveRate)} ↑${formatRate(network.sendRate)}`;
   }
   if (network?.available && network.connectionCount > 0) {
-    return `${network.connectionCount} 个连接`;
+    return connectionCountLabel(network.connectionCount, strings);
   }
   return `PTY ↓${formatRate(communication.pty.receiveRate)} ↑${formatRate(communication.pty.sendRate)}`;
 }
 
-function latencyLabel(communication: CommunicationSnapshot): string {
+function latencyLabel(communication: CommunicationSnapshot, strings: WebviewStrings): string {
   const provider = communication.provider;
   if (!provider) return '';
   if (provider.turnActive && provider.waitingForFirstEventMs !== undefined) {
-    return `首响应 ${formatDuration(provider.waitingForFirstEventMs)}…`;
+    return formatWebviewString(strings.firstResponse, formatDuration(provider.waitingForFirstEventMs));
   }
   if (provider.turnActive && provider.firstEventMs !== undefined) {
-    return `首事件 ${formatDuration(provider.firstEventMs)}*`;
+    return formatWebviewString(strings.firstEvent, formatDuration(provider.firstEventMs));
   }
   return provider.lastTtftMs === undefined ? '' : `TTFT ${formatDuration(provider.lastTtftMs)}`;
 }
 
-function communicationDetails(communication: CommunicationSnapshot): string {
+function communicationDetails(
+  communication: CommunicationSnapshot,
+  strings: WebviewStrings
+): string {
   const lines = [
-    `健康状态：${healthLabels(communication).full}`,
-    `判断依据：${basisLabel(communication)}`,
-    `PTY：↓ ${formatRate(communication.pty.receiveRate)} · ↑ ${formatRate(communication.pty.sendRate)}`
+    formatWebviewString(strings.healthStatus, healthLabels(communication, strings).full),
+    formatWebviewString(strings.healthBasis, basisLabel(communication, strings)),
+    formatWebviewString(
+      strings.ptyRates,
+      formatRate(communication.pty.receiveRate),
+      formatRate(communication.pty.sendRate)
+    )
   ];
   const network = communication.network;
   if (network) {
     lines.push(
-      `${networkSourceLabel(network.source)}：${network.connectionCount} 个连接` +
+      `${networkSourceLabel(network.source, strings)}: ${connectionCountLabel(network.connectionCount, strings)}` +
         (!network.available
-          ? ' · 探针当前不可用'
+          ? ` · ${strings.probeUnavailable}`
           : network.hasByteCounters
           ? ` · ↓ ${formatRate(network.receiveRate)} · ↑ ${formatRate(network.sendRate)}`
-          : ' · 当前平台不提供逐进程字节')
+          : ` · ${strings.processBytesUnavailable}`)
     );
-    if (network.loopback) lines.push('Agent 连接目标是本地 loopback 代理。');
+    if (network.loopback) lines.push(strings.agentUsesLoopback);
     if (network.proxy) {
       lines.push(
-        `${network.proxy.processName} 上游（进程共享估计）：↓ ${formatRate(network.proxy.receiveRate)} · ↑ ${formatRate(network.proxy.sendRate)}`
+        formatWebviewString(
+          strings.proxyUpstream,
+          network.proxy.processName,
+          formatRate(network.proxy.receiveRate),
+          formatRate(network.proxy.sendRate)
+        )
       );
     }
-    if (!network.available && network.error) lines.push(`网络探针不可用：${network.error}`);
+    if (!network.available && network.error) {
+      lines.push(formatWebviewString(strings.networkProbeError, network.error));
+    }
   }
   const provider = communication.provider;
   if (provider) {
     if (provider.lastTtftMs !== undefined) {
-      lines.push(`Codex TTFT：${formatDuration(provider.lastTtftMs)}（JSONL task_complete 精确值）`);
+      lines.push(formatWebviewString(strings.codexTtft, formatDuration(provider.lastTtftMs)));
     }
     if (provider.turnOutputTokens !== undefined) {
-      lines.push(`当前/最近回合输出 tokens：${formatInteger(provider.turnOutputTokens)}`);
+      lines.push(formatWebviewString(strings.turnOutputTokens, formatInteger(provider.turnOutputTokens)));
     }
     if (provider.totalTokens !== undefined) {
-      lines.push(`Codex 会话累计 tokens：${formatInteger(provider.totalTokens)}`);
+      lines.push(formatWebviewString(strings.codexTotalTokens, formatInteger(provider.totalTokens)));
     }
     if (provider.firstEventMs !== undefined && provider.turnActive) {
-      lines.push('“首事件”来自 JSONL 首个模型事件，不等同于精确 TTFT。');
+      lines.push(strings.firstEventDisclaimer);
     }
   }
   return lines.join('\n');
 }
 
-function basisLabel(communication: CommunicationSnapshot): string {
-  if (communication.healthBasis === 'network') return 'Agent 进程 TCP socket';
-  if (communication.healthBasis === 'provider') return 'Provider 正在执行本地工具';
-  if (communication.healthBasis === 'pty') return 'PTY 输出活动（非网络流量）';
-  return '暂无可用来源';
+function basisLabel(communication: CommunicationSnapshot, strings: WebviewStrings): string {
+  if (communication.healthBasis === 'network') return strings.basisNetwork;
+  if (communication.healthBasis === 'provider') return strings.basisProvider;
+  if (communication.healthBasis === 'pty') return strings.basisPty;
+  return strings.basisUnavailable;
 }
 
-function networkSourceLabel(source: NetworkProbeSource): string {
+function networkSourceLabel(source: NetworkProbeSource, strings: WebviewStrings): string {
   if (source === 'linux-ss') return 'Linux ss socket';
   if (source === 'macos-nettop') return 'macOS nettop';
-  return 'Windows TCP 连接';
+  return strings.windowsTcpConnections;
+}
+
+function connectionCountLabel(count: number, strings: WebviewStrings): string {
+  return formatWebviewString(
+    count === 1 ? strings.connectionCountOne : strings.connectionCount,
+    count
+  );
 }
 
 function formatRate(bytesPerSecond: number): string {

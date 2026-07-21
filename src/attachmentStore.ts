@@ -22,41 +22,47 @@ export class AttachmentStore {
     for (const upload of uploads) {
       try {
         if (!upload.mimeType.toLowerCase().startsWith('image/')) {
-          throw new Error('不是图片');
+          throw new Error(vscode.l10n.t('Not an image'));
         }
         if (upload.base64.length > Math.ceil((MAX_FILE_BYTES * 4) / 3) + 8) {
-          throw new Error('超过 25 MB');
+          throw new Error(vscode.l10n.t('Larger than 25 MB'));
         }
         const data = Buffer.from(upload.base64, 'base64');
-        if (data.byteLength === 0) throw new Error('图片为空');
-        if (data.byteLength > MAX_FILE_BYTES) throw new Error('超过 25 MB');
+        if (data.byteLength === 0) throw new Error(vscode.l10n.t('The image is empty'));
+        if (data.byteLength > MAX_FILE_BYTES) throw new Error(vscode.l10n.t('Larger than 25 MB'));
         const nextTotal = totalBytes + data.byteLength;
-        if (nextTotal > MAX_TOTAL_BYTES) throw new Error('本次图片总量超过 50 MB');
+        if (nextTotal > MAX_TOTAL_BYTES) {
+          throw new Error(vscode.l10n.t('Total image size exceeds 50 MB'));
+        }
         totalBytes = nextTotal;
         paths.push(await this.writeImage(upload.name, upload.mimeType, data));
       } catch (error) {
-        errors.push(`${upload.name || '剪贴板图片'}：${errorMessage(error)}`);
+        errors.push(
+          `${upload.name || vscode.l10n.t('Clipboard image')}: ${errorMessage(error)}`
+        );
       }
     }
 
     for (const value of [...new Set(uriValues)]) {
       try {
         const uri = parseAttachmentUri(value);
-        if (!isImagePath(uri.path)) throw new Error('不是受支持的图片文件');
+        if (!isImagePath(uri.path)) throw new Error(vscode.l10n.t('Not a supported image file'));
         const info = await vscode.workspace.fs.stat(uri);
-        if ((info.type & vscode.FileType.File) === 0) throw new Error('不是文件');
+        if ((info.type & vscode.FileType.File) === 0) throw new Error(vscode.l10n.t('Not a file'));
         if (uri.scheme === 'file' || uri.scheme === 'vscode-remote') {
           paths.push(uri.fsPath);
         } else {
-          if (info.size > MAX_FILE_BYTES) throw new Error('超过 25 MB');
+          if (info.size > MAX_FILE_BYTES) throw new Error(vscode.l10n.t('Larger than 25 MB'));
           const nextTotal = totalBytes + info.size;
-          if (nextTotal > MAX_TOTAL_BYTES) throw new Error('本次图片总量超过 50 MB');
+          if (nextTotal > MAX_TOTAL_BYTES) {
+            throw new Error(vscode.l10n.t('Total image size exceeds 50 MB'));
+          }
           totalBytes = nextTotal;
           const data = await vscode.workspace.fs.readFile(uri);
           paths.push(await this.writeImage(uri.path, '', data));
         }
       } catch (error) {
-        errors.push(`${value}：${errorMessage(error)}`);
+        errors.push(`${value}: ${errorMessage(error)}`);
       }
     }
 

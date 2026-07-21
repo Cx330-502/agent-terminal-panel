@@ -8,20 +8,22 @@ export interface CustomSessionOptions {
 
 export async function promptCustomSessionOptions(): Promise<CustomSessionOptions | undefined> {
   const launchCommand = await vscode.window.showInputBox({
-    title: '新建自定义命令会话',
-    prompt: '此命令只属于新会话，不会修改默认启动命令，也不会进入窗口恢复记录',
+    title: vscode.l10n.t('Create Custom Command Session'),
+    prompt: vscode.l10n.t('This command applies only to the new session. It does not change the default launch command or enter window recovery history.'),
     placeHolder: 'agent-cli --flag value',
     value: getLaunchCommand(),
     ignoreFocusOut: true,
-    validateInput: (value) => (value.trim() ? undefined : '启动命令不能为空')
+    validateInput: (value) =>
+      value.trim() ? undefined : vscode.l10n.t('The launch command cannot be empty')
   });
   if (launchCommand === undefined) return undefined;
   const name = await vscode.window.showInputBox({
-    title: '命名新会话',
-    prompt: '会话创建后仍可双击名称或使用重命名按钮修改',
-    value: 'Custom Agent',
+    title: vscode.l10n.t('Name New Session'),
+    prompt: vscode.l10n.t('You can still double-click the name or use the rename button after creating the session.'),
+    value: vscode.l10n.t('Custom Agent'),
     ignoreFocusOut: true,
-    validateInput: (value) => (value.trim() ? undefined : '会话名称不能为空')
+    validateInput: (value) =>
+      value.trim() ? undefined : vscode.l10n.t('The session name cannot be empty')
   });
   return name === undefined ? undefined : { name, launchCommand };
 }

@@ -16,14 +16,14 @@ export class AttachmentController {
 
   async pick(id: string): Promise<void> {
     const picked = await vscode.window.showOpenDialog({
-      title: '选择要插入 Agent 会话的图片',
+      title: vscode.l10n.t('Choose images to insert into the Agent session'),
       defaultUri: vscode.workspace.workspaceFolders?.[0]?.uri,
       canSelectFiles: true,
       canSelectFolders: false,
       canSelectMany: true,
-      openLabel: '插入图片路径',
+      openLabel: vscode.l10n.t('Insert image paths'),
       filters: {
-        图片: ['avif', 'bmp', 'gif', 'heic', 'heif', 'jpg', 'jpeg', 'png', 'svg', 'tif', 'tiff', 'webp']
+        [vscode.l10n.t('Images')]: ['avif', 'bmp', 'gif', 'heic', 'heif', 'jpg', 'jpeg', 'png', 'svg', 'tif', 'tiff', 'webp']
       }
     });
     if (!picked || picked.length === 0) return;
@@ -33,7 +33,7 @@ export class AttachmentController {
       id,
       [],
       limited.map((uri) => uri.toString()),
-      picked.length > limited.length ? ['一次最多处理 8 张图片'] : []
+      picked.length > limited.length ? [vscode.l10n.t('Process up to 8 images at once')] : []
     );
   }
 

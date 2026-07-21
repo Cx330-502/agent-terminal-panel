@@ -4,16 +4,19 @@ import { ClosedSessionRecovery } from './closedSessionRecovery';
 import {
   getAgentProcessConfig,
   getCommunicationHealthConfig,
-  getLayoutSettings,
   getLaunchCommand,
   getLaunchProfiles,
-  getTerminalSettings,
   shouldStartSessionOnOpen
 } from './config';
 import { promptCustomSessionOptions } from './customSessionPrompt';
 import { configureDefaultLaunchCommand } from './defaultLaunchCommand';
 import { CompletionNotifier } from './notifications';
 import { normalizePtySize } from './ptySize';
+import {
+  createProviderInitializeMessage,
+  registerProviderEvents,
+  updateViewBadge
+} from './providerViewState';
 import { createSessionHistoryRegistry } from './sessionHistory/createRegistry';
 import {
   SessionHistoryController,
@@ -101,35 +104,22 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
         onPendingChanged: () => this.postWorkspaceRestore()
       }
     );
-
     this.disposables.push(
       this.startupLogger,
       this.closedSessions,
       this.workspaceRestore,
-      vscode.window.onDidChangeWindowState((state) => {
-        this.windowFocused = state.focused;
-        if (state.focused) this.acknowledgeVisibleSession();
-      }),
-      vscode.window.onDidChangeActiveColorTheme(() => this.post({ type: 'refreshTheme' })),
-      vscode.workspace.onDidChangeConfiguration((event) => {
-        if (event.affectsConfiguration('terminal.integrated')) {
-          this.post({ type: 'terminalSettings', settings: getTerminalSettings() });
-        }
-        if (event.affectsConfiguration('agentTerminalPanel.terminalImages.enabled')) {
-          this.post({ type: 'terminalSettings', settings: getTerminalSettings() });
-        }
-        if (event.affectsConfiguration('agentTerminalPanel.sessionListPosition')) {
-          this.post({ type: 'layoutSettings', settings: getLayoutSettings() });
-        }
-        if (event.affectsConfiguration('agentTerminalPanel.launchProfiles'))
-          this.post({ type: 'launchProfiles', profiles: getLaunchProfiles() });
-        if (event.affectsConfiguration('agentTerminalPanel.communicationHealth')) {
+      ...registerProviderEvents({
+        post: (message) => this.post(message),
+        windowFocusChanged: (focused) => {
+          this.windowFocused = focused;
+          if (focused) this.acknowledgeVisibleSession();
+        },
+        refreshCommunicationHealth: () => {
           this.sessions.refreshCommunicationHealth();
         }
       })
     );
   }
-
   resolveWebviewView(webviewView: vscode.WebviewView): void {
     this.startupLogger.beginWebviewResolve();
     this.clearViewDisposables();
@@ -159,7 +149,6 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
     );
     this.updateBadge();
   }
-
   async createSession(chooseCwd = false): Promise<string | undefined> {
     if (!(await this.ensureLaunchCommand())) return undefined;
     return this.createSessionWithOptions(chooseCwd, { windowRestoreEligible: true });
@@ -198,11 +187,9 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
       reveal: (id) => this.revealRestoredSession(id)
     });
   }
-
   dismissWorkspaceRestore(): void {
     this.workspaceRestore.dismissPending();
   }
-
   private async createSessionWithOptions(
     chooseCwd: boolean,
     options: SessionCreateOptions = {}
@@ -211,7 +198,6 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
     if (!cwd) return undefined;
     return this.createSessionAt(cwd, options);
   }
-
   private async createSessionAt(
     cwd: string,
     options: SessionCreateOptions = {}
@@ -232,12 +218,10 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
     this.acknowledgeVisibleSession();
     return id;
   }
-
   closeActiveSession(): void {
     const id = this.sessions.getActiveId();
     if (id) this.closeSession(id);
   }
-
   async reopenClosedSession(): Promise<boolean> {
     return this.closedSessions.reopenLatest();
   }
@@ -399,18 +383,9 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
   }
 
   private postInitialize(): void {
-    this.post({
-      type: 'initialize',
-      sessions: this.sessions.snapshots(),
-      activeId: this.sessions.getActiveId(),
-      replays: this.sessions.replays(),
-      terminalSettings: getTerminalSettings(),
-      layoutSettings: getLayoutSettings(),
-      launchProfiles: getLaunchProfiles(),
-      workspaceRestore: this.workspaceRestore.summary(),
-      closedSessions: this.closedSessions.summary(),
-      platform: process.platform
-    });
+    this.post(
+      createProviderInitializeMessage(this.sessions, this.workspaceRestore, this.closedSessions)
+    );
     const activeId = this.sessions.getActiveId();
     if (activeId) this.post({ type: 'focusSession', id: activeId });
   }
@@ -431,9 +406,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
   }
 
   private updateBadge(): void {
-    if (!this.view) return;
-    const count = this.sessions.snapshots().filter((session) => session.unread).length;
-    this.view.badge = count > 0 ? { value: count, tooltip: `${count} 个会话需要处理` } : undefined;
+    updateViewBadge(this.view, this.sessions);
   }
 
   private async revealSession(id: string): Promise<void> {
@@ -461,7 +434,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
   private async restartSession(id: string): Promise<void> {
     if (this.sessions.get(id)?.canRestart === false) {
       void vscode.window.showInformationMessage(
-        'Fork 启动只执行一次。请从历史会话中 Resume 新生成的会话，避免重复 Fork。'
+        vscode.l10n.t('A Fork launch runs only once. Resume the newly generated session from history to avoid repeating the Fork.')
       );
       return;
     }

@@ -1,5 +1,12 @@
 # Roadmap TODO
 
+## Completed in 0.9.1
+
+- Pull-request/main CI with Ubuntu, Windows, and macOS runtime coverage.
+- One-command Chromium regression suite with deterministic failure artifacts and Marketplace release gating.
+- Cross-platform PTY tests for Chinese input, resize, and custom shell commands, including native Windows.
+- VS Code-native English and Simplified Chinese localization across contributions, host prompts, and Webview UI.
+
 ## Completed in 0.9.0
 
 - Native, collapsible image-drop Inbox using VS Code TreeView `files` and `text/uri-list` payloads.

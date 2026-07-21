@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.1
+
+- 新增面向 `main` push 与 Pull Request 的 CI：Ubuntu、Windows、macOS 三宿主并行执行构建、单元测试和真实 `node-pty` 集成测试。
+- Windows 不再跳过 PTY 覆盖；中文输入、resize 和完整自定义命令现在由同一套跨平台测试验证。
+- 将 10 组 Chromium 交互脚本收敛为 `npm run test:browser`，自动启动 Harness、逐项隔离运行，并在失败时输出页面截图和 JSON 报告。
+- 浏览器门禁覆盖六桌面 + 两窄视图、滚动、WebGL/Sixel/Pets、附件、启动菜单、搜索和中英文界面；Marketplace 标签发布也必须通过同一套回归。
+- 新增 VS Code 原生国际化：命令、视图、设置、Host 提示及 Webview 动态状态均支持英文与简体中文，语言跟随 VS Code。
+- 拆分 Provider 的配置订阅、初始化消息和 Badge 状态职责，所有前端/总控源文件保持在 500 行以内。
+
 ## 0.9.0
 
 - 新增终端内查找：支持 `Ctrl/Cmd+F`、上一项/下一项、中文输入、匹配计数和当前终端高亮，搜索框在窄侧栏中自动压缩。

@@ -40,7 +40,8 @@ export class CompletionNotifier {
     if (!shouldShowToast(config.showToast, visible) || this.activeToasts.has(event.key)) return;
     this.activeToasts.add(event.key);
     const message = notificationText(event);
-    void vscode.window.showInformationMessage(message, '打开会话').then((action) => {
+    const openLabel = vscode.l10n.t('Open Session');
+    void vscode.window.showInformationMessage(message, openLabel).then((action) => {
       this.activeToasts.delete(event.key);
       if (action) this.callbacks.reveal(event.session.id);
     });
@@ -48,8 +49,14 @@ export class CompletionNotifier {
 }
 
 function notificationText(event: SessionAttention): string {
-  if (event.session.status === 'approval') return `${event.session.name} 正在等待审批`;
-  if (event.session.status === 'waiting') return `${event.session.name} 正在等待输入`;
-  if (event.detail?.startsWith('exit ')) return `${event.session.name} 已结束`;
-  return `${event.session.name} 已完成`;
+  if (event.session.status === 'approval') {
+    return vscode.l10n.t('{0} is waiting for approval', event.session.name);
+  }
+  if (event.session.status === 'waiting') {
+    return vscode.l10n.t('{0} is waiting for input', event.session.name);
+  }
+  if (event.detail?.startsWith('exit ')) {
+    return vscode.l10n.t('{0} has exited', event.session.name);
+  }
+  return vscode.l10n.t('{0} has completed', event.session.name);
 }

@@ -4,16 +4,15 @@ import * as nodePty from 'node-pty';
 import { resolveLaunchCommand } from '../src/launchCommand';
 
 test('node-pty carries Chinese input and terminal resize events', { timeout: 10_000 }, async (t) => {
-  if (process.platform === 'win32') {
-    t.skip('Unix PTY integration is covered by the WSL/SSH package target');
-    return;
-  }
   const script = [
     "process.stdin.setEncoding('utf8')",
     "process.stdout.write('READY 中文\\n')",
     "process.stdin.on('data', d => process.stdout.write('ECHO<' + d.replace(/\\r?\\n/g, '') + '>\\n'))",
-    "process.on('SIGWINCH', () => process.stdout.write('SIZE<' + process.stdout.columns + 'x' + process.stdout.rows + '>\\n'))",
-    'setInterval(() => {}, 1000)'
+    "let previousSize = process.stdout.columns + 'x' + process.stdout.rows",
+    "const reportSize = () => { const size = process.stdout.columns + 'x' + process.stdout.rows; if (size !== previousSize) { previousSize = size; process.stdout.write('SIZE<' + size + '>\\n') } }",
+    "process.stdout.on('resize', reportSize)",
+    "if (process.platform !== 'win32') process.on('SIGWINCH', reportSize)",
+    'setInterval(reportSize, 20)'
   ].join(';');
   const pty = nodePty.spawn(process.execPath, ['-e', script], {
     name: 'xterm-256color',
@@ -51,12 +50,11 @@ async function waitFor(predicate: () => boolean): Promise<void> {
 }
 
 test('node-pty launches a full custom command line', { timeout: 10_000 }, async (t) => {
-  if (process.platform === 'win32') {
-    t.skip('Unix shell command integration is covered by the WSL/SSH package target');
-    return;
-  }
+  const commandLine = process.platform === 'win32'
+    ? 'echo CUSTOM[%AGENT_PANEL_TEST%]'
+    : `printf 'CUSTOM[%s]\\n' "$AGENT_PANEL_TEST"`;
   const launch = resolveLaunchCommand(
-    `printf 'CUSTOM<%s>\\n' "$AGENT_PANEL_TEST"`,
+    commandLine,
     process.platform,
     process.env
   );
@@ -73,6 +71,13 @@ test('node-pty launches a full custom command line', { timeout: 10_000 }, async 
     }
   });
   let output = '';
+  t.after(() => {
+    try {
+      pty.kill();
+    } catch {
+      // Already exited.
+    }
+  });
   const exited = new Promise<number>((resolve) => {
     pty.onData((data) => {
       output += data;
@@ -80,5 +85,5 @@ test('node-pty launches a full custom command line', { timeout: 10_000 }, async 
     pty.onExit(({ exitCode }) => resolve(exitCode));
   });
   assert.equal(await exited, 0);
-  assert.match(output, /CUSTOM<自定义 参数>/);
+  assert.match(output, /CUSTOM\[自定义 参数\]/);
 });

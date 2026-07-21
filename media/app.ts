@@ -5,10 +5,15 @@ import type {
   WebviewMessage,
   WorkspaceRestoreSummary
 } from '../src/shared';
+import {
+  formatWebviewString,
+  type WebviewStrings
+} from '../src/webviewStrings';
 import { AttachmentController } from './attachmentController';
 import { CommunicationIndicator } from './communicationIndicator';
 import { hydrateIcons } from './icons';
 import { LaunchMenu } from './launchMenu';
+import { localizeDocument } from './localizeDocument';
 import { SessionList, statusLabel } from './sessionList';
 import { SidebarResize } from './sidebarResize';
 import { StartupIndicator } from './startupIndicator';
@@ -43,7 +48,11 @@ export class WebviewApp {
   private audioContext: AudioContext | undefined;
   private lastSoundAt = 0;
 
-  constructor(private readonly vscode: VSCodeApi) {
+  constructor(
+    private readonly vscode: VSCodeApi,
+    private readonly strings: WebviewStrings
+  ) {
+    localizeDocument(strings);
     hydrateIcons(document);
     this.root = requiredElement<HTMLElement>('app');
     const stack = requiredElement<HTMLElement>('terminal-stack');
@@ -56,6 +65,7 @@ export class WebviewApp {
       requiredElement('terminal-search-previous'),
       requiredElement('terminal-search-next'),
       requiredElement('terminal-search-close'),
+      strings,
       {
         search: (term, direction, incremental) =>
           this.terminalController.search(term, direction, incremental),
@@ -71,10 +81,11 @@ export class WebviewApp {
       requiredElement('attachment-overlay'),
       requiredElement('attachment-status'),
       vscode,
+      strings,
       (id, text) => this.terminalController.pasteText(id, text),
       (id) => this.terminalController.requestClipboardPaste(id)
     );
-    this.sessionList = new SessionList(requiredElement('session-list'), {
+    this.sessionList = new SessionList(requiredElement('session-list'), strings, {
       switchSession: (id) => {
         this.terminalController.activate(id);
         this.post({ type: 'switchSession', id });
@@ -86,7 +97,8 @@ export class WebviewApp {
     this.startupIndicator = new StartupIndicator(
       requiredElement('startup-overlay'),
       requiredElement('startup-title'),
-      requiredElement('startup-detail')
+      requiredElement('startup-detail'),
+      strings
     );
     this.communicationIndicator = new CommunicationIndicator(
       requiredElement('communication-summary'),
@@ -94,12 +106,14 @@ export class WebviewApp {
       requiredElement('communication-health-full'),
       requiredElement('communication-health-compact'),
       requiredElement('communication-traffic'),
-      requiredElement('communication-latency')
+      requiredElement('communication-latency'),
+      strings
     );
     this.launchMenu = new LaunchMenu(
       requiredElement('launch-menu'),
       [requiredElement('new-session-menu'), requiredElement('empty-new-session-menu')],
       this.root,
+      strings,
       (message) => this.post(message)
     );
     this.bindControls();
@@ -210,7 +224,7 @@ export class WebviewApp {
     this.activeHeader.hidden = !active;
     if (!active) return;
     this.activeName.textContent = active.name;
-    this.activeName.title = '双击重命名会话';
+    this.activeName.title = this.strings.doubleClickRename;
     this.activeCwd.textContent = active.cwd;
     this.activeCwd.title = active.cwd;
     this.activeStatus.className = `status-dot status-${active.status}`;
@@ -218,11 +232,11 @@ export class WebviewApp {
       'communication-stalled',
       active.communication?.health === 'stalled'
     );
-    this.activeStatus.title = statusLabel(active);
+    this.activeStatus.title = statusLabel(active, this.strings);
     this.restartButton.disabled = !active.canRestart;
     this.restartButton.title = active.canRestart
-      ? '重启当前会话'
-      : 'Fork 启动只执行一次；请从历史记录 Resume 新会话';
+      ? this.strings.restartCurrentSession
+      : this.strings.restartForkUnavailable;
   }
 
   private bindControls(): void {
@@ -278,12 +292,17 @@ export class WebviewApp {
     this.launchMenu.setRestoreCount(restore.count);
     this.workspaceRestore.hidden = restore.count === 0;
     if (restore.count === 0) return;
-    this.workspaceRestoreTitle.textContent = `上次窗口保留了 ${restore.count} 个会话`;
+    this.workspaceRestoreTitle.textContent = formatWebviewString(
+      this.strings.workspaceRestoreTitle,
+      restore.count
+    );
     const remaining = restore.count - restore.names.length;
-    const names = restore.names.join('、');
+    const names = new Intl.ListFormat(document.documentElement.lang).format(restore.names);
     this.workspaceRestoreDetail.textContent = `${names}${
-      remaining > 0 ? ` 等 ${restore.count} 个` : ''
-    } · 准备好代理或网络环境后再恢复`;
+      remaining > 0
+        ? formatWebviewString(this.strings.workspaceRestoreMore, restore.count)
+        : ''
+    } · ${this.strings.workspaceRestoreHint}`;
   }
 
   private bindWindowEvents(): void {

@@ -375,5 +375,78 @@ async (page) => {
     });
   }
 
+  const failures = [];
+  for (const result of results) {
+    const prefix = `${result.position} ${result.width}x${result.height}`;
+    if (result.ariaLength === 0 || result.launchMenuAriaLength === 0) {
+      failures.push(`${prefix}: accessibility snapshot is empty`);
+    }
+    if (!result.startupProbe.visible || !result.startupProbe.title || !result.startupProbe.detail) {
+      failures.push(`${prefix}: startup state is incomplete`);
+    }
+    if (!result.startupHiddenAfterSpawn || !result.startupHiddenAfterOutput) {
+      failures.push(`${prefix}: startup overlay did not clear`);
+    }
+    for (const [name, probe] of [
+      ['active', result.activeProbe],
+      ['quiet', result.quietProbe],
+      ['stalled', result.stalledProbe],
+      ['completed', result.completedProbe]
+    ]) {
+      if (
+        probe.hidden ||
+        !probe.health ||
+        !probe.title ||
+        (result.width >= 620 && !probe.traffic) ||
+        probe.clipped
+      ) {
+        failures.push(`${prefix}: ${name} communication probe ${JSON.stringify(probe)}`);
+      }
+    }
+    if (!result.inlineRenamePreserved.present || result.inlineRenamePreserved.value !== '编辑中的会话名') {
+      failures.push(`${prefix}: inline rename was replaced during state refresh`);
+    }
+    if (
+      !result.launchMenuProbe.visible ||
+      !result.launchMenuProbe.withinViewport ||
+      !result.launchMenuProbe.belowTrigger
+    ) {
+      failures.push(`${prefix}: launch menu geometry ${JSON.stringify(result.launchMenuProbe)}`);
+    }
+    if (
+      result.documentOverflow ||
+      result.clipped.length > 0 ||
+      result.shortWrapped.length > 0 ||
+      result.occluded.length > 0 ||
+      result.communicationClipped ||
+      result.missingButtonIcons.length > 0
+    ) {
+      failures.push(`${prefix}: layout probes ${JSON.stringify({
+        documentOverflow: result.documentOverflow,
+        clipped: result.clipped,
+        shortWrapped: result.shortWrapped,
+        occluded: result.occluded,
+        communicationClipped: result.communicationClipped,
+        missingButtonIcons: result.missingButtonIcons
+      })}`);
+    }
+    if (
+      result.rightLayout !== (result.position === 'right') ||
+      !result.profileLaunchPosted ||
+      !result.launchMenuHidden ||
+      !result.restorePosted ||
+      !result.restoreVisible ||
+      !result.renamePosted ||
+      !result.restartDisabled ||
+      result.iconButtonCount === 0
+    ) {
+      failures.push(`${prefix}: interaction probes failed`);
+    }
+  }
+  if (consoleErrors.length > 0 || failedRequests.length > 0) {
+    failures.push(`browser diagnostics: ${JSON.stringify({ consoleErrors, failedRequests })}`);
+  }
+  if (failures.length > 0) throw new Error(failures.join('\n'));
+
   return { results, consoleErrors, failedRequests };
 }

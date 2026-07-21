@@ -47,11 +47,16 @@ export async function launchWorkspaceRestore(
   await context.reveal(activeId ?? context.sessions.getActiveId());
 
   if (restored > 0) {
-    void vscode.window.showInformationMessage(`已恢复上次窗口的 ${restored} 个 Agent 会话。`);
+    void vscode.window.showInformationMessage(
+      vscode.l10n.t('Restored {0} Agent sessions from the previous window.', restored)
+    );
   }
   if (failed.length > 0) {
     void vscode.window.showWarningMessage(
-      `${failed.length} 个会话缺少可用的 Provider Resume 支持，已保留在恢复列表中。`
+      vscode.l10n.t(
+        '{0} sessions do not have usable Provider Resume support and remain in the restore list.',
+        failed.length
+      )
     );
   }
   return restored;

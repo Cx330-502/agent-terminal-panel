@@ -3,6 +3,7 @@ import type {
   LaunchProfileSnapshot,
   WebviewMessage
 } from '../src/shared';
+import { formatWebviewString, type WebviewStrings } from '../src/webviewStrings';
 import { createIcon, type IconName } from './icons';
 
 interface MenuAction {
@@ -22,6 +23,7 @@ export class LaunchMenu {
     private readonly root: HTMLElement,
     private readonly anchors: HTMLButtonElement[],
     private readonly panel: HTMLElement,
+    private readonly strings: WebviewStrings,
     private readonly post: (message: WebviewMessage) => void
   ) {
     const anchor = anchors[0];
@@ -82,11 +84,11 @@ export class LaunchMenu {
 
   private render(): void {
     const content = document.createDocumentFragment();
-    content.append(this.groupLabel('启动配置'));
+    content.append(this.groupLabel(this.strings.launchProfiles));
     if (this.profiles.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'launch-menu-empty';
-      empty.textContent = '尚未配置其他启动命令';
+      empty.textContent = this.strings.noLaunchProfiles;
       content.append(empty);
     } else {
       for (const profile of this.profiles) {
@@ -103,20 +105,20 @@ export class LaunchMenu {
     content.append(this.separator());
     const actions: MenuAction[] = [
       {
-        label: '选择工作目录',
-        description: '使用默认启动命令',
+        label: this.strings.chooseWorkingDirectory,
+        description: this.strings.useDefaultLaunchCommand,
         icon: 'folder',
         message: { type: 'newSession', chooseCwd: true }
       },
       {
-        label: '一次性自定义命令',
-        description: '不修改默认命令或启动配置',
+        label: this.strings.oneTimeCustomCommand,
+        description: this.strings.customCommandDescription,
         icon: 'terminal',
         message: { type: 'newCustomSession', chooseCwd: false }
       },
       {
-        label: 'Provider 历史会话',
-        description: '当前 workspace 的 Resume / Fork',
+        label: this.strings.providerHistory,
+        description: this.strings.providerHistoryDescription,
         icon: 'history',
         message: { type: 'openSessionHistory' }
       }
@@ -124,19 +126,19 @@ export class LaunchMenu {
     if (this.closedSessions.count > 0) {
       actions.push({
         label: this.closedSessions.name
-          ? `重新打开“${this.closedSessions.name}”`
-          : '重新打开最近关闭的会话',
+          ? formatWebviewString(this.strings.reopenNamedSession, this.closedSessions.name)
+          : this.strings.reopenClosedSession,
         description: this.closedSessions.count > 1
-          ? `保留了 ${this.closedSessions.count} 个短期关闭记录`
-          : '使用原名称、cwd 和启动命令重新创建',
+          ? formatWebviewString(this.strings.shortClosedRecords, this.closedSessions.count)
+          : this.strings.recreateClosedSession,
         icon: 'restart',
         message: { type: 'reopenClosedSession' }
       });
     }
     if (this.restoreCount > 0) {
       actions.push({
-        label: `恢复上次窗口的 ${this.restoreCount} 个会话`,
-        description: '手动恢复仍保留的默认会话',
+        label: formatWebviewString(this.strings.restoreWindowSessions, this.restoreCount),
+        description: this.strings.restoreWindowSessionsDescription,
         icon: 'restart',
         message: { type: 'restoreWorkspaceSessions' }
       });
@@ -145,8 +147,8 @@ export class LaunchMenu {
     content.append(this.separator());
     content.append(
       this.menuItem({
-        label: '管理启动配置',
-        description: '打开 Agent Terminal Panel 设置',
+        label: this.strings.manageLaunchProfiles,
+        description: this.strings.openPanelSettings,
         icon: 'pencil',
         message: { type: 'openSettings' }
       })

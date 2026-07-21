@@ -1,4 +1,5 @@
 import type { SessionSnapshot } from '../src/shared';
+import { formatWebviewString, type WebviewStrings } from '../src/webviewStrings';
 
 export class StartupIndicator {
   private session: SessionSnapshot | undefined;
@@ -8,7 +9,8 @@ export class StartupIndicator {
   constructor(
     private readonly element: HTMLElement,
     private readonly title: HTMLElement,
-    private readonly detail: HTMLElement
+    private readonly detail: HTMLElement,
+    private readonly strings: WebviewStrings
   ) {}
 
   render(session: SessionSnapshot | undefined): void {
@@ -35,8 +37,11 @@ export class StartupIndicator {
       (session.startupElapsedMs ?? 0) + performance.now() - this.receivedAt
     );
     this.element.hidden = false;
-    this.title.textContent = '正在创建终端';
-    this.detail.textContent = `正在 workspace host 启动进程 · ${formatDuration(elapsed)}`;
+    this.title.textContent = this.strings.creatingTerminal;
+    this.detail.textContent = formatWebviewString(
+      this.strings.startingWorkspaceProcess,
+      formatDuration(elapsed)
+    );
   }
 
   private isWaiting(): boolean {

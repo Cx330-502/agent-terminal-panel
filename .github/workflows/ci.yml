@@ -1,0 +1,116 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  runtime-matrix:
+    name: Runtime (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Unit and PTY integration tests
+        run: npm test
+
+  browser-regression:
+    name: Browser regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run browser regression suite
+        run: npm run test:browser
+
+      - name: Upload browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-regression-failure
+          path: |
+            artifacts/browser/
+            test/*.png
+          if-no-files-found: ignore
+
+  package-matrix:
+    name: Package six platforms
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs:
+      - runtime-matrix
+      - browser-regression
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Package six platform VSIX files
+        run: npm run package
+
+      - name: Verify package count
+        shell: bash
+        run: |
+          shopt -s nullglob
+          packages=(releases/v*/*.vsix)
+          if [[ ${#packages[@]} -ne 6 ]]; then
+            echo "Expected 6 platform packages, found ${#packages[@]}." >&2
+            exit 1
+          fi
+
+      - name: Upload VSIX matrix
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsix-matrix
+          path: releases/v*/*.vsix

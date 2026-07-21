@@ -28,21 +28,28 @@ export class SessionHistoryController {
       (folder) => folder.uri.fsPath
     );
     if (workspaceRoots.length === 0) {
-      void vscode.window.showInformationMessage('请先打开一个 workspace，再读取 Agent 历史会话。');
+      void vscode.window.showInformationMessage(
+        vscode.l10n.t('Open a workspace before reading Agent session history.')
+      );
       return;
     }
 
     const config = getSessionHistoryConfig();
     const registry = createSessionHistoryRegistry();
     const discovery = await vscode.window.withProgress(
-      { location: vscode.ProgressLocation.Window, title: '扫描当前 workspace 的 Agent 会话…' },
+      {
+        location: vscode.ProgressLocation.Window,
+        title: vscode.l10n.t('Scanning Agent sessions in the current workspace…')
+      },
       () => registry.discover(workspaceRoots, config.maxResults)
     );
     if (discovery.sessions.length === 0) {
       const failed = discovery.failedProviders.length
-        ? `（读取失败：${discovery.failedProviders.join('、')}）`
+        ? vscode.l10n.t(' (failed to read: {0})', discovery.failedProviders.join(', '))
         : '';
-      void vscode.window.showInformationMessage(`当前 workspace 没有可恢复的 Agent 会话${failed}`);
+      void vscode.window.showInformationMessage(
+        vscode.l10n.t('No restorable Agent sessions were found in the current workspace{0}', failed)
+      );
       return;
     }
 
@@ -54,8 +61,8 @@ export class SessionHistoryController {
         session
       })),
       {
-        title: '从当前 workspace 的 Agent 历史会话启动',
-        placeHolder: '选择 Codex 或 Claude Code 会话',
+        title: vscode.l10n.t('Launch from Agent Session History in the Current Workspace'),
+        placeHolder: vscode.l10n.t('Choose a Codex or Claude Code session'),
         matchOnDescription: true,
         matchOnDetail: true
       }
@@ -65,20 +72,20 @@ export class SessionHistoryController {
     const actions: ModePickItem[] = [
       {
         label: '$(debug-continue) Resume',
-        description: '继续原会话；终端关闭后可重启同一会话',
+        description: vscode.l10n.t('Continue the original session; it can be restarted after the terminal closes.'),
         mode: 'resume'
       }
     ];
     if (selected.session.supportsFork) {
       actions.push({
         label: '$(git-branch) Fork',
-        description: '从旧上下文派生新会话；该启动动作只允许执行一次',
+        description: vscode.l10n.t('Derive a new session from the old context. This launch can run only once.'),
         mode: 'fork'
       });
     }
     const action = await vscode.window.showQuickPick(actions, {
       title: `${selected.session.providerName}: ${selected.session.title}`,
-      placeHolder: '选择恢复方式'
+      placeHolder: vscode.l10n.t('Choose a recovery method')
     });
     if (!action) return;
 
@@ -93,11 +100,11 @@ export class SessionHistoryController {
 
 function formatUpdatedAt(timestamp: number): string {
   const elapsedMinutes = Math.round((timestamp - Date.now()) / 60_000);
-  const formatter = new Intl.RelativeTimeFormat('zh-CN', { numeric: 'auto' });
+  const formatter = new Intl.RelativeTimeFormat(vscode.env.language, { numeric: 'auto' });
   if (Math.abs(elapsedMinutes) < 60) return formatter.format(elapsedMinutes, 'minute');
   const elapsedHours = Math.round(elapsedMinutes / 60);
   if (Math.abs(elapsedHours) < 48) return formatter.format(elapsedHours, 'hour');
   const elapsedDays = Math.round(elapsedHours / 24);
   if (Math.abs(elapsedDays) < 60) return formatter.format(elapsedDays, 'day');
-  return new Date(timestamp).toLocaleDateString('zh-CN');
+  return new Date(timestamp).toLocaleDateString(vscode.env.language);
 }

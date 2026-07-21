@@ -1,4 +1,5 @@
 import type { ISearchResultChangeEvent } from '@xterm/addon-search';
+import { formatWebviewString, type WebviewStrings } from '../src/webviewStrings';
 
 export interface TerminalSearchActions {
   search(term: string, direction: 'next' | 'previous', incremental?: boolean): void;
@@ -16,6 +17,7 @@ export class TerminalSearch {
     private readonly previous: HTMLButtonElement,
     private readonly next: HTMLButtonElement,
     private readonly closeButton: HTMLButtonElement,
+    private readonly strings: WebviewStrings,
     private readonly actions: TerminalSearchActions
   ) {
     this.input.addEventListener('input', () => this.run('next', true));
@@ -54,12 +56,12 @@ export class TerminalSearch {
       return;
     }
     if (searchResult.resultCount <= 0) {
-      this.result.textContent = '无结果';
+      this.result.textContent = this.strings.noSearchResults;
       return;
     }
     this.result.textContent = searchResult.resultIndex >= 0
       ? `${searchResult.resultIndex + 1}/${searchResult.resultCount}`
-      : `${searchResult.resultCount} 个结果`;
+      : formatWebviewString(this.strings.searchResultCount, searchResult.resultCount);
   }
 
   dispose(): void {
@@ -75,7 +77,9 @@ export class TerminalSearch {
     this.input.disabled = !this.available;
     this.previous.disabled = !this.available;
     this.next.disabled = !this.available;
-    this.input.placeholder = this.available ? '在当前终端中查找' : '没有活动终端';
+    this.input.placeholder = this.available
+      ? this.strings.findTerminal
+      : this.strings.noActiveTerminal;
   }
 
   private handleInputKeydown(event: KeyboardEvent): void {

@@ -21,22 +21,22 @@ export async function pickWorkingDirectory(): Promise<string | undefined> {
   if (items.length > 0) items.push({ label: '', kind: vscode.QuickPickItemKind.Separator });
   items.push(
     { label: '$(home) Home', description: os.homedir(), path: os.homedir() },
-    { label: '$(folder-opened) 浏览…', browse: true }
+    { label: `$(folder-opened) ${vscode.l10n.t('Browse…')}`, browse: true }
   );
   const selected = await vscode.window.showQuickPick(items, {
-    title: '选择 Agent 工作目录',
-    placeHolder: '会话会在 workspace extension host 上从此目录启动'
+    title: vscode.l10n.t('Choose Agent Working Directory'),
+    placeHolder: vscode.l10n.t('The session will start in this directory on the workspace extension host.')
   });
   if (!selected) return undefined;
   if (selected.path) return selected.path;
   if (!selected.browse) return undefined;
   const picked = await vscode.window.showOpenDialog({
-    title: '选择 Agent 工作目录',
+    title: vscode.l10n.t('Choose Agent Working Directory'),
     defaultUri: defaultWorkingDirectoryUri(),
     canSelectFiles: false,
     canSelectFolders: true,
     canSelectMany: false,
-    openLabel: '在此目录中新建'
+    openLabel: vscode.l10n.t('Create Here')
   });
   return picked?.[0]?.fsPath;
 }

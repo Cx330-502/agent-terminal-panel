@@ -1,8 +1,8 @@
 {
   "name": "agent-terminal-panel",
-  "displayName": "Agent Terminal Panel",
-  "description": "在可移动的 VS Code 视图中管理多个 Agent CLI 会话，支持真实 PTY、历史恢复、图片输入与通信健康监测",
-  "version": "0.9.0",
+  "displayName": "%extension.displayName%",
+  "description": "%extension.description%",
+  "version": "0.9.1",
   "publisher": "Cx330-502",
   "author": "Cx330-502",
   "license": "MIT",
@@ -62,12 +62,13 @@
     "onCommand:agentTerminalPanel.previousSession"
   ],
   "main": "./dist/extension.js",
+  "l10n": "./l10n",
   "contributes": {
     "viewsContainers": {
       "secondarySidebar": [
         {
           "id": "agentTerminalPanel",
-          "title": "Agent Terminal",
+          "title": "%viewContainer.title%",
           "icon": "media/sidebar.svg"
         }
       ]
@@ -77,14 +78,14 @@
         {
           "type": "webview",
           "id": "agentTerminalPanel.terminalView",
-          "name": "Agent 会话",
-          "contextualTitle": "Agent Terminal Panel",
+          "name": "%view.sessions.name%",
+          "contextualTitle": "%view.sessions.contextualTitle%",
           "visibility": "visible"
         },
         {
           "id": "agentTerminalPanel.attachmentInbox",
-          "name": "图片投递箱",
-          "contextualTitle": "Agent Terminal Panel 图片投递箱",
+          "name": "%view.inbox.name%",
+          "contextualTitle": "%view.inbox.contextualTitle%",
           "visibility": "collapsed"
         }
       ]
@@ -92,88 +93,88 @@
     "commands": [
       {
         "command": "agentTerminalPanel.newSession",
-        "title": "使用默认命令新建 Agent 会话",
+        "title": "%command.newSession%",
         "category": "Agent Terminal Panel",
         "icon": "$(add)"
       },
       {
         "command": "agentTerminalPanel.showNewSessionMenu",
-        "title": "选择 Agent 会话启动方式",
+        "title": "%command.showNewSessionMenu%",
         "category": "Agent Terminal Panel",
         "icon": "$(chevron-down)"
       },
       {
         "command": "agentTerminalPanel.find",
-        "title": "在当前终端中查找",
+        "title": "%command.find%",
         "category": "Agent Terminal Panel",
         "icon": "$(search)"
       },
       {
         "command": "agentTerminalPanel.newSessionInFolder",
-        "title": "在所选目录中新建会话",
+        "title": "%command.newSessionInFolder%",
         "category": "Agent Terminal Panel",
         "icon": "$(folder-opened)"
       },
       {
         "command": "agentTerminalPanel.newCustomSession",
-        "title": "使用自定义命令新建会话",
+        "title": "%command.newCustomSession%",
         "category": "Agent Terminal Panel",
         "icon": "$(terminal)"
       },
       {
         "command": "agentTerminalPanel.openSessionHistory",
-        "title": "从 Agent 历史会话启动",
+        "title": "%command.openSessionHistory%",
         "category": "Agent Terminal Panel",
         "icon": "$(history)"
       },
       {
         "command": "agentTerminalPanel.restoreWorkspaceSessions",
-        "title": "恢复上次窗口的 Agent 会话",
+        "title": "%command.restoreWorkspaceSessions%",
         "category": "Agent Terminal Panel",
         "icon": "$(window)"
       },
       {
         "command": "agentTerminalPanel.reopenClosedSession",
-        "title": "重新打开最近关闭的会话",
+        "title": "%command.reopenClosedSession%",
         "category": "Agent Terminal Panel",
         "icon": "$(history)"
       },
       {
         "command": "agentTerminalPanel.renameSession",
-        "title": "重命名当前会话",
+        "title": "%command.renameSession%",
         "category": "Agent Terminal Panel",
         "icon": "$(edit)"
       },
       {
         "command": "agentTerminalPanel.closeSession",
-        "title": "关闭当前会话",
+        "title": "%command.closeSession%",
         "category": "Agent Terminal Panel"
       },
       {
         "command": "agentTerminalPanel.restartSession",
-        "title": "重启当前会话",
+        "title": "%command.restartSession%",
         "category": "Agent Terminal Panel",
         "icon": "$(debug-restart)"
       },
       {
         "command": "agentTerminalPanel.configureLaunchCommand",
-        "title": "配置启动命令",
+        "title": "%command.configureLaunchCommand%",
         "category": "Agent Terminal Panel"
       },
       {
         "command": "agentTerminalPanel.openSettings",
-        "title": "打开完整设置",
+        "title": "%command.openSettings%",
         "category": "Agent Terminal Panel",
         "icon": "$(settings-gear)"
       },
       {
         "command": "agentTerminalPanel.nextSession",
-        "title": "切换到下一个会话",
+        "title": "%command.nextSession%",
         "category": "Agent Terminal Panel"
       },
       {
         "command": "agentTerminalPanel.previousSession",
-        "title": "切换到上一个会话",
+        "title": "%command.previousSession%",
         "category": "Agent Terminal Panel"
       }
     ],
@@ -235,17 +236,17 @@
       }
     ],
     "configuration": {
-      "title": "Agent Terminal Panel",
+      "title": "%configuration.title%",
       "properties": {
         "agentTerminalPanel.launchCommand": {
           "type": "string",
           "default": "",
-          "description": "在 workspace extension host 的系统 shell 中执行的完整启动命令。首次新建会话时会提示配置。"
+          "description": "%configuration.launchCommand.description%"
         },
         "agentTerminalPanel.launchProfiles": {
           "type": "array",
           "default": [],
-          "description": "显示在会话栏加号旁下拉菜单中的其他启动配置。按数组顺序显示；配置启动不会替换默认命令。",
+          "description": "%configuration.launchProfiles.description%",
           "items": {
             "type": "object",
             "required": [
@@ -257,12 +258,12 @@
               "name": {
                 "type": "string",
                 "minLength": 1,
-                "description": "菜单标签和新会话初始名称。"
+                "description": "%configuration.launchProfiles.name.description%"
               },
               "command": {
                 "type": "string",
                 "minLength": 1,
-                "description": "在 workspace host 系统 shell 中执行的完整命令。"
+                "description": "%configuration.launchProfiles.command.description%"
               }
             }
           }
@@ -273,7 +274,7 @@
             "type": "string"
           },
           "default": {},
-          "description": "叠加到 Agent 会话环境中的变量。"
+          "description": "%configuration.environment.description%"
         },
         "agentTerminalPanel.sessionListPosition": {
           "type": "string",
@@ -282,79 +283,79 @@
             "right"
           ],
           "enumDescriptions": [
-            "会话列表显示在终端左侧。",
-            "会话列表显示在终端右侧。"
+            "%configuration.sessionListPosition.left%",
+            "%configuration.sessionListPosition.right%"
           ],
           "default": "left",
-          "description": "会话列表相对于终端的位置。"
+          "description": "%configuration.sessionListPosition.description%"
         },
         "agentTerminalPanel.startSessionOnOpen": {
           "type": "boolean",
           "default": true,
-          "description": "首次打开视图时自动创建一个 Agent 会话；存在上次窗口待恢复会话时会暂停自动创建。"
+          "description": "%configuration.startSessionOnOpen.description%"
         },
         "agentTerminalPanel.terminalImages.enabled": {
           "type": "boolean",
           "default": false,
-          "description": "启用 Sixel/iTerm 终端图片，并为 Codex Pets 兼容模式设置 TERM=xterm-sixel、移除 TERM_PROGRAM。新建或重启会话时生效。"
+          "description": "%configuration.terminalImages.enabled.description%"
         },
         "agentTerminalPanel.communicationHealth.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "在会话顶栏显示带来源标记的通信健康、流量、静默时长和 Provider 指标。"
+          "description": "%configuration.communicationHealth.enabled.description%"
         },
         "agentTerminalPanel.communicationHealth.sampleIntervalMs": {
           "type": "number",
           "default": 2000,
           "minimum": 500,
           "maximum": 10000,
-          "description": "通信健康状态的刷新间隔（毫秒）。进程网络探针可能使用更低频率。"
+          "description": "%configuration.communicationHealth.sampleIntervalMs.description%"
         },
         "agentTerminalPanel.communicationHealth.quietThresholdSeconds": {
           "type": "number",
           "default": 15,
           "minimum": 5,
           "maximum": 300,
-          "description": "运行中会话连续多久没有所选来源的活动后标记为静默。"
+          "description": "%configuration.communicationHealth.quietThresholdSeconds.description%"
         },
         "agentTerminalPanel.communicationHealth.stalledThresholdSeconds": {
           "type": "number",
           "default": 45,
           "minimum": 10,
           "maximum": 600,
-          "description": "运行中会话连续多久没有活动后标记为疑似停滞；该状态是诊断提示，不等同于确认网络故障。"
+          "description": "%configuration.communicationHealth.stalledThresholdSeconds.description%"
         },
         "agentTerminalPanel.communicationHealth.processNetwork.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "启用 workspace host 上的进程网络探针。Linux/WSL/SSH 读取 TCP 字节，macOS 使用 nettop，Windows 显示连接数并回退到 PTY 速率。"
+          "description": "%configuration.communicationHealth.processNetwork.enabled.description%"
         },
         "agentTerminalPanel.communicationHealth.codexSessionMetrics.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "从被监控 Codex 进程已打开的本地 JSONL 中提取 TTFT 和 token 计数元数据；不会保存、上传或展示提示词正文。Linux/WSL/SSH 与 macOS 支持精确进程映射。"
+          "description": "%configuration.communicationHealth.codexSessionMetrics.enabled.description%"
         },
         "agentTerminalPanel.sessionHistory.maxResults": {
           "type": "number",
           "default": 100,
           "minimum": 1,
           "maximum": 500,
-          "description": "当前 workspace 的 Agent 历史会话选择器最多显示多少条记录。"
+          "description": "%configuration.sessionHistory.maxResults.description%"
         },
         "agentTerminalPanel.sessionHistory.codexCommand": {
           "type": "string",
           "default": "codex",
-          "description": "恢复或 Fork Codex 历史会话时使用的命令前缀，可包含固定参数。"
+          "description": "%configuration.sessionHistory.codexCommand.description%"
         },
         "agentTerminalPanel.sessionHistory.claudeCommand": {
           "type": "string",
           "default": "claude",
-          "description": "恢复或 Fork Claude Code 历史会话时使用的命令前缀，可包含固定参数。"
+          "description": "%configuration.sessionHistory.claudeCommand.description%"
         },
         "agentTerminalPanel.notifications.showToast": {
           "type": "boolean",
           "default": true,
-          "description": "当前会话不可见或 VS Code 失焦时显示审批、等待输入和完成 Toast。"
+          "description": "%configuration.notifications.showToast.description%"
         },
         "agentTerminalPanel.notifications.completionSound": {
           "type": "string",
@@ -364,12 +365,12 @@
             "always"
           ],
           "enumDescriptions": [
-            "从不播放完成声音。",
-            "仅在完成的会话不可见或 VS Code 失焦时播放。",
-            "每次完成都播放。"
+            "%configuration.notifications.completionSound.never%",
+            "%configuration.notifications.completionSound.whenHidden%",
+            "%configuration.notifications.completionSound.always%"
           ],
           "default": "whenHidden",
-          "description": "Agent 回合完成时的声音策略。"
+          "description": "%configuration.notifications.completionSound.description%"
         }
       }
     }
@@ -379,6 +380,8 @@
     "build": "npm run check && node esbuild.mjs",
     "watch": "node esbuild.mjs --watch",
     "test": "node --import tsx --test test/*.test.ts",
+    "test:browser": "npm run build && node test/runBrowserRegressions.mjs",
+    "verify": "npm run build && npm test && npm run test:browser",
     "vscode:prepublish": "npm run build",
     "package": "npm run package:all",
     "package:all": "npm run build && node scripts/package.mjs"
@@ -396,6 +399,7 @@
     "@xterm/addon-webgl": "^0.19.0",
     "@xterm/xterm": "^6.0.0",
     "esbuild": "^0.25.0",
+    "playwright": "^1.61.1",
     "tsx": "^4.20.0",
     "typescript": "^5.9.0"
   }

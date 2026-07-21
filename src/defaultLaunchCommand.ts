@@ -6,12 +6,13 @@ export async function configureDefaultLaunchCommand(
 ): Promise<string | undefined> {
   const config = vscode.workspace.getConfiguration('agentTerminalPanel');
   const launchCommand = await vscode.window.showInputBox({
-    title: '配置 Agent 启动命令',
-    prompt: '输入在 workspace extension host 中执行的完整命令行',
+    title: vscode.l10n.t('Configure Agent Launch Command'),
+    prompt: vscode.l10n.t('Enter the complete command line to run on the workspace extension host.'),
     placeHolder: 'agent-cli --flag value',
     value: getLaunchCommand(),
     ignoreFocusOut: true,
-    validateInput: (value) => (value.trim() ? undefined : '启动命令不能为空')
+    validateInput: (value) =>
+      value.trim() ? undefined : vscode.l10n.t('The launch command cannot be empty')
   });
   if (launchCommand === undefined) return undefined;
 
@@ -23,7 +24,9 @@ export async function configureDefaultLaunchCommand(
   const trimmed = launchCommand.trim();
   await config.update('launchCommand', trimmed, target);
   if (showConfirmation) {
-    void vscode.window.showInformationMessage('Agent 启动命令已更新，新建或重启会话时生效。');
+    void vscode.window.showInformationMessage(
+      vscode.l10n.t('The Agent launch command was updated and will apply to new or restarted sessions.')
+    );
   }
   return trimmed;
 }

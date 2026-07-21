@@ -25,6 +25,8 @@ Agent Terminal Panel is provider-agnostic. You supply the launch command; it sup
 - **Practical image input**: paste, use the native file picker, or hold `Shift` while dropping OS/VS Code Explorer files and remote URI transfers. The extension inserts a safely quoted path without submitting it.
 - **Native drop without Shift**: expand the sibling Image Drop Inbox and drop system files or Explorer images directly into the active Agent session.
 - **Native VS Code appearance**: terminal font, size, weight, line height, cursor, scroll behavior, and colors all come from VS Code's integrated terminal settings and theme.
+- **Follows the VS Code display language**: commands, settings, notifications, native dialogs, and Webview state are fully available in English and Simplified Chinese without mixed-language UI.
+- **Continuously tested beyond one workstation**: every pull request and main-branch update runs real PTY tests on Ubuntu, Windows, and macOS plus ten Chromium interaction regressions before release.
 - **Optional terminal images**: enable Sixel/iTerm support for Codex Pets and similar tools only when needed.
 
 <p align="center">
@@ -140,7 +142,7 @@ For Codex Pets, enable `agentTerminalPanel.terminalImages.enabled` and create or
 
 ## Platforms and remote development
 
-The Marketplace selects the package for the current extension host. `releases/v0.9.0/` also contains native packages for:
+The Marketplace selects the package for the current extension host. `releases/v0.9.1/` also contains native packages for:
 
 - Windows x64 and ARM64
 - Linux x64 and ARM64, including WSL and Remote SSH workspace hosts

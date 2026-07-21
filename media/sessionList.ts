@@ -1,4 +1,5 @@
 import type { SessionSnapshot } from '../src/shared';
+import { formatWebviewString, type WebviewStrings } from '../src/webviewStrings';
 import { communicationStatusLabel } from './communicationIndicator';
 import { createIcon } from './icons';
 
@@ -13,6 +14,7 @@ export class SessionList {
 
   constructor(
     private readonly element: HTMLElement,
+    private readonly strings: WebviewStrings,
     private readonly callbacks: SessionListCallbacks
   ) {}
 
@@ -40,16 +42,16 @@ export class SessionList {
     row.title = [
       session.name,
       session.cwd,
-      statusLabel(session),
-      communicationStatusLabel(session),
-      '双击重命名'
+      statusLabel(session, this.strings),
+      communicationStatusLabel(session, this.strings),
+      this.strings.doubleClickRename
     ]
       .filter(Boolean)
       .join('\n');
 
     const status = document.createElement('span');
     status.className = `status-dot status-${session.status}`;
-    status.setAttribute('aria-label', statusLabel(session));
+    status.setAttribute('aria-label', statusLabel(session, this.strings));
 
     const details = document.createElement('span');
     details.className = 'session-details';
@@ -63,14 +65,17 @@ export class SessionList {
 
     const unread = document.createElement('span');
     unread.className = `unread-dot${session.unread ? ' visible' : ''}`;
-    unread.setAttribute('aria-label', session.unread ? '有未读状态' : '');
+    unread.setAttribute('aria-label', session.unread ? this.strings.unreadStatus : '');
 
     const close = document.createElement('button');
     close.className = 'session-close';
     close.type = 'button';
     close.append(createIcon('close'));
-    close.title = '关闭会话';
-    close.setAttribute('aria-label', `关闭 ${session.name}`);
+    close.title = this.strings.closeSession;
+    close.setAttribute(
+      'aria-label',
+      formatWebviewString(this.strings.closeNamedSession, session.name)
+    );
     close.addEventListener('click', (event) => {
       event.stopPropagation();
       this.callbacks.closeSession(session.id);
@@ -108,7 +113,7 @@ export class SessionList {
     const input = document.createElement('input');
     input.className = 'session-rename';
     input.value = session.name;
-    input.setAttribute('aria-label', '会话名称');
+    input.setAttribute('aria-label', this.strings.sessionName);
     details.replaceChildren(input);
     input.focus();
     input.select();
@@ -132,11 +137,13 @@ export class SessionList {
 
 }
 
-export function statusLabel(session: SessionSnapshot): string {
-  if (session.status === 'running') return '运行中';
-  if (session.status === 'waiting') return '等待输入';
-  if (session.status === 'approval') return '等待审批';
-  return session.exitCode === undefined ? '已完成' : `已结束（${session.exitCode}）`;
+export function statusLabel(session: SessionSnapshot, strings: WebviewStrings): string {
+  if (session.status === 'running') return strings.statusRunning;
+  if (session.status === 'waiting') return strings.statusWaiting;
+  if (session.status === 'approval') return strings.statusApproval;
+  return session.exitCode === undefined
+    ? strings.statusCompleted
+    : formatWebviewString(strings.statusExited, session.exitCode);
 }
 
 function basename(path: string): string {

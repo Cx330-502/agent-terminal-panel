@@ -39,7 +39,7 @@ async (page) => {
   await page.mouse.up();
 
   await page.screenshot({ path: 'test/v060-selection-auto-scroll.png', fullPage: true });
-  return {
+  const result = {
     beforeUp,
     afterUp,
     beforeDown,
@@ -49,4 +49,8 @@ async (page) => {
     selectedAfterUp,
     selectedAfterDown
   };
+  if (!result.scrolledUp || !result.scrolledDown || selectedAfterUp === 0 || selectedAfterDown === 0) {
+    throw new Error(`Selection auto-scroll regression failed: ${JSON.stringify(result)}`);
+  }
+  return result;
 }

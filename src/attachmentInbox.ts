@@ -34,11 +34,14 @@ implements vscode.TreeDataProvider<InboxItem>, vscode.TreeDragAndDropController<
   }
 
   getTreeItem(): vscode.TreeItem {
-    const item = new vscode.TreeItem('拖放图片到这里', vscode.TreeItemCollapsibleState.None);
-    item.description = '无需按住 Shift';
+    const item = new vscode.TreeItem(
+      vscode.l10n.t('Drop images here'),
+      vscode.TreeItemCollapsibleState.None
+    );
+    item.description = vscode.l10n.t('No Shift key required');
     item.iconPath = new vscode.ThemeIcon('cloud-upload');
     item.tooltip = new vscode.MarkdownString(
-      '把系统文件管理器或 VS Code Explorer 中的图片拖到这里，路径会插入当前 Agent 会话。'
+      vscode.l10n.t('Drop images from a system file manager or VS Code Explorer here. Their paths will be inserted into the active Agent session.')
     );
     return item;
   }
@@ -54,7 +57,9 @@ implements vscode.TreeDataProvider<InboxItem>, vscode.TreeDragAndDropController<
   ): Promise<void> {
     const session = this.callbacks.getActiveSession();
     if (!session) {
-      void vscode.window.showWarningMessage('请先新建或选择一个 Agent 会话。');
+      void vscode.window.showWarningMessage(
+        vscode.l10n.t('Create or select an Agent session first.')
+      );
       return;
     }
 
@@ -66,7 +71,7 @@ implements vscode.TreeDataProvider<InboxItem>, vscode.TreeDragAndDropController<
     const allInputs = deduplicateInputs(files, uriValues);
     const inputs = allInputs.slice(0, MAX_ATTACHMENTS);
     if (inputs.length === 0 || token.isCancellationRequested) {
-      void vscode.window.showWarningMessage('没有检测到可读取的图片文件。');
+      void vscode.window.showWarningMessage(vscode.l10n.t('No readable image files were detected.'));
       return;
     }
 
@@ -90,7 +95,7 @@ implements vscode.TreeDataProvider<InboxItem>, vscode.TreeDragAndDropController<
 
     const result = await this.store.save(uploads, uris);
     const omitted = allInputs.length > inputs.length
-      ? [`一次最多处理 ${MAX_ATTACHMENTS} 张图片`]
+      ? [vscode.l10n.t('Process up to {0} images at once', MAX_ATTACHMENTS)]
       : [];
     const errors = [...omitted, ...result.errors];
     if (result.paths.length > 0) {
@@ -100,16 +105,22 @@ implements vscode.TreeDataProvider<InboxItem>, vscode.TreeDragAndDropController<
       );
       if (inserted) {
         void vscode.window.showInformationMessage(
-          `已向“${session.name}”插入 ${result.paths.length} 个图片路径。`
+          vscode.l10n.t(
+            'Inserted {0} image paths into “{1}”.',
+            result.paths.length,
+            session.name
+          )
         );
       } else {
-        errors.unshift(`会话“${session.name}”已经关闭`);
+        errors.unshift(vscode.l10n.t('Session “{0}” is already closed', session.name));
       }
     }
     if (errors.length > 0) {
-      void vscode.window.showWarningMessage(`部分图片未处理：${errors.join('；')}`);
+      void vscode.window.showWarningMessage(
+        vscode.l10n.t('Some images were not processed: {0}', errors.join('; '))
+      );
     } else if (result.paths.length === 0) {
-      void vscode.window.showWarningMessage('没有可插入的受支持图片。');
+      void vscode.window.showWarningMessage(vscode.l10n.t('No supported images can be inserted.'));
     }
   }
 }

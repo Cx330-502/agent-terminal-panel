@@ -1,4 +1,5 @@
 import type { AttachmentUpload, VSCodeApi } from '../src/shared';
+import { formatWebviewString, type WebviewStrings } from '../src/webviewStrings';
 
 const MAX_FILES = 8;
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
@@ -24,6 +25,7 @@ export class AttachmentController {
     private readonly overlay: HTMLElement,
     private readonly status: HTMLElement,
     private readonly vscode: VSCodeApi,
+    private readonly strings: WebviewStrings,
     private readonly insertText: (id: string, text: string) => void,
     private readonly requestTextPaste: (id: string) => void
   ) {
@@ -41,7 +43,7 @@ export class AttachmentController {
 
   pickFiles(): void {
     if (!this.activeId) {
-      this.showStatus('请先创建或选择一个终端会话', 'error');
+      this.showStatus(this.strings.selectSessionFirst, 'error');
       return;
     }
     this.vscode.postMessage({ type: 'pickAttachments', id: this.activeId });
@@ -59,11 +61,21 @@ export class AttachmentController {
     if (insertText) this.insertText(id, insertText);
     const errors = [...clientErrors, ...hostErrors];
     if (savedCount > 0 && errors.length === 0) {
-      this.showStatus(`已插入 ${savedCount} 张图片的路径`, 'success');
+      this.showStatus(
+        formatWebviewString(this.strings.attachmentInserted, savedCount),
+        'success'
+      );
     } else if (savedCount > 0) {
-      this.showStatus(`已插入 ${savedCount} 张，${errors.length} 张失败`, 'warning');
+      this.showStatus(
+        formatWebviewString(
+          this.strings.attachmentPartiallyInserted,
+          savedCount,
+          errors.length
+        ),
+        'warning'
+      );
     } else {
-      this.showStatus(errors[0] ?? '没有可插入的图片', 'error');
+      this.showStatus(errors[0] ?? this.strings.noSupportedImages, 'error');
     }
   }
 
@@ -123,13 +135,13 @@ export class AttachmentController {
     this.overlay.hidden = true;
     const id = this.activeId;
     if (!id || !event.dataTransfer) {
-      this.showStatus('请先创建或选择一个终端会话', 'error');
+      this.showStatus(this.strings.selectSessionFirst, 'error');
       return;
     }
     const files = imageFiles(event.dataTransfer);
     const uris = files.length === 0 ? imageUris(event.dataTransfer) : [];
     if (files.length === 0 && uris.length === 0) {
-      this.showStatus('未收到可读取的图片；从 VS Code 资源管理器拖入时可改用复制粘贴', 'error');
+      this.showStatus(this.strings.unreadableDrop, 'error');
       return;
     }
     void this.submit(id, files, uris);
@@ -138,37 +150,56 @@ export class AttachmentController {
   private async submit(id: string, files: File[], uris: string[]): Promise<void> {
     const selected = files.slice(0, MAX_FILES);
     const clientErrors: string[] = [];
-    if (files.length > MAX_FILES) clientErrors.push(`一次最多处理 ${MAX_FILES} 张图片`);
+    if (files.length > MAX_FILES) {
+      clientErrors.push(formatWebviewString(this.strings.attachmentLimit, MAX_FILES));
+    }
     let totalBytes = 0;
     const accepted = selected.filter((file) => {
       if (file.size > MAX_FILE_BYTES) {
-        clientErrors.push(`${file.name || '图片'}：超过 25 MB`);
+        clientErrors.push(
+          formatWebviewString(
+            this.strings.imageTooLarge,
+            file.name || this.strings.imageFallbackName
+          )
+        );
         return false;
       }
       const nextTotal = totalBytes + file.size;
       if (nextTotal > MAX_TOTAL_BYTES) {
-        clientErrors.push(`${file.name || '图片'}：本次图片总量超过 50 MB`);
+        clientErrors.push(
+          formatWebviewString(
+            this.strings.imageBatchTooLarge,
+            file.name || this.strings.imageFallbackName
+          )
+        );
         return false;
       }
       totalBytes = nextTotal;
       return true;
     });
     if (accepted.length === 0 && uris.length === 0) {
-      this.showStatus(clientErrors[0] ?? '没有可插入的图片', 'error');
+      this.showStatus(clientErrors[0] ?? this.strings.noSupportedImages, 'error');
       return;
     }
 
-    this.showStatus('正在保存图片到 workspace host…', 'progress', 0);
+    this.showStatus(this.strings.savingImages, 'progress', 0);
     const encoded = await Promise.allSettled(
       accepted.map((file, index) => toUpload(file, index))
     );
     const uploads: AttachmentUpload[] = [];
     encoded.forEach((outcome, index) => {
       if (outcome.status === 'fulfilled') uploads.push(outcome.value);
-      else clientErrors.push(`${accepted[index]?.name || '图片'}：读取失败`);
+      else {
+        clientErrors.push(
+          formatWebviewString(
+            this.strings.imageReadFailed,
+            accepted[index]?.name || this.strings.imageFallbackName
+          )
+        );
+      }
     });
     if (uploads.length === 0 && uris.length === 0) {
-      this.showStatus(clientErrors[0] ?? '没有可插入的图片', 'error');
+      this.showStatus(clientErrors[0] ?? this.strings.noSupportedImages, 'error');
       return;
     }
     const requestId = crypto.randomUUID();

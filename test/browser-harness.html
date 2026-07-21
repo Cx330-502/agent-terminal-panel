@@ -191,7 +191,7 @@
   <div id="app" class="app-shell">
     <aside id="session-sidebar" class="session-sidebar" aria-label="Agent 会话列表">
       <header class="session-header">
-        <span class="session-heading">会话</span>
+        <span id="session-heading" class="session-heading">会话</span>
         <span class="session-actions">
           <span class="new-session-split">
             <button id="new-session" class="icon-button split-primary" type="button" aria-label="使用默认命令新建会话" data-icon="add"></button>
@@ -199,7 +199,7 @@
           </span>
         </span>
       </header>
-      <div id="session-list" class="session-list" role="tablist"></div>
+      <div id="session-list" class="session-list" role="tablist" aria-label="Agent 会话"></div>
     </aside>
     <div id="session-splitter" class="session-splitter" role="separator" aria-label="调整会话列表宽度" aria-orientation="vertical" tabindex="0"></div>
     <main class="terminal-pane">
@@ -254,18 +254,21 @@
         </div>
       </div>
       <div id="attachment-overlay" class="attachment-overlay" hidden>
-        <strong>放下图片</strong>
-        <span>VS Code 资源管理器或系统文件管理器拖入时请按住 Shift；也可点击顶栏图片按钮</span>
+        <strong id="attachment-overlay-title">放下图片</strong>
+        <span id="attachment-overlay-detail">VS Code 资源管理器或系统文件管理器拖入时请按住 Shift；也可点击顶栏图片按钮</span>
       </div>
       <div id="attachment-status" class="attachment-status" role="status" aria-live="polite" hidden></div>
       <div id="empty-state" class="empty-state">
-        <p>还没有 Agent 会话</p>
+        <p id="empty-state-copy">还没有 Agent 会话</p>
         <button id="empty-new-session" class="primary-button" type="button">使用默认命令新建</button>
         <button id="empty-new-session-menu" class="secondary-button" type="button" aria-haspopup="menu" aria-controls="launch-menu" aria-expanded="false">选择其他启动方式</button>
       </div>
     </main>
   </div>
   <div id="launch-menu" class="launch-menu" role="menu" aria-label="Agent 会话启动方式" hidden></div>
+  <script>
+    document.documentElement.lang = new URLSearchParams(location.search).get('locale') || 'zh-CN';
+  </script>
   <script src="../media/main.js"></script>
 </body>
 </html>
