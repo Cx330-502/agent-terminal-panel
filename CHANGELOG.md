@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.2
+
+- 修复首次打开插件并自动创建第一个会话时，Codex 等 TUI 的灰色输入区可能显示为黑色、刷新 Webview 后才恢复的问题。
+- 会话首帧现在会先应用最终顶栏和空状态布局，再创建并 fit xterm，避免 PTY 在启动阶段经历半高与最终高度之间的连续 resize。
+- 浏览器回归新增首次会话尺寸稳定性检查，同时覆盖普通终端、Pets、灰色背景单元格与 WebGL fallback。
+
 ## 1.0.1
 
 - Unix/WSL/Remote SSH 会话改为通过 workspace host 的交互式 shell 启动，加载与原生终端一致的常规 shell rc 和 PATH。

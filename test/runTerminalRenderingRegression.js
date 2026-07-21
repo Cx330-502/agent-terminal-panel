@@ -38,10 +38,15 @@ async (page) => {
     await page.setViewportSize({ width: 1280, height: 720 });
     await page.goto(harnessUrl);
     await page.locator('.xterm').waitFor({ state: 'visible' });
+    await page.waitForTimeout(100);
+    const initialResizes = await page.evaluate(() =>
+      window.__webviewMessages.filter((message) => message.type === 'resize')
+    );
     await page.evaluate((terminalSettings) => {
       window.__hostSend({ type: 'terminalSettings', settings: terminalSettings });
     }, settings(imagesEnabled));
     await page.waitForTimeout(250);
+    return initialResizes;
   };
 
   const terminalSize = () => page.evaluate(() => {
@@ -52,7 +57,7 @@ async (page) => {
     return { cols: resize.cols, rows: resize.rows };
   });
 
-  await openHarness(false);
+  const plainInitialResizes = await openHarness(false);
   const plainSize = await terminalSize();
   const grayRow = Math.max(1, plainSize.rows - 2);
   const grayRows = [grayRow, grayRow + 1]
@@ -102,7 +107,7 @@ async (page) => {
     fullPage: true
   });
 
-  await openHarness(true);
+  const petsInitialResizes = await openHarness(true);
   const petsSize = await terminalSize();
   const petTop = Math.max(1, petsSize.rows - 7);
   const petColumn = Math.max(1, petsSize.cols - 9);
@@ -160,6 +165,15 @@ async (page) => {
   });
 
   const failures = [];
+  for (const [mode, resizes] of [
+    ['plain', plainInitialResizes],
+    ['pets', petsInitialResizes]
+  ]) {
+    const sizes = new Set(resizes.map(({ cols, rows }) => `${cols}x${rows}`));
+    if (sizes.size !== 1) {
+      failures.push(`Initial ${mode} session used transient terminal sizes: ${JSON.stringify(resizes)}`);
+    }
+  }
   if (!contextLoss.supported) {
     failures.push('WEBGL_lose_context is unavailable');
   } else {
@@ -178,5 +192,12 @@ async (page) => {
   if (failures.length || consoleErrors.length || failedRequests.length) {
     throw new Error(JSON.stringify({ failures, contextLoss, petsRefresh, consoleErrors, failedRequests }, null, 2));
   }
-  return { contextLoss, petsRefresh, consoleErrors, failedRequests };
+  return {
+    plainInitialResizes,
+    petsInitialResizes,
+    contextLoss,
+    petsRefresh,
+    consoleErrors,
+    failedRequests
+  };
 }

@@ -208,6 +208,8 @@ export class WebviewApp {
   ): void {
     this.sessions = sessions;
     this.activeId = activeId;
+    this.emptyState.hidden = sessions.length > 0;
+    this.renderActiveHeader();
     this.attachmentController.setActiveId(activeId);
     this.sessionList.render(sessions);
     this.terminalController.syncSessions(sessions, activeId, replays);
@@ -215,8 +217,6 @@ export class WebviewApp {
     this.terminalSearch.setAvailable(Boolean(active));
     this.startupIndicator.render(active);
     this.communicationIndicator.render(active);
-    this.renderActiveHeader();
-    this.emptyState.hidden = sessions.length > 0;
   }
 
   private renderActiveHeader(): void {
