@@ -102,7 +102,7 @@ jobs:
       - name: Resolve current release directory
         id: release
         shell: bash
-        run: echo "directory=releases/v$(node -p 'require(\"./package.json\").version')" >> "$GITHUB_OUTPUT"
+        run: echo "directory=releases/v$(node -p 'require("./package.json").version')" >> "$GITHUB_OUTPUT"
 
       - name: Verify package count
         shell: bash
