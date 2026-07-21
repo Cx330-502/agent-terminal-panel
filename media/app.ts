@@ -13,10 +13,12 @@ import { SessionList, statusLabel } from './sessionList';
 import { SidebarResize } from './sidebarResize';
 import { StartupIndicator } from './startupIndicator';
 import { TerminalController } from './terminalController';
+import { TerminalSearch } from './terminalSearch';
 
 export class WebviewApp {
   private readonly root: HTMLElement;
   private readonly terminalController: TerminalController;
+  private readonly terminalSearch: TerminalSearch;
   private readonly attachmentController: AttachmentController;
   private readonly sessionList: SessionList;
   private readonly sidebarResize: SidebarResize;
@@ -47,6 +49,23 @@ export class WebviewApp {
     const stack = requiredElement<HTMLElement>('terminal-stack');
     const splitter = requiredElement<HTMLElement>('session-splitter');
     this.terminalController = new TerminalController(stack, vscode);
+    this.terminalSearch = new TerminalSearch(
+      requiredElement('terminal-search'),
+      requiredElement('terminal-search-input'),
+      requiredElement('terminal-search-result'),
+      requiredElement('terminal-search-previous'),
+      requiredElement('terminal-search-next'),
+      requiredElement('terminal-search-close'),
+      {
+        search: (term, direction, incremental) =>
+          this.terminalController.search(term, direction, incremental),
+        clear: () => this.terminalController.clearSearch(),
+        focusTerminal: () => this.terminalController.focusActive()
+      }
+    );
+    this.terminalController.setSearchResultListener((result) =>
+      this.terminalSearch.setResult(result)
+    );
     this.attachmentController = new AttachmentController(
       stack,
       requiredElement('attachment-overlay'),
@@ -100,6 +119,7 @@ export class WebviewApp {
     this.launchMenu.dispose();
     this.startupIndicator.dispose();
     this.terminalController.dispose();
+    this.terminalSearch.dispose();
     void this.audioContext?.close();
   }
 
@@ -108,6 +128,7 @@ export class WebviewApp {
       case 'initialize':
         this.applyLayoutSettings(message.layoutSettings.sessionListPosition);
         this.launchMenu.setProfiles(message.launchProfiles);
+        this.launchMenu.setClosedSessions(message.closedSessions);
         this.terminalController.initialize(message.terminalSettings, message.platform);
         this.renderWorkspaceRestore(message.workspaceRestore);
         this.applyState(message.sessions, message.activeId, message.replays);
@@ -148,8 +169,14 @@ export class WebviewApp {
       case 'openLaunchMenu':
         this.launchMenu.open();
         return;
+      case 'openSearch':
+        this.terminalSearch.open();
+        return;
       case 'workspaceRestore':
         this.renderWorkspaceRestore(message.restore);
+        return;
+      case 'closedSessions':
+        this.launchMenu.setClosedSessions(message.closedSessions);
         return;
       case 'refreshTheme':
         this.terminalController.refreshTheme();
@@ -171,6 +198,7 @@ export class WebviewApp {
     this.sessionList.render(sessions);
     this.terminalController.syncSessions(sessions, activeId, replays);
     const active = sessions.find((session) => session.id === activeId);
+    this.terminalSearch.setAvailable(Boolean(active));
     this.startupIndicator.render(active);
     this.communicationIndicator.render(active);
     this.renderActiveHeader();
@@ -207,6 +235,9 @@ export class WebviewApp {
     });
     requiredElement<HTMLButtonElement>('pick-attachments').addEventListener('click', () => {
       this.attachmentController.pickFiles();
+    });
+    requiredElement<HTMLButtonElement>('find-terminal').addEventListener('click', () => {
+      this.terminalSearch.open();
     });
     requiredElement<HTMLButtonElement>('empty-new-session').addEventListener('click', () => {
       this.post({ type: 'newSession', chooseCwd: false });

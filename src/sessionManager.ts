@@ -36,6 +36,12 @@ export interface SessionCreateOptions {
   resumeIdentity?: AgentSessionIdentity;
 }
 
+export interface ClosedSessionState {
+  name: string;
+  cwd: string;
+  options: SessionCreateOptions;
+}
+
 export interface RestorableSessionState {
   id: string;
   name: string;
@@ -116,10 +122,26 @@ export class SessionManager {
     return id;
   }
 
-  close(id: string): void {
+  close(id: string): ClosedSessionState | undefined {
     const ids = [...this.sessions.keys()];
     const index = ids.indexOf(id);
-    if (index < 0) return;
+    if (index < 0) return undefined;
+    const session = this.sessions.get(id)!;
+    const closed = session.canRestart
+      ? {
+          name: session.name,
+          cwd: session.cwd,
+          options: {
+            name: session.name,
+            canRestart: true,
+            windowRestoreEligible: session.windowRestoreEligible,
+            ...(session.launchCommand ? { launchCommand: session.launchCommand } : {}),
+            ...(session.launchCommand && session.resumeIdentity
+              ? { resumeIdentity: session.resumeIdentity }
+              : {})
+          }
+        }
+      : undefined;
     this.ptyHost.kill(id);
     this.communication.remove(id);
     this.sessions.delete(id);
@@ -128,6 +150,7 @@ export class SessionManager {
       this.activeId = remaining[Math.min(index, remaining.length - 1)];
     }
     this.callbacks.onStateChanged();
+    return closed;
   }
 
   restart(id: string): number | undefined {

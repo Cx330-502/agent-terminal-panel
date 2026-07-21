@@ -103,6 +103,7 @@ Do not derive TPOT from terminal output timing or token-count deltas. Codex expo
 | `test/runAttachmentRegression.js` | Clipboard and drag/drop regression flow |
 | `test/runTerminalGutterRegression.js` | WebGL renderer, terminal resize, plain/Pets gutter, and Sixel repaint regression |
 | `test/runTerminalRenderingRegression.js` | Immediate WebGL context-loss fallback and atomic TUI/Pets repaint regression |
+| `test/runTerminalSearchRegression.js` | Terminal find widget, result navigation, shortcut, and narrow-layout regression |
 | `scripts/package.mjs` | Six-target VSIX packaging and native-prebuild validation |
 
 Frontend files should stay below 500 lines where practical. Repeated icon and startup UI behavior belongs in reusable modules rather than duplicated HTML or app logic.
@@ -144,6 +145,7 @@ playwright-cli run-code --filename=test/runLaunchMenuRegression.js
 playwright-cli run-code --filename=test/runTerminalImageRegression.js
 playwright-cli run-code --filename=test/runTerminalGutterRegression.js
 playwright-cli run-code --filename=test/runTerminalRenderingRegression.js
+playwright-cli run-code --filename=test/runTerminalSearchRegression.js
 playwright-cli run-code --filename=test/runUiRegression.js
 ```
 

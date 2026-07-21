@@ -2,7 +2,7 @@
   "name": "agent-terminal-panel",
   "displayName": "Agent Terminal Panel",
   "description": "在可移动的 VS Code 视图中管理多个 Agent CLI 会话，支持真实 PTY、历史恢复、图片输入与通信健康监测",
-  "version": "0.8.1",
+  "version": "0.9.0",
   "publisher": "Cx330-502",
   "author": "Cx330-502",
   "license": "MIT",
@@ -49,8 +49,10 @@
     "onCommand:agentTerminalPanel.newSessionInFolder",
     "onCommand:agentTerminalPanel.newCustomSession",
     "onCommand:agentTerminalPanel.showNewSessionMenu",
+    "onCommand:agentTerminalPanel.find",
     "onCommand:agentTerminalPanel.openSessionHistory",
     "onCommand:agentTerminalPanel.restoreWorkspaceSessions",
+    "onCommand:agentTerminalPanel.reopenClosedSession",
     "onCommand:agentTerminalPanel.renameSession",
     "onCommand:agentTerminalPanel.closeSession",
     "onCommand:agentTerminalPanel.restartSession",
@@ -78,6 +80,12 @@
           "name": "Agent 会话",
           "contextualTitle": "Agent Terminal Panel",
           "visibility": "visible"
+        },
+        {
+          "id": "agentTerminalPanel.attachmentInbox",
+          "name": "图片投递箱",
+          "contextualTitle": "Agent Terminal Panel 图片投递箱",
+          "visibility": "collapsed"
         }
       ]
     },
@@ -93,6 +101,12 @@
         "title": "选择 Agent 会话启动方式",
         "category": "Agent Terminal Panel",
         "icon": "$(chevron-down)"
+      },
+      {
+        "command": "agentTerminalPanel.find",
+        "title": "在当前终端中查找",
+        "category": "Agent Terminal Panel",
+        "icon": "$(search)"
       },
       {
         "command": "agentTerminalPanel.newSessionInFolder",
@@ -117,6 +131,12 @@
         "title": "恢复上次窗口的 Agent 会话",
         "category": "Agent Terminal Panel",
         "icon": "$(window)"
+      },
+      {
+        "command": "agentTerminalPanel.reopenClosedSession",
+        "title": "重新打开最近关闭的会话",
+        "category": "Agent Terminal Panel",
+        "icon": "$(history)"
       },
       {
         "command": "agentTerminalPanel.renameSession",
@@ -184,6 +204,12 @@
         "when": "focusedView == agentTerminalPanel.terminalView"
       },
       {
+        "command": "agentTerminalPanel.find",
+        "key": "ctrl+f",
+        "mac": "cmd+f",
+        "when": "focusedView == agentTerminalPanel.terminalView"
+      },
+      {
         "command": "agentTerminalPanel.nextSession",
         "key": "ctrl+pagedown",
         "mac": "cmd+alt+right",
@@ -199,6 +225,12 @@
         "command": "agentTerminalPanel.closeSession",
         "key": "ctrl+w",
         "mac": "cmd+w",
+        "when": "focusedView == agentTerminalPanel.terminalView"
+      },
+      {
+        "command": "agentTerminalPanel.reopenClosedSession",
+        "key": "ctrl+shift+t",
+        "mac": "cmd+shift+t",
         "when": "focusedView == agentTerminalPanel.terminalView"
       }
     ],
@@ -360,6 +392,7 @@
     "@vscode/vsce": "^3.9.0",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/addon-image": "0.9.0",
+    "@xterm/addon-search": "^0.16.0",
     "@xterm/addon-webgl": "^0.19.0",
     "@xterm/xterm": "^6.0.0",
     "esbuild": "^0.25.0",

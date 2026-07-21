@@ -9,6 +9,9 @@ const ICON_PATHS = {
     '<path d="M1.5 4.5h4.25l1.5 1.75h7.25v6.25h-13z"/><path d="M1.5 6.25h5.75"/>',
   image:
     '<rect x="1.5" y="2.5" width="13" height="11" rx="2"/><circle cx="5" cy="6" r="1"/><path d="m3.5 11 3-3 2.25 2.25 1.5-1.5 2.25 2.25"/>',
+  search: '<circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/>',
+  arrowUp: '<path d="m4 10 4-4 4 4"/>',
+  arrowDown: '<path d="m4 6 4 4 4-4"/>',
   pencil:
     '<path d="m3 11.75-.5 2 2-.5 7.75-7.75-1.5-1.5z"/><path d="m9.75 5 1.5 1.5"/>',
   restart:

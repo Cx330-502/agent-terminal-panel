@@ -1,4 +1,8 @@
-import type { LaunchProfileSnapshot, WebviewMessage } from '../src/shared';
+import type {
+  ClosedSessionSummary,
+  LaunchProfileSnapshot,
+  WebviewMessage
+} from '../src/shared';
 import { createIcon, type IconName } from './icons';
 
 interface MenuAction {
@@ -11,6 +15,7 @@ interface MenuAction {
 export class LaunchMenu {
   private profiles: LaunchProfileSnapshot[] = [];
   private restoreCount = 0;
+  private closedSessions: ClosedSessionSummary = { count: 0 };
   private activeAnchor: HTMLButtonElement;
 
   constructor(
@@ -35,6 +40,11 @@ export class LaunchMenu {
 
   setRestoreCount(count: number): void {
     this.restoreCount = count;
+    this.refreshOpenMenu();
+  }
+
+  setClosedSessions(summary: ClosedSessionSummary): void {
+    this.closedSessions = summary;
     this.refreshOpenMenu();
   }
 
@@ -111,6 +121,18 @@ export class LaunchMenu {
         message: { type: 'openSessionHistory' }
       }
     ];
+    if (this.closedSessions.count > 0) {
+      actions.push({
+        label: this.closedSessions.name
+          ? `重新打开“${this.closedSessions.name}”`
+          : '重新打开最近关闭的会话',
+        description: this.closedSessions.count > 1
+          ? `保留了 ${this.closedSessions.count} 个短期关闭记录`
+          : '使用原名称、cwd 和启动命令重新创建',
+        icon: 'restart',
+        message: { type: 'reopenClosedSession' }
+      });
+    }
     if (this.restoreCount > 0) {
       actions.push({
         label: `恢复上次窗口的 ${this.restoreCount} 个会话`,

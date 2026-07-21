@@ -3,7 +3,8 @@ import type { WorkspaceRestoreSummary } from './shared';
 import type { SessionHistoryRegistry } from './sessionHistory/registry';
 import type { AgentSessionIdentity, HistoricalSession } from './sessionHistory/types';
 
-const STORAGE_KEY = 'workspaceWindowSessions.v1';
+export const WORKSPACE_SESSION_STORAGE_KEY = 'workspaceWindowSessions';
+export const LEGACY_WORKSPACE_SESSION_STORAGE_KEY = 'workspaceWindowSessions.v1';
 const STORAGE_VERSION = 1;
 const MAX_SESSIONS = 100;
 const TRACKING_WINDOW_MS = 60_000;
@@ -64,8 +65,22 @@ export class WorkspaceSessionRestore {
     private readonly registry: SessionHistoryRegistry,
     private readonly callbacks: WorkspaceSessionRestoreCallbacks
   ) {
-    this.pending = workspaceRoots.length > 0 ? loadEntries(state.get(STORAGE_KEY)) : [];
-    this.lastSerialized = serializeState(this.pending);
+    const current = state.get(WORKSPACE_SESSION_STORAGE_KEY);
+    const legacy = current === undefined
+      ? state.get(LEGACY_WORKSPACE_SESSION_STORAGE_KEY)
+      : undefined;
+    const loaded = current ?? legacy;
+    const requiresMigration = legacy !== undefined || isLegacyPayload(current);
+    this.pending = workspaceRoots.length > 0 ? loadEntries(loaded) : [];
+    this.lastSerialized = requiresMigration ? '' : serializeState(this.pending);
+    if (requiresMigration && workspaceRoots.length > 0) {
+      this.persist();
+      if (legacy !== undefined) {
+        this.writeQueue = this.writeQueue
+          .then(() => Promise.resolve(state.update(LEGACY_WORKSPACE_SESSION_STORAGE_KEY, undefined)))
+          .catch(() => undefined);
+      }
+    }
   }
 
   get hasPending(): boolean {
@@ -199,7 +214,7 @@ export class WorkspaceSessionRestore {
     this.lastSerialized = serialized;
     const value: PersistedWorkspaceSessions = { version: STORAGE_VERSION, sessions };
     this.writeQueue = this.writeQueue
-      .then(() => Promise.resolve(this.state.update(STORAGE_KEY, value)))
+      .then(() => Promise.resolve(this.state.update(WORKSPACE_SESSION_STORAGE_KEY, value)))
       .catch(() => undefined);
   }
 }
@@ -245,10 +260,16 @@ export function matchTrackedSessions(
 }
 
 function loadEntries(value: unknown): WorkspaceRestoreEntry[] {
-  if (!isRecord(value) || value.version !== STORAGE_VERSION || !Array.isArray(value.sessions)) {
-    return [];
-  }
+  if (Array.isArray(value)) return mergeEntries(value.flatMap(parseEntry));
+  if (!isRecord(value) || !Array.isArray(value.sessions)) return [];
+  if (value.version !== undefined && value.version !== STORAGE_VERSION) return [];
   return mergeEntries(value.sessions.flatMap(parseEntry));
+}
+
+function isLegacyPayload(value: unknown): boolean {
+  return Array.isArray(value) || (
+    isRecord(value) && value.version === undefined && Array.isArray(value.sessions)
+  );
 }
 
 function parseEntry(value: unknown): WorkspaceRestoreEntry[] {

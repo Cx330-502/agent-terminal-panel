@@ -4,7 +4,9 @@ import { SessionHistoryRegistry } from '../src/sessionHistory/registry';
 import type { AgentSessionProvider, HistoricalSession } from '../src/sessionHistory/types';
 import {
   detectLaunchProvider,
+  LEGACY_WORKSPACE_SESSION_STORAGE_KEY,
   matchTrackedSessions,
+  WORKSPACE_SESSION_STORAGE_KEY,
   WorkspaceSessionRestore,
   type WorkspaceState
 } from '../src/workspaceSessionRestore';
@@ -68,6 +70,44 @@ test('sessions without provider resume identity are never persisted', async () =
   ]);
   await flushUpdates();
   assert.deepEqual(state.sessions(), []);
+  restore.dispose();
+});
+
+test('workspace restore migrates the legacy versioned key without losing sessions', async () => {
+  const state = new FakeWorkspaceState(undefined, {
+    [LEGACY_WORKSPACE_SESSION_STORAGE_KEY]: {
+      version: 1,
+      sessions: [entry('codex', 'legacy-session', 'Legacy Agent', 0, true)]
+    }
+  });
+  const restore = new WorkspaceSessionRestore(
+    state,
+    ['/workspace/project'],
+    new SessionHistoryRegistry([]),
+    { onIdentity() {}, onPendingChanged() {} }
+  );
+  await flushUpdates();
+
+  assert.deepEqual(restore.summary(), { count: 1, names: ['Legacy Agent'] });
+  assert.equal(state.get(LEGACY_WORKSPACE_SESSION_STORAGE_KEY), undefined);
+  assert.equal(state.sessions()[0]?.sessionId, 'legacy-session');
+  restore.dispose();
+});
+
+test('workspace restore accepts an unversioned legacy payload and rewrites version one', async () => {
+  const state = new FakeWorkspaceState({
+    sessions: [entry('claude', 'legacy-v0', 'Claude Legacy', 0, true)]
+  });
+  const restore = new WorkspaceSessionRestore(
+    state,
+    ['/workspace/project'],
+    new SessionHistoryRegistry([]),
+    { onIdentity() {}, onPendingChanged() {} }
+  );
+  restore.syncCurrent([]);
+  await flushUpdates();
+
+  assert.equal(state.value(WORKSPACE_SESSION_STORAGE_KEY)?.version, 1);
   restore.dispose();
 });
 
@@ -188,26 +228,37 @@ function historical(
 }
 
 class FakeWorkspaceState implements WorkspaceState {
-  private value: unknown;
+  private readonly values = new Map<string, unknown>();
 
-  constructor(initial?: unknown) {
-    this.value = initial;
+  constructor(initial?: unknown, values: Record<string, unknown> = {}) {
+    if (initial !== undefined) this.values.set(WORKSPACE_SESSION_STORAGE_KEY, initial);
+    for (const [key, value] of Object.entries(values)) this.values.set(key, value);
   }
 
-  get<T>(): T | undefined {
-    return this.value as T | undefined;
+  get<T>(key: string): T | undefined {
+    return this.values.get(key) as T | undefined;
   }
 
-  async update(_key: string, value: unknown): Promise<void> {
-    this.value = value;
+  async update(key: string, value: unknown): Promise<void> {
+    if (value === undefined) this.values.delete(key);
+    else this.values.set(key, value);
   }
 
   sessions(): Array<Record<string, unknown>> {
-    const value = this.value as { sessions?: unknown[] } | undefined;
+    const value = this.values.get(WORKSPACE_SESSION_STORAGE_KEY) as
+      | { sessions?: unknown[] }
+      | undefined;
     return (value?.sessions ?? []).filter(
       (session): session is Record<string, unknown> =>
         Boolean(session && typeof session === 'object' && !Array.isArray(session))
     );
+  }
+
+  value(key: string): Record<string, unknown> | undefined {
+    const value = this.values.get(key);
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : undefined;
   }
 }
 

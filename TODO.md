@@ -1,16 +1,10 @@
 # Roadmap TODO
 
-## Native file-drop inbox
+## Completed in 0.9.0
 
-- Add a native, collapsible file-drop view beside the terminal Webview so files can be dropped without holding Shift.
-- Accept VS Code's native `files` and `text/uri-list` drag payloads and deliver the resulting paths or URIs to the active session.
-- Keep this as a sibling view rather than promising drop support directly on the Webview terminal canvas, which VS Code currently intercepts without a public drop API.
-
-## Closed-session recovery
-
-- Keep a short-lived record when a session is closed.
-- Offer an undo/quick-reopen action without silently restarting commands.
-- Decide how long output, cwd, name, custom command and provider metadata should remain recoverable.
+- Native, collapsible image-drop Inbox using VS Code TreeView `files` and `text/uri-list` payloads.
+- Explicit short-lived recovery for the latest 10 restartable closed sessions, expiring after 30 minutes.
+- Versioned and migrated workspace/Webview state plus terminal scrollback search.
 
 ## Communication health follow-ups
 

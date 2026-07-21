@@ -53,6 +53,7 @@
   <link rel="stylesheet" href="../media/startup.css">
   <link rel="stylesheet" href="../media/communication.css">
   <link rel="stylesheet" href="../media/sessionControls.css">
+  <link rel="stylesheet" href="../media/search.css">
   <script>
     window.__webviewMessages = [];
     window.__persistedState = {};
@@ -152,6 +153,9 @@
               count: 2,
               names: ['Codex · 流量监测', 'Agent · 图标整理']
             },
+            closedSessions: {
+              count: 0
+            },
             platform: 'linux'
           }), 0);
         } else if (message.type === 'saveAttachments') {
@@ -215,6 +219,7 @@
           <span id="communication-latency" class="communication-latency"></span>
         </div>
         <span class="active-actions">
+          <button id="find-terminal" class="icon-button" type="button" aria-label="在当前终端中查找" data-icon="search"></button>
           <button id="pick-attachments" class="icon-button" type="button" aria-label="选择图片文件" data-icon="image"></button>
           <button id="rename-active-session" class="icon-button" type="button" aria-label="重命名当前会话" data-icon="pencil"></button>
           <button id="restart-session" class="icon-button" type="button" aria-label="重启当前会话" data-icon="restart"></button>
@@ -230,7 +235,15 @@
           <button id="dismiss-workspace-restore" class="secondary-button compact-button" type="button">忽略</button>
         </span>
       </section>
-      <div id="terminal-stack" class="terminal-stack"></div>
+      <div id="terminal-stack" class="terminal-stack">
+        <div id="terminal-search" class="terminal-search" role="search" hidden>
+          <input id="terminal-search-input" type="text" autocomplete="off" spellcheck="false" aria-label="在当前终端中查找">
+          <span id="terminal-search-result" class="terminal-search-result" role="status" aria-live="polite"></span>
+          <button id="terminal-search-previous" class="icon-button" type="button" aria-label="上一个匹配项" data-icon="arrowUp"></button>
+          <button id="terminal-search-next" class="icon-button" type="button" aria-label="下一个匹配项" data-icon="arrowDown"></button>
+          <button id="terminal-search-close" class="icon-button" type="button" aria-label="关闭查找" data-icon="close"></button>
+        </div>
+      </div>
       <div id="startup-overlay" class="startup-overlay" role="status" aria-live="polite" hidden>
         <div class="startup-card">
           <span class="startup-spinner" aria-hidden="true"></span>

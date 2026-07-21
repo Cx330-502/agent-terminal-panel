@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.0
+
+- 新增终端内查找：支持 `Ctrl/Cmd+F`、上一项/下一项、中文输入、匹配计数和当前终端高亮，搜索框在窄侧栏中自动压缩。
+- 新增最近关闭会话恢复：最多短期保留 10 个可重启会话 30 分钟，通过关闭 Toast、启动菜单或 `Ctrl/Cmd+Shift+T` 显式重开；一次性 Fork 不会被重复执行。
+- 新增同一视图容器中的原生“图片投递箱” TreeView，可直接接收系统文件和 VS Code Explorer 图片，无需按住 Shift，并把 workspace-host 路径插入当前会话。
+- 将窗口会话状态迁移到稳定 storage key，兼容旧 `workspaceWindowSessions.v1` 与无版本数据；Webview 侧栏宽度状态新增 v1 schema 和未来版本隔离。
+- 新增关闭恢复、URI list、状态迁移、终端搜索和启动菜单浏览器回归，现有 WebGL、Sixel/Pets、滚动与附件回归保持通过。
+
 ## 0.8.1
 
 - 修复 WebGL context 丢失后 xterm 默认等待恢复期间出现的黑底或灰色输入区缺失，现会立即释放图片/WebGL addon 并切换到 DOM renderer。

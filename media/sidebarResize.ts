@@ -1,8 +1,5 @@
 import type { VSCodeApi } from '../src/shared';
-
-interface PersistedState {
-  sidebarWidth?: number;
-}
+import { readWebviewState, updateWebviewState } from './webviewState';
 
 const DEFAULT_WIDTH = 156;
 const MIN_WIDTH = 104;
@@ -17,7 +14,7 @@ export class SidebarResize {
     private readonly splitter: HTMLElement,
     private readonly vscode: VSCodeApi
   ) {
-    const state = vscode.getState() as PersistedState | undefined;
+    const state = readWebviewState(vscode.getState());
     this.width = clamp(state?.sidebarWidth ?? DEFAULT_WIDTH, MIN_WIDTH, MAX_WIDTH);
     this.apply();
     this.splitter.addEventListener('pointerdown', (event) => this.startDrag(event));
@@ -74,8 +71,7 @@ export class SidebarResize {
   }
 
   private persist(): void {
-    const previous = (this.vscode.getState() as PersistedState | undefined) ?? {};
-    this.vscode.setState({ ...previous, sidebarWidth: Math.round(this.width) });
+    updateWebviewState(this.vscode, { sidebarWidth: Math.round(this.width) });
   }
 }
 

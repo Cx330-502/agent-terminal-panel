@@ -76,8 +76,17 @@ async (page) => {
         profiles: [{ id: 'profile-0', name: 'Gemini', command: 'gemini --model pro' }]
       });
       window.__hostSend({ type: 'workspaceRestore', restore: { count: 0, names: [] } });
+      window.__hostSend({
+        type: 'closedSessions',
+        closedSessions: { count: 2, name: 'Closed Codex' }
+      });
     });
     const refreshedLabels = await menu.locator('[role="menuitem"]').allTextContents();
+    await menu.getByRole('menuitem', { name: /重新打开.*Closed Codex/ }).click();
+    const reopenMessage = await page.evaluate(() =>
+      window.__webviewMessages.find((message) => message.type === 'reopenClosedSession')
+    );
+    await trigger.click();
     await page.mouse.click(item.width / 2, item.height / 2);
     const closedOutside = await menu.isHidden();
     await page.evaluate(() => window.__hostSend({ type: 'openLaunchMenu' }));
@@ -109,6 +118,8 @@ async (page) => {
       ...(escapedToTrigger ? [] : ['escapedToTrigger']),
       ...(refreshedLabels.some((label) => label.includes('Gemini')) ? [] : ['profileRefresh']),
       ...(refreshedLabels.some((label) => label.includes('恢复上次窗口')) ? ['restoreRefresh'] : []),
+      ...(refreshedLabels.some((label) => label.includes('Closed Codex')) ? [] : ['closedSessionRefresh']),
+      ...(reopenMessage ? [] : ['reopenClosedSession']),
       ...(closedOutside ? [] : ['closedOutside']),
       ...(openedFromHost && closedFromHost ? [] : ['hostOpen']),
       ...(emptyMenuAnchored ? [] : ['emptyMenuAnchored']),
@@ -127,6 +138,7 @@ async (page) => {
       focusedFirstItem,
       escapedToTrigger,
       refreshedLabels,
+      reopenMessage,
       closedOutside,
       openedFromHost,
       closedFromHost,

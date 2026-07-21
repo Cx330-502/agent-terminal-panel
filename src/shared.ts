@@ -73,6 +73,11 @@ export interface WorkspaceRestoreSummary {
   names: string[];
 }
 
+export interface ClosedSessionSummary {
+  count: number;
+  name?: string;
+}
+
 export interface LaunchProfileSnapshot {
   id: string;
   name: string;
@@ -119,6 +124,7 @@ export type HostMessage =
       layoutSettings: LayoutSettings;
       launchProfiles: LaunchProfileSnapshot[];
       workspaceRestore: WorkspaceRestoreSummary;
+      closedSessions: ClosedSessionSummary;
       platform: NodeJS.Platform;
     }
   | { type: 'state'; sessions: SessionSnapshot[]; activeId?: string }
@@ -138,7 +144,9 @@ export type HostMessage =
   | { type: 'layoutSettings'; settings: LayoutSettings }
   | { type: 'launchProfiles'; profiles: LaunchProfileSnapshot[] }
   | { type: 'openLaunchMenu' }
+  | { type: 'openSearch' }
   | { type: 'workspaceRestore'; restore: WorkspaceRestoreSummary }
+  | { type: 'closedSessions'; closedSessions: ClosedSessionSummary }
   | { type: 'refreshTheme' }
   | { type: 'playCompletionSound' };
 
@@ -152,6 +160,7 @@ export type WebviewMessage =
   | { type: 'openSessionHistory' }
   | { type: 'openSettings' }
   | { type: 'restoreWorkspaceSessions' }
+  | { type: 'reopenClosedSession' }
   | { type: 'dismissWorkspaceRestore' }
   | { type: 'switchSession'; id: string }
   | { type: 'renameSession'; id: string; name: string }

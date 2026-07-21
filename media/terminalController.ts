@@ -1,5 +1,10 @@
 import { FitAddon } from '@xterm/addon-fit';
 import { ImageAddon } from '@xterm/addon-image';
+import {
+  SearchAddon,
+  type ISearchOptions,
+  type ISearchResultChangeEvent
+} from '@xterm/addon-search';
 import { WebglAddon } from '@xterm/addon-webgl';
 import { Terminal } from '@xterm/xterm';
 import type {
@@ -9,12 +14,14 @@ import type {
   WebviewMessage
 } from '../src/shared';
 import { SelectionAutoScroll } from './selectionAutoScroll';
+import { searchDecorations } from './searchTheme';
 import { StatusDetector } from './statusDetector';
 import { applyTerminalSettings } from './theme';
 
 interface TerminalEntry {
   terminal: Terminal;
   fitAddon: FitAddon;
+  searchAddon: SearchAddon;
   element: HTMLElement;
   detector: StatusDetector;
   selectionAutoScroll: SelectionAutoScroll;
@@ -40,6 +47,7 @@ export class TerminalController {
   private settings: TerminalSettings | undefined;
   private platform: NodeJS.Platform = 'linux';
   private fitFrame: number | undefined;
+  private searchResultListener: ((result: ISearchResultChangeEvent) => void) | undefined;
 
   constructor(
     private readonly stack: HTMLElement,
@@ -148,6 +156,35 @@ export class TerminalController {
     this.requestPaste(id);
   }
 
+  setSearchResultListener(listener: (result: ISearchResultChangeEvent) => void): void {
+    this.searchResultListener = listener;
+  }
+
+  search(term: string, direction: 'next' | 'previous', incremental = false): void {
+    const entry = this.activeId ? this.entries.get(this.activeId) : undefined;
+    if (!entry || !term) {
+      entry?.searchAddon.clearDecorations();
+      this.searchResultListener?.({ resultIndex: 0, resultCount: 0 });
+      return;
+    }
+    const options: ISearchOptions = {
+      incremental,
+      decorations: searchDecorations()
+    };
+    if (direction === 'previous') entry.searchAddon.findPrevious(term, options);
+    else entry.searchAddon.findNext(term, options);
+  }
+
+  clearSearch(): void {
+    const entry = this.activeId ? this.entries.get(this.activeId) : undefined;
+    entry?.searchAddon.clearDecorations();
+    this.searchResultListener?.({ resultIndex: 0, resultCount: 0 });
+  }
+
+  focusActive(): void {
+    if (this.activeId) this.entries.get(this.activeId)?.terminal.focus();
+  }
+
   dispose(): void {
     this.resizeObserver.disconnect();
     if (this.fitFrame !== undefined) cancelAnimationFrame(this.fitFrame);
@@ -171,7 +208,9 @@ export class TerminalController {
     });
     applyTerminalSettings(terminal, this.settings);
     const fitAddon = new FitAddon();
+    const searchAddon = new SearchAddon({ highlightLimit: 1000 });
     terminal.loadAddon(fitAddon);
+    terminal.loadAddon(searchAddon);
     terminal.open(element);
 
     const detector = new StatusDetector((update) => {
@@ -181,6 +220,7 @@ export class TerminalController {
     const entry: TerminalEntry = {
       terminal,
       fitAddon,
+      searchAddon,
       element,
       detector,
       selectionAutoScroll,
@@ -188,6 +228,9 @@ export class TerminalController {
       replaying: false
     };
     this.entries.set(id, entry);
+    searchAddon.onDidChangeResults((result) => {
+      if (id === this.activeId) this.searchResultListener?.(result);
+    });
     this.loadWebglRenderer(entry);
     this.updateImageAddon(entry, this.settings.imagesEnabled);
 

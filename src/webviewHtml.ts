@@ -17,6 +17,9 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
   const sessionControlsStyles = webview.asWebviewUri(
     vscode.Uri.joinPath(extensionUri, 'media', 'sessionControls.css')
   );
+  const searchStyles = webview.asWebviewUri(
+    vscode.Uri.joinPath(extensionUri, 'media', 'search.css')
+  );
   const script = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'main.js'));
 
   return `<!doctype html>
@@ -31,6 +34,7 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
   <link rel="stylesheet" href="${startupStyles}">
   <link rel="stylesheet" href="${communicationStyles}">
   <link rel="stylesheet" href="${sessionControlsStyles}">
+  <link rel="stylesheet" href="${searchStyles}">
   <title>Agent Terminal Panel</title>
 </head>
 <body>
@@ -65,6 +69,7 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
           <span id="communication-latency" class="communication-latency"></span>
         </div>
         <span class="active-actions">
+          <button id="find-terminal" class="icon-button" type="button" title="在当前终端中查找" aria-label="在当前终端中查找" data-icon="search"></button>
           <button id="pick-attachments" class="icon-button" type="button" title="选择图片文件；从 VS Code 资源管理器拖入时请按住 Shift" aria-label="选择图片文件" data-icon="image"></button>
           <button id="rename-active-session" class="icon-button" type="button" title="重命名当前会话" aria-label="重命名当前会话" data-icon="pencil"></button>
           <button id="restart-session" class="icon-button" type="button" title="重启当前会话" aria-label="重启当前会话" data-icon="restart"></button>
@@ -80,7 +85,15 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
           <button id="dismiss-workspace-restore" class="secondary-button compact-button" type="button">忽略</button>
         </span>
       </section>
-      <div id="terminal-stack" class="terminal-stack" aria-live="off"></div>
+      <div id="terminal-stack" class="terminal-stack" aria-live="off">
+        <div id="terminal-search" class="terminal-search" role="search" hidden>
+          <input id="terminal-search-input" type="text" autocomplete="off" spellcheck="false" aria-label="在当前终端中查找">
+          <span id="terminal-search-result" class="terminal-search-result" role="status" aria-live="polite"></span>
+          <button id="terminal-search-previous" class="icon-button" type="button" title="上一个匹配项 (Shift+Enter)" aria-label="上一个匹配项" data-icon="arrowUp"></button>
+          <button id="terminal-search-next" class="icon-button" type="button" title="下一个匹配项 (Enter)" aria-label="下一个匹配项" data-icon="arrowDown"></button>
+          <button id="terminal-search-close" class="icon-button" type="button" title="关闭查找 (Escape)" aria-label="关闭查找" data-icon="close"></button>
+        </div>
+      </div>
       <div id="startup-overlay" class="startup-overlay" role="status" aria-live="polite" hidden>
         <div class="startup-card">
           <span class="startup-spinner" aria-hidden="true"></span>

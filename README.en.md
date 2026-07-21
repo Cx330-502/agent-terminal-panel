@@ -15,6 +15,7 @@ Agent Terminal Panel is provider-agnostic. You supply the launch command; it sup
 - **One panel for many agents**: run Codex, Claude Code, Gemini CLI, Aider, internal tools, proxy wrappers, scripts, or another interactive shell command.
 - **A real terminal stack**: xterm.js + node-pty with resize, bracketed paste, CJK IME, true color, OSC 10/11/12, and correct rendering of the Codex shaded composer.
 - **Parallel sessions**: create, switch, rename, close, and restart. PTYs continue in the background and recent output is replayed when the Webview is rebuilt.
+- **Find in long Agent output**: `Ctrl/Cmd+F` searches the active terminal scrollback with previous/next navigation, result counts, and Unicode queries.
 - **Per-session context**: choose a cwd or launch a named one-off custom command without changing the default.
 - **Continue old work**: discover only Codex and Claude Code sessions belonging to the current workspace, then invoke each provider's native resume or fork command.
 - **Restore a whole window in one click**: remember current-workspace sessions created with the default `+`, recognized as Codex or Claude, and not explicitly closed; then manually resume all of them after your proxy environment is ready.
@@ -22,6 +23,7 @@ Agent Terminal Panel is provider-agnostic. You supply the launch command; it sup
 - **See real activity behind “Working”**: layered PTY, process-socket, silence, and provider telemetry distinguishes useful work from a session that may be stuck without pretending terminal bytes are network traffic.
 - **Terminal visible immediately**: the startup overlay only covers PTY creation and never blocks the terminal while an Agent or network is waiting for first output. Open `Output > Agent Terminal Panel` for Webview, spawn, and first-byte timings.
 - **Practical image input**: paste, use the native file picker, or hold `Shift` while dropping OS/VS Code Explorer files and remote URI transfers. The extension inserts a safely quoted path without submitting it.
+- **Native drop without Shift**: expand the sibling Image Drop Inbox and drop system files or Explorer images directly into the active Agent session.
 - **Native VS Code appearance**: terminal font, size, weight, line height, cursor, scroll behavior, and colors all come from VS Code's integrated terminal settings and theme.
 - **Optional terminal images**: enable Sixel/iTerm support for Codex Pets and similar tools only when needed.
 
@@ -61,7 +63,7 @@ Array order becomes menu order, and `name` is also the new terminal's initial ti
 
 ### Previous-window session restore
 
-This is intentionally separate from Provider-wide history and from a future short-lived “undo close” feature:
+This is intentionally separate from Provider-wide history and from the current-window, short-lived “undo close” feature:
 
 - VS Code `workspaceState` scopes the snapshot to the current workspace; sessions from other workspaces are never mixed in.
 - Only default-`+` sessions correlated with a built-in Codex or Claude session ID, plus their later restored continuations, are recorded. Launch profiles, one-off commands, and manually selected Provider-history sessions are excluded.
@@ -78,11 +80,21 @@ Shortcuts apply only while the Agent Terminal view is focused:
 | Next session | `Ctrl+PageDown` | `Cmd+Alt+Right` |
 | Previous session | `Ctrl+PageUp` | `Cmd+Alt+Left` |
 | Close session | `Ctrl+W` | `Cmd+W` |
+| Reopen recently closed session | `Ctrl+Shift+T` | `Cmd+Shift+T` |
+| Find in active terminal | `Ctrl+F` | `Cmd+F` |
+
+### Recently closed sessions
+
+- Restartable sessions remain in an in-memory list for 30 minutes, capped at the latest 10. They are not persisted across extension-host restarts.
+- Reopening is always explicit through the close notification, launch menu, or `Ctrl/Cmd+Shift+T`; the extension never silently starts a command.
+- The recreated session keeps its name, cwd, and launch command, but does not pretend that the original process or lost terminal output survived.
+- One-shot historical Fork launches are excluded so the same fork action cannot run twice by accident.
 
 ## Image paste, picker, and drop
 
+- The simplest drop path is the native **Image Drop Inbox** in the Agent Terminal container. It accepts system files and VS Code Explorer resources without holding `Shift`.
 - Paste a clipboard image into the focused terminal, or use the image button in the active-session header to open VS Code's native file picker.
-- Hold `Shift` before entering and dropping files from either VS Code Explorer or the OS file manager. This is VS Code's official gesture for routing a file into a Webview instead of opening it in an editor (see [microsoft/vscode#182449](https://github.com/microsoft/vscode/issues/182449)).
+- When dropping directly onto the terminal Webview canvas, hold `Shift` before entering and dropping. This is VS Code's official gesture for routing a file into a Webview instead of opening it in an editor (see [microsoft/vscode#182449](https://github.com/microsoft/vscode/issues/182449)).
 - Browser files, `ResourceURLs`, VS Code URI lists, `CodeFiles`, remote URIs, and absolute image paths are supported, up to eight images per operation.
 - The per-file limit is 25 MB and the per-operation limit is 50 MB. Paths are inserted without an automatic Enter.
 - Clipboard/browser file bytes are stored in VS Code extension storage; Explorer/URI files already on the workspace host keep their original path, so no project copy is created.
@@ -128,7 +140,7 @@ For Codex Pets, enable `agentTerminalPanel.terminalImages.enabled` and create or
 
 ## Platforms and remote development
 
-The Marketplace selects the package for the current extension host. `releases/v0.8.0/` also contains native packages for:
+The Marketplace selects the package for the current extension host. `releases/v0.9.0/` also contains native packages for:
 
 - Windows x64 and ARM64
 - Linux x64 and ARM64, including WSL and Remote SSH workspace hosts
