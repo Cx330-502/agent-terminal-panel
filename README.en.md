@@ -16,6 +16,7 @@ Agent Terminal Panel is provider-agnostic. You supply the launch command; it sup
 - **A real terminal stack**: xterm.js + node-pty with resize, bracketed paste, CJK IME, true color, OSC 10/11/12, and correct rendering of the Codex shaded composer.
 - **Parallel sessions**: create, switch, rename, close, and restart. PTYs continue in the background and recent output is replayed when the Webview is rebuilt.
 - **Find in long Agent output**: `Ctrl/Cmd+F` searches the active terminal scrollback with previous/next navigation, result counts, and Unicode queries.
+- **Codex history survives xterm region scrolling**: a precise, removable compatibility path handles ratatui's top-anchored scroll frames for both live output and Webview replay without changing unrelated terminal sequences.
 - **Per-session context**: choose a cwd or launch a named one-off custom command without changing the default.
 - **Continue old work**: discover only Codex and Claude Code sessions belonging to the current workspace, then invoke each provider's native resume or fork command.
 - **Restore a whole window in one click**: remember current-workspace sessions created with the default `+`, recognized as Codex or Claude, and not explicitly closed; then manually resume all of them after your proxy environment is ready.
@@ -142,13 +143,15 @@ For Codex Pets, enable `agentTerminalPanel.terminalImages.enabled` and create or
 
 ## Platforms and remote development
 
-The Marketplace selects the package for the current extension host. `releases/v0.9.1/` also contains native packages for:
+The Marketplace selects the package for the current extension host. [GitHub Release v1.0.0](https://github.com/Cx330-502/agent-terminal-panel/releases/tag/v1.0.0) also provides native packages for:
 
 - Windows x64 and ARM64
 - Linux x64 and ARM64, including WSL and Remote SSH workspace hosts
 - Intel macOS and Apple Silicon
 
 Each VSIX carries only the matching `node-pty` prebuild. The extension declares `extensionKind: ["workspace"]`, so install it into the remote environment when using a remote window.
+
+VSIX files are published only as GitHub Release assets and Marketplace packages, never in Git history. Local `npm run package` builds remain available under the ignored `releases/vVERSION/` directory.
 
 ## Privacy
 

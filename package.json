@@ -2,7 +2,7 @@
   "name": "agent-terminal-panel",
   "displayName": "%extension.displayName%",
   "description": "%extension.description%",
-  "version": "0.9.1",
+  "version": "1.0.0",
   "publisher": "Cx330-502",
   "author": "Cx330-502",
   "license": "MIT",

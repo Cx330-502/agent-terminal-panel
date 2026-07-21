@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
 concurrency:
@@ -65,6 +65,29 @@ jobs:
 
       - name: Package six platform VSIX files
         run: npm run package
+
+      - name: Publish GitHub Release assets
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          packages=(releases/v${{ steps.version.outputs.version }}/*.vsix)
+          if [[ ${#packages[@]} -ne 6 ]]; then
+            echo "Expected 6 platform packages, found ${#packages[@]}." >&2
+            exit 1
+          fi
+
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "${packages[@]}" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "${packages[@]}" \
+              --verify-tag \
+              --title "$GITHUB_REF_NAME" \
+              --generate-notes
+          fi
 
       - name: Sign in to Azure with GitHub OIDC
         uses: azure/login@v2

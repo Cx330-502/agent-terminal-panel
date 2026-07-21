@@ -26,6 +26,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Reject tracked VSIX artifacts
+        shell: bash
+        run: |
+          tracked="$(git ls-files '*.vsix')"
+          if [[ -n "$tracked" ]]; then
+            echo "VSIX artifacts must be published as GitHub Release assets, not committed:" >&2
+            echo "$tracked" >&2
+            exit 1
+          fi
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:

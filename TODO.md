@@ -19,3 +19,9 @@
 - Explore an opt-in proxy integration for per-request attribution; process-level observation alone cannot split shared cc-switch/CPA traffic by account or Agent session.
 - Show TPOT/TBT only if a provider exposes reliable explicit telemetry. Do not infer it from PTY timing.
 - Validate macOS and Windows probes on additional native host versions and retain PTY fallback for missing commands or permissions.
+
+## Terminal history durability follow-ups
+
+- Prevent long sessions from silently losing old output across all three retention boundaries: inherited xterm.js scrollback, provider resize/resume replay caps, and the extension host's 4 MiB raw PTY reconstruction buffer.
+- Preserve VS Code terminal-setting inheritance while defining an explicit, bounded retention policy for users who need substantially longer history.
+- Replace raw ANSI tail replay as the only Webview-reconstruction source with a verifiable checkpoint/transcript strategy that survives Webview rebuilds without unbounded memory use or replaying an incomplete terminal state.

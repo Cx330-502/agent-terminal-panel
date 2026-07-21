@@ -13,6 +13,7 @@ import type {
   VSCodeApi,
   WebviewMessage
 } from '../src/shared';
+import { ScrollRegionScrollbackCompat } from './scrollbackCompat';
 import { SelectionAutoScroll } from './selectionAutoScroll';
 import { searchDecorations } from './searchTheme';
 import { StatusDetector } from './statusDetector';
@@ -24,6 +25,7 @@ interface TerminalEntry {
   searchAddon: SearchAddon;
   element: HTMLElement;
   detector: StatusDetector;
+  scrollbackCompat: ScrollRegionScrollbackCompat;
   selectionAutoScroll: SelectionAutoScroll;
   webglAddon?: WebglAddon;
   webglCanvas?: HTMLCanvasElement;
@@ -77,11 +79,12 @@ export class TerminalController {
       const replay = replays?.[session.id];
       if (replay && entry.terminal.buffer.active.length <= entry.terminal.rows) {
         entry.replaying = true;
-        entry.terminal.write(replay, () => {
+        const finishReplay = () => {
           entry.replaying = false;
           entry.detector.adoptStatus(session.status);
           if (session.id === this.activeId) this.scheduleFit();
-        });
+        };
+        if (!this.writeOutput(entry, replay, finishReplay)) finishReplay();
       } else {
         entry.detector.adoptStatus(session.status);
       }
@@ -101,6 +104,7 @@ export class TerminalController {
     const entry = this.entries.get(id);
     if (!entry) return;
     this.discardPendingOutput(entry);
+    entry.scrollbackCompat.reset();
     entry.terminal.reset();
     entry.detector.adoptStatus('running');
   }
@@ -223,6 +227,7 @@ export class TerminalController {
       searchAddon,
       element,
       detector,
+      scrollbackCompat: new ScrollRegionScrollbackCompat(),
       selectionAutoScroll,
       pendingOutput: [],
       replaying: false
@@ -350,9 +355,16 @@ export class TerminalController {
     const data = entry.pendingOutput.join('');
     entry.pendingOutput.length = 0;
     if (!data) return;
-    entry.terminal.write(data, () => {
+    this.writeOutput(entry, data, () => {
       if (!entry.replaying) this.scheduleScreenEvaluation(entry);
     });
+  }
+
+  private writeOutput(entry: TerminalEntry, data: string, callback: () => void): boolean {
+    const output = entry.scrollbackCompat.transform(data);
+    if (!output) return false;
+    entry.terminal.write(output, callback);
+    return true;
   }
 
   private discardPendingOutput(entry: TerminalEntry): void {

@@ -3,9 +3,6 @@ dist/
 media/main.js
 media/xterm.css
 *.vsix
-!releases/
-!releases/**/
-!releases/**/*.vsix
 *.log
 .vscode-test/
 .playwright-cli/

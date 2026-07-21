@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.0
+
+- 修复 Codex/ratatui 在 xterm.js 中使用顶部对齐局部滚动区域与 `CSI S` 时，已完成输出会从 scrollback 中永久消失的问题。
+- 新增可跨 PTY chunk 的窄兼容层，只改写完整的 `DECSTBM(top=1) + SU + reset` 帧；其他 ANSI 序列、局部区域和无效参数保持原样。
+- 实时输出与 Webview replay 共用同一流式状态；确定性回归验证最终 viewport、光标位置完全一致，同时保留原路径丢失的全部历史行。
+- VSIX 不再进入 Git 历史；标签发布会将六个平台包上传为 GitHub Release Assets，并继续发布到 VS Code Marketplace。
+
 ## 0.9.1
 
 - 新增面向 `main` push 与 Pull Request 的 CI：Ubuntu、Windows、macOS 三宿主并行执行构建、单元测试和真实 `node-pty` 集成测试。
@@ -100,7 +107,7 @@
 ## 0.4.1
 
 - 补充 Windows x64 与 Windows ARM64 的 `node-pty` 原生 VSIX。
-- 六个平台包统一输出到版本化的 `releases/` 目录并纳入仓库。
+- 六个平台包统一输出到版本化的本地 `releases/` 目录。
 - 打包前校验每个目标平台都存在对应的 `node-pty` 预编译文件。
 - Windows 包排除仅用于调试的 PDB 符号文件。
 
