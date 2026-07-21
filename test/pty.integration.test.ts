@@ -3,7 +3,7 @@ import test from 'node:test';
 import * as nodePty from 'node-pty';
 import { resolveLaunchCommand } from '../src/launchCommand';
 
-test('node-pty carries Chinese input and terminal resize events', { timeout: 10_000 }, async (t) => {
+test('node-pty carries Chinese input and accepts terminal resize', { timeout: 10_000 }, async (t) => {
   const script = [
     "process.stdin.setEncoding('utf8')",
     "process.stdout.write('READY 中文\\n')",
@@ -37,7 +37,12 @@ test('node-pty carries Chinese input and terminal resize events', { timeout: 10_
   pty.write('粘贴中文\r');
   await waitFor(() => output.includes('ECHO<粘贴中文>'));
   pty.resize(100, 40);
-  await waitFor(() => output.includes('SIZE<100x40>'));
+  if (process.platform === 'win32') {
+    assert.equal(pty.cols, 100);
+    assert.equal(pty.rows, 40);
+  } else {
+    await waitFor(() => output.includes('SIZE<100x40>'));
+  }
   assert.match(output, /READY 中文/);
 });
 

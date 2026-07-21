@@ -64,7 +64,7 @@ test('runtime source keeps translations in the localization dictionaries', () =>
   const chineseText = /[\p{Script=Han}]/u;
   for (const root of ['src', 'media']) {
     for (const file of sourceFiles(root)) {
-      if (file.endsWith('src/webviewStrings.ts')) continue;
+      if (file === join('src', 'webviewStrings.ts')) continue;
       assert.doesNotMatch(readFileSync(file, 'utf8'), chineseText, file);
     }
   }
