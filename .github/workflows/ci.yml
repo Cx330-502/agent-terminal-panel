@@ -51,47 +51,12 @@ jobs:
       - name: Unit and PTY integration tests
         run: npm test
 
-  browser-regression:
-    name: Browser regression
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-
-      - name: Run browser regression suite
-        run: npm run test:browser
-
-      - name: Upload browser failure evidence
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: browser-regression-failure
-          path: |
-            artifacts/browser/
-            test/*.png
-          if-no-files-found: ignore
-
   package-matrix:
     name: Package six platforms
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs:
       - runtime-matrix
-      - browser-regression
 
     steps:
       - name: Checkout

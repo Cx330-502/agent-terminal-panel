@@ -33,9 +33,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-
       - name: Verify version
         id: version
         shell: bash
@@ -50,21 +47,12 @@ jobs:
       - name: Check and test
         run: npm run check && npm test
 
-      - name: Browser regression gate
-        run: npm run test:browser
-
-      - name: Upload browser failure evidence
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: browser-regression-failure-${{ github.ref_name }}
-          path: |
-            artifacts/browser/
-            test/*.png
-          if-no-files-found: ignore
-
       - name: Package six platform VSIX files
         run: npm run package
+
+      - name: Generate release notes
+        if: github.ref_type == 'tag'
+        run: node scripts/release-notes.mjs "${{ steps.version.outputs.version }}" release-notes.md
 
       - name: Publish GitHub Release assets
         if: github.ref_type == 'tag'
@@ -82,11 +70,14 @@ jobs:
 
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             gh release upload "$GITHUB_REF_NAME" "${packages[@]}" --clobber
+            gh release edit "$GITHUB_REF_NAME" \
+              --title "Agent Terminal Panel $GITHUB_REF_NAME" \
+              --notes-file release-notes.md
           else
             gh release create "$GITHUB_REF_NAME" "${packages[@]}" \
               --verify-tag \
-              --title "$GITHUB_REF_NAME" \
-              --generate-notes
+              --title "Agent Terminal Panel $GITHUB_REF_NAME" \
+              --notes-file release-notes.md
           fi
 
       - name: Sign in to Azure with GitHub OIDC

@@ -6,6 +6,8 @@
 - 新增可跨 PTY chunk 的窄兼容层，只改写完整的 `DECSTBM(top=1) + SU + reset` 帧；其他 ANSI 序列、局部区域和无效参数保持原样。
 - 实时输出与 Webview replay 共用同一流式状态；确定性回归验证最终 viewport、光标位置完全一致，同时保留原路径丢失的全部历史行。
 - VSIX 不再进入 Git 历史；标签发布会将六个平台包上传为 GitHub Release Assets，并继续发布到 VS Code Marketplace。
+- Chromium/Playwright Webview 回归改为本地发布前检查，不再由 GitHub CI 下载浏览器；CI 聚焦跨平台构建、单元/PTY 测试与打包发布。
+- GitHub Release Notes 改为从对应 `CHANGELOG.md` 版本段生成，包含结构化更新内容、平台下载矩阵与 workspace host 安装提示。
 
 ## 0.9.1
 

@@ -27,7 +27,7 @@ Agent Terminal Panel is provider-agnostic. You supply the launch command; it sup
 - **Native drop without Shift**: expand the sibling Image Drop Inbox and drop system files or Explorer images directly into the active Agent session.
 - **Native VS Code appearance**: terminal font, size, weight, line height, cursor, scroll behavior, and colors all come from VS Code's integrated terminal settings and theme.
 - **Follows the VS Code display language**: commands, settings, notifications, native dialogs, and Webview state are fully available in English and Simplified Chinese without mixed-language UI.
-- **Continuously tested beyond one workstation**: every pull request and main-branch update runs real PTY tests on Ubuntu, Windows, and macOS plus ten Chromium interaction regressions before release.
+- **Continuously tested beyond one workstation**: every pull request and main-branch update runs builds, unit tests, and real PTY tests on Ubuntu, Windows, and macOS; the full Chromium Webview suite remains an explicit local pre-release check.
 - **Optional terminal images**: enable Sixel/iTerm support for Codex Pets and similar tools only when needed.
 
 <p align="center">

@@ -132,9 +132,9 @@ npm run test:browser
 
 Press `F5` in VS Code to launch an Extension Development Host. Configure `agentTerminalPanel.launchCommand` there and verify both an ordinary shell command and the intended Agent CLI.
 
-## Browser UI validation
+## Local browser UI validation
 
-The standard browser gate builds the Webview, starts the harness when needed, and runs every regression in an isolated browser context:
+The browser suite is an explicit local pre-release check rather than a GitHub CI job. It builds the Webview, starts the harness when needed, and runs every regression in an isolated browser context:
 
 ```bash
 npm run test:browser
@@ -169,7 +169,7 @@ The harness is not a substitute for an Extension Development Host check of:
 
 ## Continuous integration and localization
 
-`.github/workflows/ci.yml` runs on pull requests and pushes to `main`. Its runtime matrix executes the build, unit suite, and real PTY integration tests on Ubuntu, Windows, and macOS. A separate Ubuntu Chromium job runs the browser suite, and the package job creates all six target VSIX files only after both gates pass.
+`.github/workflows/ci.yml` runs on pull requests and pushes to `main`. Its runtime matrix executes the build, unit suite, and real PTY integration tests on Ubuntu, Windows, and macOS. The package job creates all six target VSIX files after that matrix passes. Browser installation and Webview regression stay out of CI and are run locally when preparing a release.
 
 Manifest strings live in `package.nls.json` and `package.nls.zh-cn.json`. Extension-host prompts use `vscode.l10n.t` with translations in `l10n/bundle.l10n.zh-cn.json`. Webview strings live in the typed `src/webviewStrings.ts` dictionaries. `test/localization.test.ts` verifies manifest keys, runtime bundle coverage, dictionary parity, and the absence of hard-coded Chinese outside the localization source.
 
@@ -198,6 +198,6 @@ Every package excludes the other five native prebuilds. Inspect package contents
 1. Update `package.json`, `package-lock.json`, `CHANGELOG.md`, and Marketplace screenshots.
 2. Run `npm run verify` and `npm run package`.
 3. Commit the version, create `v<version>`, and push `main` plus the tag.
-4. `.github/workflows/marketplace-publish.yml` verifies the tag/version match, repeats unit and Chromium gates, rebuilds all targets, signs into Azure through GitHub OIDC, verifies publisher access, and publishes the six VSIX files.
+4. `.github/workflows/marketplace-publish.yml` verifies the tag/version match, repeats the unit/PTY gate, rebuilds all targets, generates structured notes from the matching `CHANGELOG.md` section, uploads six GitHub Release assets, signs into Azure through GitHub OIDC, verifies publisher access, and publishes the six Marketplace packages.
 
 The workflow stores no long-lived Marketplace PAT. Publishing depends on the GitHub Environment variables and Azure federated identity configured for this repository.
