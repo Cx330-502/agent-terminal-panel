@@ -19,11 +19,18 @@ interface TerminalEntry {
   detector: StatusDetector;
   selectionAutoScroll: SelectionAutoScroll;
   webglAddon?: WebglAddon;
+  webglCanvas?: HTMLCanvasElement;
+  webglContextLossListener?: EventListener;
   imageAddon?: ImageAddon;
+  pendingOutput: string[];
+  outputTimer?: number;
   settleTimer?: number;
   signalTimer?: number;
   replaying: boolean;
 }
+
+// Match VS Code's short PTY batching window so a TUI frame and its Sixel overlay paint together.
+const OUTPUT_BATCH_DELAY_MS = 5;
 
 export class TerminalController {
   private readonly entries = new Map<string, TerminalEntry>();
@@ -76,15 +83,16 @@ export class TerminalController {
 
   write(id: string, data: string): void {
     const entry = this.entries.get(id);
-    if (!entry) return;
-    entry.terminal.write(data, () => {
-      if (!entry.replaying) this.scheduleScreenEvaluation(entry);
-    });
+    if (!entry || !data) return;
+    entry.pendingOutput.push(data);
+    if (entry.outputTimer !== undefined) return;
+    entry.outputTimer = window.setTimeout(() => this.flushOutput(entry), OUTPUT_BATCH_DELAY_MS);
   }
 
   clear(id: string): void {
     const entry = this.entries.get(id);
     if (!entry) return;
+    this.discardPendingOutput(entry);
     entry.terminal.reset();
     entry.detector.adoptStatus('running');
   }
@@ -176,6 +184,7 @@ export class TerminalController {
       element,
       detector,
       selectionAutoScroll,
+      pendingOutput: [],
       replaying: false
     };
     this.entries.set(id, entry);
@@ -207,6 +216,8 @@ export class TerminalController {
     if (!entry) return;
     if (entry.settleTimer !== undefined) window.clearTimeout(entry.settleTimer);
     if (entry.signalTimer !== undefined) window.clearTimeout(entry.signalTimer);
+    this.discardPendingOutput(entry);
+    this.detachWebglContextLossListener(entry);
     entry.selectionAutoScroll.dispose();
     entry.terminal.dispose();
     entry.element.remove();
@@ -232,14 +243,22 @@ export class TerminalController {
     try {
       entry.terminal.loadAddon(addon);
       entry.webglAddon = addon;
+      const canvas = Array.from(
+        entry.element.querySelectorAll<HTMLCanvasElement>('.xterm-screen > canvas')
+      ).find((candidate) => !candidate.className);
+      if (canvas) {
+        // The addon waits three seconds for restoration before onContextLoss; fall back before paint.
+        const listener: EventListener = (event) => {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          this.fallbackFromWebgl(entry, addon);
+        };
+        entry.webglCanvas = canvas;
+        entry.webglContextLossListener = listener;
+        canvas.addEventListener('webglcontextlost', listener, true);
+      }
       addon.onContextLoss(() => {
-        if (entry.webglAddon !== addon) return;
-        entry.imageAddon?.dispose();
-        entry.imageAddon = undefined;
-        entry.webglAddon = undefined;
-        addon.dispose();
-        entry.terminal.refresh(0, entry.terminal.rows - 1);
-        if (entry.element.dataset.id === this.activeId) this.scheduleFit();
+        this.fallbackFromWebgl(entry, addon);
       });
     } catch {
       addon.dispose();
@@ -258,6 +277,45 @@ export class TerminalController {
     if (!addon) return;
     entry.terminal.loadAddon(addon);
     entry.imageAddon = addon;
+  }
+
+  private fallbackFromWebgl(entry: TerminalEntry, addon: WebglAddon): void {
+    if (entry.webglAddon !== addon) return;
+    this.detachWebglContextLossListener(entry);
+    entry.imageAddon?.dispose();
+    entry.imageAddon = undefined;
+    entry.webglAddon = undefined;
+    addon.dispose();
+    entry.terminal.refresh(0, entry.terminal.rows - 1);
+    if (entry.element.dataset.id === this.activeId) this.scheduleFit();
+  }
+
+  private detachWebglContextLossListener(entry: TerminalEntry): void {
+    if (entry.webglCanvas && entry.webglContextLossListener) {
+      entry.webglCanvas.removeEventListener(
+        'webglcontextlost',
+        entry.webglContextLossListener,
+        true
+      );
+    }
+    entry.webglCanvas = undefined;
+    entry.webglContextLossListener = undefined;
+  }
+
+  private flushOutput(entry: TerminalEntry): void {
+    entry.outputTimer = undefined;
+    const data = entry.pendingOutput.join('');
+    entry.pendingOutput.length = 0;
+    if (!data) return;
+    entry.terminal.write(data, () => {
+      if (!entry.replaying) this.scheduleScreenEvaluation(entry);
+    });
+  }
+
+  private discardPendingOutput(entry: TerminalEntry): void {
+    if (entry.outputTimer !== undefined) window.clearTimeout(entry.outputTimer);
+    entry.outputTimer = undefined;
+    entry.pendingOutput.length = 0;
   }
 
   private handleKeyEvent(terminal: Terminal, event: KeyboardEvent): boolean {

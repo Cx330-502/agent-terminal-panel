@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.1
+
+- 修复 WebGL context 丢失后 xterm 默认等待恢复期间出现的黑底或灰色输入区缺失，现会立即释放图片/WebGL addon 并切换到 DOM renderer。
+- 将同一会话的连续 PTY 输出按 5 ms 短窗口合并，让 Agent TUI 灰色输入区与 Pets Sixel 图层在同一批次绘制，消除右侧高频闪烁与透明中间帧。
+- 新增强制 WebGL context-loss 与拆包 Sixel 刷新的浏览器回归，验证降级后灰色单元格保持可见且 Pets 图层不出现空帧。
+
 ## 0.8.0
 
 - 新增有序的 `agentTerminalPanel.launchProfiles` 启动配置，可在默认命令之外保存 Claude、Gemini、不同 Codex 参数或任意 workspace-host 命令。

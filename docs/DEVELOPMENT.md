@@ -102,6 +102,7 @@ Do not derive TPOT from terminal output timing or token-count deltas. Codex expo
 | `test/runLaunchMenuRegression.js` | Launch-profile menu positioning, refresh, action, and keyboard regression |
 | `test/runAttachmentRegression.js` | Clipboard and drag/drop regression flow |
 | `test/runTerminalGutterRegression.js` | WebGL renderer, terminal resize, plain/Pets gutter, and Sixel repaint regression |
+| `test/runTerminalRenderingRegression.js` | Immediate WebGL context-loss fallback and atomic TUI/Pets repaint regression |
 | `scripts/package.mjs` | Six-target VSIX packaging and native-prebuild validation |
 
 Frontend files should stay below 500 lines where practical. Repeated icon and startup UI behavior belongs in reusable modules rather than duplicated HTML or app logic.
@@ -142,10 +143,11 @@ playwright-cli run-code --filename=test/runOutputFollowRegression.js
 playwright-cli run-code --filename=test/runLaunchMenuRegression.js
 playwright-cli run-code --filename=test/runTerminalImageRegression.js
 playwright-cli run-code --filename=test/runTerminalGutterRegression.js
+playwright-cli run-code --filename=test/runTerminalRenderingRegression.js
 playwright-cli run-code --filename=test/runUiRegression.js
 ```
 
-The terminal-image regression proves that the Webview CSP blocks Sixel WebAssembly without `wasm-unsafe-eval` and renders non-transparent pixels with the narrow directive enabled. The terminal-gutter regression verifies WebGL activation, pre-paint resize fitting, native 10 px scrollbar geometry, theme-matched screen/viewport backgrounds, stable same-session state refreshes, and both plain and Sixel/Pets repaint paths. The standard UI matrix contains six desktop sizes, a same-width reduced-height pair, two narrow/mobile-like sizes, and a 320 px stress case. Review generated baseline, interaction, active/quiet/stalled communication states, dense-control, attachment-overlay, and startup screenshots in addition to automated overflow/occlusion probes.
+The terminal-image regression proves that the Webview CSP blocks Sixel WebAssembly without `wasm-unsafe-eval` and renders non-transparent pixels with the narrow directive enabled. The terminal-gutter regression verifies WebGL activation, pre-paint resize fitting, native 10 px scrollbar geometry, theme-matched screen/viewport backgrounds, stable same-session state refreshes, and both plain and Sixel/Pets repaint paths. The terminal-rendering regression forces a real WebGL context loss and splits a TUI refresh from its Pets Sixel frame, then verifies immediate DOM fallback and the absence of transparent image-layer intermediate states. The standard UI matrix contains six desktop sizes, a same-width reduced-height pair, two narrow/mobile-like sizes, and a 320 px stress case. Review generated baseline, interaction, active/quiet/stalled communication states, dense-control, attachment-overlay, and startup screenshots in addition to automated overflow/occlusion probes.
 
 The harness is not a substitute for an Extension Development Host check of:
 
