@@ -35,6 +35,7 @@ test('workspace restore keeps pending sessions until manual restore and explicit
       cwd: '/workspace/project',
       isActive: true,
       startedAt: 200,
+      windowRestoreEligible: true,
       identity: {
         providerId: 'codex',
         providerName: 'Codex',
@@ -65,7 +66,8 @@ test('sessions without provider resume identity are never persisted', async () =
       name: 'cc-switch',
       cwd: '/workspace/project',
       isActive: true,
-      startedAt: 100
+      startedAt: 100,
+      windowRestoreEligible: false
     }
   ]);
   await flushUpdates();
@@ -177,13 +179,14 @@ test('default-session tracking resolves a new provider identity in the backgroun
     }
   );
   t.after(() => restore.dispose());
-  restore.trackDefaultSession(
+  restore.trackSession(
     {
       id: 'launch-1',
       name: 'Agent 1',
       cwd: '/workspace/project',
       isActive: true,
-      startedAt: Date.now()
+      startedAt: Date.now(),
+      windowRestoreEligible: true
     },
     'codex'
   );

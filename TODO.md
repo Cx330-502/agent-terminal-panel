@@ -1,5 +1,10 @@
 # Roadmap TODO
 
+## Completed in 1.2.0
+
+- Explicit Provider Resume versus terminal reset/rerun lifecycle actions, including one-shot Fork transition rules and Provider-aware recently closed recovery.
+- Codex app-server and Claude Code `custom-title` name synchronization with panel-only fallback for unsupported providers.
+
 ## Completed in 0.9.1
 
 - Pull-request/main CI with Ubuntu, Windows, and macOS runtime coverage.

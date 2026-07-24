@@ -13,6 +13,12 @@ import { AttachmentController } from './attachmentController';
 import { CommunicationIndicator } from './communicationIndicator';
 import { hydrateIcons } from './icons';
 import { LaunchMenu } from './launchMenu';
+import {
+  LifecycleMenu,
+  lifecycleActionCount,
+  primaryRestartLabel,
+  primaryRestartMode
+} from './lifecycleMenu';
 import { localizeDocument } from './localizeDocument';
 import { SessionList, statusLabel } from './sessionList';
 import { SidebarResize } from './sidebarResize';
@@ -30,11 +36,13 @@ export class WebviewApp {
   private readonly startupIndicator: StartupIndicator;
   private readonly communicationIndicator: CommunicationIndicator;
   private readonly launchMenu: LaunchMenu;
+  private readonly lifecycleMenu: LifecycleMenu;
   private readonly activeHeader = requiredElement<HTMLElement>('active-header');
   private readonly activeName = requiredElement<HTMLElement>('active-name');
   private readonly activeCwd = requiredElement<HTMLElement>('active-cwd');
   private readonly activeStatus = requiredElement<HTMLElement>('active-status');
   private readonly restartButton = requiredElement<HTMLButtonElement>('restart-session');
+  private readonly restartMenuButton = requiredElement<HTMLButtonElement>('restart-session-menu');
   private readonly emptyState = requiredElement<HTMLElement>('empty-state');
   private readonly workspaceRestore = requiredElement<HTMLElement>('workspace-restore');
   private readonly workspaceRestoreTitle = requiredElement<HTMLElement>(
@@ -116,6 +124,12 @@ export class WebviewApp {
       strings,
       (message) => this.post(message)
     );
+    this.lifecycleMenu = new LifecycleMenu(
+      requiredElement('lifecycle-menu'),
+      this.restartMenuButton,
+      strings,
+      (message) => this.post(message)
+    );
     this.bindControls();
     this.bindWindowEvents();
   }
@@ -131,6 +145,7 @@ export class WebviewApp {
   dispose(): void {
     this.attachmentController.dispose();
     this.launchMenu.dispose();
+    this.lifecycleMenu.dispose();
     this.startupIndicator.dispose();
     this.terminalController.dispose();
     this.terminalSearch.dispose();
@@ -181,6 +196,7 @@ export class WebviewApp {
         this.launchMenu.setProfiles(message.profiles);
         return;
       case 'openLaunchMenu':
+        this.lifecycleMenu.close();
         this.launchMenu.open();
         return;
       case 'openSearch':
@@ -209,11 +225,12 @@ export class WebviewApp {
     this.sessions = sessions;
     this.activeId = activeId;
     this.emptyState.hidden = sessions.length > 0;
+    const active = sessions.find((session) => session.id === activeId);
+    this.lifecycleMenu.setSession(active);
     this.renderActiveHeader();
     this.attachmentController.setActiveId(activeId);
     this.sessionList.render(sessions);
     this.terminalController.syncSessions(sessions, activeId, replays);
-    const active = sessions.find((session) => session.id === activeId);
     this.terminalSearch.setAvailable(Boolean(active));
     this.startupIndicator.render(active);
     this.communicationIndicator.render(active);
@@ -233,9 +250,11 @@ export class WebviewApp {
       active.communication?.health === 'stalled'
     );
     this.activeStatus.title = statusLabel(active, this.strings);
-    this.restartButton.disabled = !active.canRestart;
-    const rerunLabel = active.canRestart
-      ? rerunSessionLabel(active, this.strings)
+    const restartMode = primaryRestartMode(active);
+    this.restartButton.disabled = restartMode === undefined;
+    this.restartMenuButton.disabled = lifecycleActionCount(active) < 2;
+    const rerunLabel = restartMode
+      ? primaryRestartLabel(active, this.strings)
       : this.strings.restartForkUnavailable;
     this.restartButton.title = rerunLabel;
     this.restartButton.setAttribute('aria-label', rerunLabel);
@@ -247,6 +266,7 @@ export class WebviewApp {
     });
     const newSessionMenu = requiredElement<HTMLButtonElement>('new-session-menu');
     newSessionMenu.addEventListener('click', () => {
+      this.lifecycleMenu.close();
       this.launchMenu.toggle(newSessionMenu);
     });
     requiredElement<HTMLButtonElement>('pick-attachments').addEventListener('click', () => {
@@ -260,6 +280,7 @@ export class WebviewApp {
     });
     const emptyNewSessionMenu = requiredElement<HTMLButtonElement>('empty-new-session-menu');
     emptyNewSessionMenu.addEventListener('click', () => {
+      this.lifecycleMenu.close();
       this.launchMenu.toggle(emptyNewSessionMenu);
     });
     requiredElement<HTMLButtonElement>('restore-workspace-sessions').addEventListener(
@@ -274,7 +295,13 @@ export class WebviewApp {
       if (event.key === 'Escape') this.post({ type: 'dismissWorkspaceRestore' });
     });
     this.restartButton.addEventListener('click', () => {
-      if (this.activeId) this.post({ type: 'restartSession', id: this.activeId });
+      const active = this.sessions.find((session) => session.id === this.activeId);
+      const mode = active ? primaryRestartMode(active) : undefined;
+      if (active && mode) this.post({ type: 'restartSession', id: active.id, mode });
+    });
+    this.restartMenuButton.addEventListener('click', () => {
+      this.launchMenu.close();
+      this.lifecycleMenu.toggle();
     });
     requiredElement<HTMLButtonElement>('rename-active-session').addEventListener('click', () => {
       if (this.activeId) this.post({ type: 'promptRenameSession', id: this.activeId });
@@ -286,6 +313,7 @@ export class WebviewApp {
 
   private applyLayoutSettings(position: 'left' | 'right'): void {
     this.launchMenu.close();
+    this.lifecycleMenu.close();
     this.root.classList.toggle('session-list-right', position === 'right');
     this.sidebarResize.setPosition(position);
   }
@@ -334,14 +362,6 @@ export class WebviewApp {
   private post(message: WebviewMessage): void {
     this.vscode.postMessage(message);
   }
-}
-
-function rerunSessionLabel(session: SessionSnapshot, strings: WebviewStrings): string {
-  if (session.launchSource === 'default') return strings.rerunDefaultSession;
-  if (session.launchSource === 'profile') return strings.rerunProfileSession;
-  if (session.launchSource === 'custom') return strings.rerunCustomSession;
-  if (session.launchSource === 'historyResume') return strings.rerunResumeSession;
-  return strings.rerunCurrentSession;
 }
 
 function playTone(context: AudioContext, frequency: number, start: number, duration: number): void {

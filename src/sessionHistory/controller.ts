@@ -1,7 +1,11 @@
 import * as vscode from 'vscode';
 import { getSessionHistoryConfig } from '../config';
 import { createSessionHistoryRegistry } from './createRegistry';
-import type { HistoricalSession, SessionLaunchMode } from './types';
+import type {
+  AgentSessionIdentity,
+  HistoricalSession,
+  SessionLaunchMode
+} from './types';
 import type { SessionLaunchSource } from '../shared';
 
 export interface HistoricalSessionLaunch {
@@ -9,7 +13,9 @@ export interface HistoricalSessionLaunch {
   name: string;
   launchCommand: string;
   launchSource: Extract<SessionLaunchSource, 'historyResume' | 'historyFork'>;
-  canRestart: boolean;
+  canRerun: boolean;
+  expectedProviderId?: string;
+  resumeIdentity?: AgentSessionIdentity;
 }
 
 interface HistoryPickItem extends vscode.QuickPickItem {
@@ -96,9 +102,20 @@ export class SessionHistoryController {
       name: `${action.mode === 'fork' ? 'Fork' : selected.session.providerName}: ${selected.session.title}`,
       launchCommand: registry.buildLaunchCommand(selected.session, action.mode),
       launchSource: action.mode === 'fork' ? 'historyFork' : 'historyResume',
-      canRestart: action.mode === 'resume'
+      canRerun: action.mode === 'resume',
+      ...(action.mode === 'resume'
+        ? { resumeIdentity: identity(selected.session) }
+        : { expectedProviderId: selected.session.providerId })
     });
   }
+}
+
+function identity(session: HistoricalSession): AgentSessionIdentity {
+  return {
+    providerId: session.providerId,
+    providerName: session.providerName,
+    sessionId: session.sessionId
+  };
 }
 
 function formatUpdatedAt(timestamp: number): string {

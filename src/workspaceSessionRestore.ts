@@ -21,6 +21,7 @@ export interface RestorableLiveSession {
   cwd: string;
   isActive: boolean;
   startedAt: number;
+  windowRestoreEligible: boolean;
   identity?: AgentSessionIdentity;
 }
 
@@ -52,6 +53,7 @@ export interface WorkspaceSessionRestoreCallbacks {
 export class WorkspaceSessionRestore {
   private pending: WorkspaceRestoreEntry[];
   private current: WorkspaceRestoreEntry[] = [];
+  private liveIdentityKeys = new Set<string>();
   private readonly tracking = new Map<string, TrackedLaunch>();
   private timer: NodeJS.Timeout | undefined;
   private discovering = false;
@@ -103,8 +105,11 @@ export class WorkspaceSessionRestore {
     for (const id of this.tracking.keys()) {
       if (!liveIds.has(id)) this.tracking.delete(id);
     }
+    this.liveIdentityKeys = new Set(
+      sessions.flatMap((session) => session.identity ? [identityKey(session.identity)] : [])
+    );
     this.current = sessions.flatMap((session, order) =>
-      session.identity
+      session.windowRestoreEligible && session.identity
         ? [
             {
               ...session.identity,
@@ -120,7 +125,7 @@ export class WorkspaceSessionRestore {
     this.persist();
   }
 
-  trackDefaultSession(session: RestorableLiveSession, expectedProviderId: string): void {
+  trackSession(session: RestorableLiveSession, expectedProviderId: string): void {
     if (this.workspaceRoots.length === 0 || session.identity) return;
     this.tracking.set(session.id, {
       id: session.id,
@@ -182,7 +187,11 @@ export class WorkspaceSessionRestore {
       const discovery = await this.registry.discover(this.workspaceRoots, limit);
       if (this.disposed) return;
       const claimed = new Set(
-        [...this.pending, ...this.current].map((session) => identityKey(session))
+        [
+          ...this.pending.map((session) => identityKey(session)),
+          ...this.current.map((session) => identityKey(session)),
+          ...this.liveIdentityKeys
+        ]
       );
       for (const match of matchTrackedSessions(
         [...this.tracking.values()],

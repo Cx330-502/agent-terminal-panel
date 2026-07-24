@@ -1,4 +1,5 @@
 import type {
+  AgentSessionIdentity,
   AgentSessionProvider,
   HistoricalSession,
   SessionHistoryDiscovery,
@@ -34,9 +35,20 @@ export class SessionHistoryRegistry {
     };
   }
 
-  buildLaunchCommand(session: HistoricalSession, mode: SessionLaunchMode): string {
+  buildLaunchCommand(session: AgentSessionIdentity, mode: SessionLaunchMode): string {
     const provider = this.providers.find((candidate) => candidate.id === session.providerId);
     if (!provider) throw new Error(`Unsupported session provider: ${session.providerId}`);
     return provider.buildLaunchCommand(session, mode);
+  }
+
+  async renameSession(
+    session: AgentSessionIdentity,
+    cwd: string,
+    name: string
+  ): Promise<boolean> {
+    const provider = this.providers.find((candidate) => candidate.id === session.providerId);
+    if (!provider?.renameSession) return false;
+    await provider.renameSession(session, cwd, name);
+    return true;
   }
 }

@@ -79,7 +79,10 @@ export function getWebviewHtml(
           <button id="find-terminal" class="icon-button" type="button" title="${html(strings.findTerminal)}" aria-label="${html(strings.findTerminal)}" data-icon="search"></button>
           <button id="pick-attachments" class="icon-button" type="button" title="${html(strings.pickAttachmentsTitle)}" aria-label="${html(strings.pickAttachmentsAria)}" data-icon="image"></button>
           <button id="rename-active-session" class="icon-button" type="button" title="${html(strings.renameCurrentSession)}" aria-label="${html(strings.renameCurrentSession)}" data-icon="pencil"></button>
-          <button id="restart-session" class="icon-button" type="button" title="${html(strings.rerunCurrentSession)}" aria-label="${html(strings.rerunCurrentSession)}" data-icon="restart"></button>
+          <span class="restart-session-split">
+            <button id="restart-session" class="icon-button split-primary" type="button" title="${html(strings.rerunCurrentSession)}" aria-label="${html(strings.rerunCurrentSession)}" data-icon="restart"></button>
+            <button id="restart-session-menu" class="icon-button split-secondary" type="button" title="${html(strings.otherRestartMethods)}" aria-label="${html(strings.otherRestartMethods)}" aria-haspopup="menu" aria-controls="lifecycle-menu" aria-expanded="false" data-icon="chevronDown"></button>
+          </span>
         </span>
       </header>
       <section id="workspace-restore" class="workspace-restore" aria-live="polite" hidden>
@@ -123,6 +126,7 @@ export function getWebviewHtml(
     </main>
   </div>
   <div id="launch-menu" class="launch-menu" role="menu" aria-label="${html(strings.launchMenuAria)}" hidden></div>
+  <div id="lifecycle-menu" class="launch-menu lifecycle-menu" role="menu" aria-label="${html(strings.restartMenuAria)}" hidden></div>
   <script nonce="${nonce}" src="${script}"></script>
 </body>
 </html>`;

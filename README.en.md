@@ -14,7 +14,7 @@ Agent Terminal Panel is provider-agnostic. You supply the launch command; it sup
 
 - **One panel for many agents**: run Codex, Claude Code, Gemini CLI, Aider, internal tools, proxy wrappers, scripts, or another interactive shell command.
 - **A real terminal stack**: xterm.js + node-pty with resize, bracketed paste, CJK IME, true color, OSC 10/11/12, and correct rendering of the Codex shaded composer.
-- **Parallel sessions**: create, switch, rename, close, and restart. PTYs continue in the background and recent output is replayed when the Webview is rebuilt.
+- **Parallel sessions**: create, switch, rename, close, continue context, or reset and rerun. PTYs continue in the background and recent output is replayed when the Webview is rebuilt.
 - **Find in long Agent output**: `Ctrl/Cmd+F` searches the active terminal scrollback with previous/next navigation, result counts, and Unicode queries.
 - **Codex history survives xterm region scrolling**: a precise, removable compatibility path handles ratatui's top-anchored scroll frames for both live output and Webview replay without changing unrelated terminal sequences.
 - **Per-session context**: choose a cwd or launch a named one-off custom command without changing the default.
@@ -58,9 +58,11 @@ Each key is the menu label and initial terminal title; each value is the complet
 
 ## Sessions and layout
 
-- Rename by double-clicking a session or active title, clicking the pencil, or pressing `F2`.
+- Rename by double-clicking a session or active title, clicking the pencil, or pressing `F2`. The panel title changes immediately; recognized Codex and Claude Code sessions also receive the Provider name, while sync failures warn without rolling back the panel title.
 - Automatic titles fill the lowest gap: after closing or renaming `Agent 2`, the next default session reuses `Agent 2`; internal session UUIDs are never reused.
-- The circular arrow means “rerun launch command”: default sessions read the current default, saved and one-off commands rerun their own command, history Resume runs the same Provider Resume command again, and Fork launches cannot be repeated.
+- The primary circular arrow means “restart this session.” With a recognized Provider identity it invokes native Resume to continue the same Agent context; before identity is known it resets the terminal and reruns that tab's launch command.
+- When both operations are valid, the adjacent arrow opens an anchored menu for **continue Provider session** versus **reset terminal and rerun**. Resetting a default session reads the current default and starts a new Agent context; saved and one-off commands run exactly as saved; history Resume repeats its original Resume command.
+- A historical Fork remains one-shot and cannot be reset into another Fork. Once its newly created Provider identity is discovered, the primary action can Resume that new session.
 - Drag the session-list edge to resize it; the focused separator also supports arrow keys.
 - Put the session list on the left or right with `agentTerminalPanel.sessionListPosition`.
 - Move the entire view through VS Code's **Move View** action or by dragging the view title.
@@ -92,8 +94,8 @@ Shortcuts apply only while the Agent Terminal view is focused:
 
 - Rerunnable sessions remain in an in-memory list for 30 minutes, capped at the latest 10. They are not persisted across extension-host restarts.
 - Reopening is always explicit through the close notification, launch menu, or `Ctrl/Cmd+Shift+T`; the extension never silently starts a command.
-- The recreated session keeps its name, cwd, and launch command, but does not pretend that the original process or lost terminal output survived.
-- One-shot historical Fork launches are excluded so the same fork action cannot run twice by accident.
+- A tab with a recognized Provider identity is recreated through native Resume and continues the same Agent context; an unrecognized ordinary tab reruns its original command. Neither path pretends that the original PTY or lost terminal output survived.
+- A one-shot Fork is excluded until its new identity is recognized; after that it can be recovered as a normal Resume session without repeating the Fork.
 
 ## Image paste, picker, and drop
 

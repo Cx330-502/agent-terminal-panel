@@ -15,12 +15,14 @@ export function localizeDocument(strings: WebviewStrings): void {
   setAria('session-list', strings.sessionListAria);
   setAria('session-splitter', strings.sessionSplitterAria);
   setAria('launch-menu', strings.launchMenuAria);
+  setAria('lifecycle-menu', strings.restartMenuAria);
   setControl('new-session', strings.newDefaultSession);
   setControl('new-session-menu', strings.otherLaunchMethods);
   setControl('find-terminal', strings.findTerminal);
   setControl('pick-attachments', strings.pickAttachmentsAria, strings.pickAttachmentsTitle);
   setControl('rename-active-session', strings.renameCurrentSession);
   setControl('restart-session', strings.rerunCurrentSession);
+  setControl('restart-session-menu', strings.otherRestartMethods);
   setControl('terminal-search-input', strings.searchInputAria);
   setControl('terminal-search-previous', strings.searchPreviousAria, strings.searchPreviousTitle);
   setControl('terminal-search-next', strings.searchNextAria, strings.searchNextTitle);

@@ -1,5 +1,8 @@
+import { createReadStream } from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { createInterface } from 'node:readline';
+import { renameCodexThread } from './codexAppServer';
 import {
   compactTitle,
   isInsideWorkspace,
@@ -8,6 +11,7 @@ import {
   readTailJsonLines
 } from './fileUtils';
 import type {
+  AgentSessionIdentity,
   AgentSessionProvider,
   HistoricalSession,
   SessionLaunchMode
@@ -18,20 +22,40 @@ interface JsonRecord {
   payload?: unknown;
 }
 
+export interface CodexSessionProviderOptions {
+  clientVersion?: string;
+  environment?: Record<string, string>;
+  renameThread?: typeof renameCodexThread;
+  sessionIndexPath?: string;
+  sessionsRoot?: string;
+}
+
 export class CodexSessionProvider implements AgentSessionProvider {
   readonly id = 'codex';
   readonly name = 'Codex';
+  private readonly clientVersion: string;
+  private readonly commandPrefix: string;
+  private readonly environment: Record<string, string>;
+  private readonly renameThread: typeof renameCodexThread;
+  private readonly sessionIndexPath: string;
+  private readonly sessionsRoot: string;
 
-  constructor(
-    private readonly commandPrefix: string,
-    private readonly sessionsRoot = path.join(
-      process.env.CODEX_HOME || path.join(os.homedir(), '.codex'),
-      'sessions'
-    )
-  ) {}
+  constructor(commandPrefix: string, options: CodexSessionProviderOptions = {}) {
+    const codexHome = options.environment?.CODEX_HOME
+      ?? process.env.CODEX_HOME
+      ?? path.join(os.homedir(), '.codex');
+    this.clientVersion = options.clientVersion ?? 'unknown';
+    this.commandPrefix = commandPrefix;
+    this.environment = options.environment ?? {};
+    this.renameThread = options.renameThread ?? renameCodexThread;
+    this.sessionsRoot = options.sessionsRoot ?? path.join(codexHome, 'sessions');
+    this.sessionIndexPath = options.sessionIndexPath
+      ?? path.join(path.dirname(this.sessionsRoot), 'session_index.jsonl');
+  }
 
   async discover(workspaceRoots: string[], limit: number): Promise<HistoricalSession[]> {
     const result: HistoricalSession[] = [];
+    const names = await readThreadNames(this.sessionIndexPath);
     for (const file of await listJsonlFiles(this.sessionsRoot)) {
       const first = asRecord(await readFirstJsonLine(file.path));
       const payload = asRecord(first?.payload);
@@ -40,7 +64,8 @@ export class CodexSessionProvider implements AgentSessionProvider {
       const cwd = stringValue(payload?.cwd);
       if (!sessionId || !cwd || !isInsideWorkspace(cwd, workspaceRoots)) continue;
 
-      const title = findLatestUserMessage(await readTailJsonLines(file.path));
+      const title = names.get(sessionId)
+        ?? findLatestUserMessage(await readTailJsonLines(file.path));
       result.push({
         providerId: this.id,
         providerName: this.name,
@@ -55,9 +80,46 @@ export class CodexSessionProvider implements AgentSessionProvider {
     return result;
   }
 
-  buildLaunchCommand(session: HistoricalSession, mode: SessionLaunchMode): string {
+  buildLaunchCommand(session: AgentSessionIdentity, mode: SessionLaunchMode): string {
     return `${this.commandPrefix} ${mode} ${safeSessionId(session.sessionId)}`;
   }
+
+  async renameSession(
+    session: AgentSessionIdentity,
+    _cwd: string,
+    name: string
+  ): Promise<void> {
+    await this.renameThread(this.commandPrefix, safeSessionId(session.sessionId), name, {
+      clientVersion: this.clientVersion,
+      environment: this.environment
+    });
+  }
+}
+
+async function readThreadNames(file: string): Promise<Map<string, string>> {
+  const result = new Map<string, string>();
+  const stream = createReadStream(file, { encoding: 'utf8' });
+  const lines = createInterface({ input: stream, crlfDelay: Infinity });
+  try {
+    for await (const line of lines) {
+      let entry: unknown;
+      try {
+        entry = JSON.parse(line);
+      } catch {
+        continue;
+      }
+      const record = asRecord(entry);
+      const id = stringValue(record?.id);
+      const name = stringValue(record?.thread_name);
+      if (id && name?.trim()) result.set(id, name.trim());
+    }
+  } catch {
+    return new Map();
+  } finally {
+    lines.close();
+    stream.destroy();
+  }
+  return result;
 }
 
 function findLatestUserMessage(records: unknown[]): string | undefined {

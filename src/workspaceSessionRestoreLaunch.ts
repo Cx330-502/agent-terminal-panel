@@ -33,7 +33,7 @@ export async function launchWorkspaceRestore(
         name: entry.name,
         launchCommand: context.registry.buildLaunchCommand(toHistoricalSession(entry), 'resume'),
         launchSource: 'historyResume',
-        canRestart: true,
+        canRerun: true,
         windowRestoreEligible: true,
         resumeIdentity: entry
       });

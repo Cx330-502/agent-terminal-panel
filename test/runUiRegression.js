@@ -63,7 +63,10 @@ async (page) => {
       unread: false,
       isActive: true,
       canRestart: true,
+      canContinue: true,
+      canRerun: true,
       launchSource: 'default',
+      providerName: 'Codex',
       startupDurationMs: 680,
       communication: activeCommunication,
       ...active
@@ -76,7 +79,10 @@ async (page) => {
       unread: true,
       isActive: false,
       canRestart: true,
-      launchSource: 'historyResume'
+      canContinue: true,
+      canRerun: true,
+      launchSource: 'historyResume',
+      providerName: 'Claude Code'
     },
     {
       id: 'session-3',
@@ -86,6 +92,8 @@ async (page) => {
       unread: false,
       isActive: false,
       canRestart: true,
+      canContinue: false,
+      canRerun: true,
       launchSource: 'custom',
       exitCode: 0
     }
@@ -139,6 +147,9 @@ async (page) => {
           unread: false,
           isActive: true,
           canRestart: true,
+          canContinue: false,
+          canRerun: true,
+          launchSource: 'default',
           startupElapsedMs: 120
         }],
         activeId: 'session-1'
@@ -165,6 +176,9 @@ async (page) => {
           unread: false,
           isActive: true,
           canRestart: true,
+          canContinue: false,
+          canRerun: true,
+          launchSource: 'default',
           spawnDurationMs: 6,
           startupElapsedMs: 5200
         }],
@@ -249,6 +263,37 @@ async (page) => {
     }));
     await page.keyboard.press('Escape');
 
+    await page.locator('#restart-session').hover();
+    const continueDefaultTitle = await page.locator('#restart-session').getAttribute('title');
+    await page.locator('#restart-session').click();
+    await page.locator('#restart-session-menu').click();
+    const lifecycleMenuAria = await page.locator('#lifecycle-menu').ariaSnapshot();
+    const lifecycleMenuProbe = await page.evaluate(() => {
+      const menu = document.querySelector('#lifecycle-menu');
+      const trigger = document.querySelector('#restart-session-menu');
+      const menuRect = menu?.getBoundingClientRect();
+      const triggerRect = trigger?.getBoundingClientRect();
+      return {
+        visible: menu?.hidden === false,
+        withinViewport: Boolean(menuRect && menuRect.left >= 3 && menuRect.right <= innerWidth - 3),
+        verticallyAnchored: Boolean(
+          menuRect && triggerRect && (
+            Math.abs(menuRect.top - triggerRect.bottom) <= 8 ||
+            Math.abs(menuRect.bottom - triggerRect.top) <= 8
+          )
+        ),
+        labels: [...(menu?.querySelectorAll('[role="menuitem"]') ?? [])]
+          .map((element) => element.textContent?.trim())
+      };
+    });
+    await page.screenshot({
+      path: `test/v120-${position}-${width}x${height}-lifecycle-menu.png`,
+      fullPage: true
+    });
+    await page.locator('#lifecycle-menu').getByRole('menuitem', {
+      name: /重置并运行当前默认启动命令/
+    }).click();
+
     await page.locator('#new-session-menu').click();
     const launchMenuAria = await page.locator('#launch-menu').ariaSnapshot();
     const launchMenuProbe = await page.evaluate(() => {
@@ -274,8 +319,6 @@ async (page) => {
     await page.locator('#launch-menu').getByRole('menuitem', { name: /Claude/ }).click();
     await page.locator('#restore-workspace-sessions').click();
     await page.locator('#active-name').dblclick();
-    await page.locator('#restart-session').hover();
-    const rerunDefaultTitle = await page.locator('#restart-session').getAttribute('title');
     await page.locator('.session-row').first().focus();
     await page.locator('#session-splitter').focus();
     await page.keyboard.press(position === 'left' ? 'ArrowRight' : 'ArrowLeft');
@@ -300,9 +343,49 @@ async (page) => {
       status: 'completed',
       unread: true,
       canRestart: false,
+      canContinue: false,
+      canRerun: false,
       launchSource: 'historyFork',
       exitCode: 0
     }));
+    const forkUnavailableProbe = await page.evaluate(() => ({
+      restartDisabled: document.querySelector('#restart-session')?.disabled === true,
+      menuDisabled: document.querySelector('#restart-session-menu')?.disabled === true,
+      title: document.querySelector('#restart-session')?.getAttribute('title')
+    }));
+
+    await page.evaluate((sessions) => {
+      window.__hostSend({ type: 'state', sessions, activeId: 'session-1' });
+    }, sessionsFor(communication('idle', {
+      silentForMs: 1800,
+      provider: {
+        provider: 'codex',
+        source: 'codex-jsonl',
+        turnActive: false,
+        phase: 'complete',
+        lastTtftMs: 1850,
+        lastTurnDurationMs: 12_400,
+        turnInputTokens: 6200,
+        turnOutputTokens: 940,
+        totalTokens: 19_340,
+        contextWindow: 200_000
+      }
+    }), {
+      status: 'completed',
+      unread: true,
+      canRestart: true,
+      canContinue: true,
+      canRerun: false,
+      launchSource: 'historyFork',
+      providerName: 'Codex',
+      exitCode: 0
+    }));
+    const forkLinkedProbe = await page.evaluate(() => ({
+      restartDisabled: document.querySelector('#restart-session')?.disabled === true,
+      menuDisabled: document.querySelector('#restart-session-menu')?.disabled === true,
+      title: document.querySelector('#restart-session')?.getAttribute('title')
+    }));
+    await page.locator('#restart-session').click();
     await page.screenshot({
       path: `test/v060-${position}-${width}x${height}-post.png`,
       fullPage: true
@@ -346,7 +429,6 @@ async (page) => {
         shortWrapped,
         occluded,
         communicationClipped: summary ? summary.scrollWidth > summary.clientWidth + 1 : false,
-        restartDisabled: document.querySelector('#restart-session')?.disabled === true,
         restartTitle: document.querySelector('#restart-session')?.getAttribute('title'),
         rightLayout: document.querySelector('#app')?.classList.contains('session-list-right') === true,
         profileLaunchPosted: window.__webviewMessages.some(
@@ -356,6 +438,10 @@ async (page) => {
         restorePosted: window.__webviewMessages.some((message) => message.type === 'restoreWorkspaceSessions'),
         restoreVisible: document.querySelector('#workspace-restore')?.hidden === false,
         renamePosted: window.__webviewMessages.some((message) => message.type === 'promptRenameSession'),
+        restartModes: window.__webviewMessages
+          .filter((message) => message.type === 'restartSession')
+          .map((message) => message.mode),
+        lifecycleMenuHidden: document.querySelector('#lifecycle-menu')?.hidden === true,
         startupHiddenAfterOutput: document.querySelector('#startup-overlay')?.hidden === true,
         iconButtonCount: document.querySelectorAll('.icon-button').length,
         missingButtonIcons: [...document.querySelectorAll('.icon-button')]
@@ -374,7 +460,11 @@ async (page) => {
       quietProbe,
       stalledProbe,
       completedProbe,
-      rerunDefaultTitle,
+      continueDefaultTitle,
+      lifecycleMenuAriaLength: lifecycleMenuAria.length,
+      lifecycleMenuProbe,
+      forkUnavailableProbe,
+      forkLinkedProbe,
       inlineRenamePreserved,
       launchMenuAriaLength: launchMenuAria.length,
       launchMenuProbe,
@@ -385,7 +475,11 @@ async (page) => {
   const failures = [];
   for (const result of results) {
     const prefix = `${result.position} ${result.width}x${result.height}`;
-    if (result.ariaLength === 0 || result.launchMenuAriaLength === 0) {
+    if (
+      result.ariaLength === 0 ||
+      result.launchMenuAriaLength === 0 ||
+      result.lifecycleMenuAriaLength === 0
+    ) {
       failures.push(`${prefix}: accessibility snapshot is empty`);
     }
     if (!result.startupProbe.visible || !result.startupProbe.title || !result.startupProbe.detail) {
@@ -421,6 +515,14 @@ async (page) => {
       failures.push(`${prefix}: launch menu geometry ${JSON.stringify(result.launchMenuProbe)}`);
     }
     if (
+      !result.lifecycleMenuProbe.visible ||
+      !result.lifecycleMenuProbe.withinViewport ||
+      !result.lifecycleMenuProbe.verticallyAnchored ||
+      result.lifecycleMenuProbe.labels.length !== 2
+    ) {
+      failures.push(`${prefix}: lifecycle menu geometry ${JSON.stringify(result.lifecycleMenuProbe)}`);
+    }
+    if (
       result.documentOverflow ||
       result.clipped.length > 0 ||
       result.shortWrapped.length > 0 ||
@@ -444,9 +546,17 @@ async (page) => {
       !result.restorePosted ||
       !result.restoreVisible ||
       !result.renamePosted ||
-      !result.restartDisabled ||
-      !result.rerunDefaultTitle?.includes('默认启动命令') ||
-      !result.restartTitle?.includes('Fork') ||
+      !result.lifecycleMenuHidden ||
+      !result.continueDefaultTitle?.includes('Codex') ||
+      result.restartModes.filter((mode) => mode === 'continue').length !== 2 ||
+      result.restartModes.filter((mode) => mode === 'rerun').length !== 1 ||
+      !result.forkUnavailableProbe.restartDisabled ||
+      !result.forkUnavailableProbe.menuDisabled ||
+      !result.forkUnavailableProbe.title?.includes('Fork') ||
+      result.forkLinkedProbe.restartDisabled ||
+      !result.forkLinkedProbe.menuDisabled ||
+      !result.forkLinkedProbe.title?.includes('Codex') ||
+      !result.restartTitle?.includes('Codex') ||
       result.iconButtonCount === 0
     ) {
       failures.push(`${prefix}: interaction probes failed`);

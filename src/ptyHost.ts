@@ -1,4 +1,3 @@
-import * as vscode from 'vscode';
 import type { IPty } from 'node-pty';
 import * as nodePty from 'node-pty';
 import type { AgentProcessConfig } from './config';
@@ -37,7 +36,7 @@ export class PtyHost {
     try {
       const environment = buildTerminalEnvironment(process.env, config.environment, {
         imagesEnabled: config.terminalImagesEnabled,
-        vscodeVersion: vscode.version
+        vscodeVersion: config.vscodeVersion
       });
       const launch = resolveLaunchCommand(config.launchCommand, process.platform, environment);
       const ptyProcess = nodePty.spawn(launch.command, launch.args, {

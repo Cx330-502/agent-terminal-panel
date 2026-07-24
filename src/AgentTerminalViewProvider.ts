@@ -17,18 +17,16 @@ import {
   registerProviderEvents,
   updateViewBadge
 } from './providerViewState';
+import { trackProviderSession } from './providerSessionTracking';
 import { createSessionHistoryRegistry } from './sessionHistory/createRegistry';
-import {
-  SessionHistoryController,
-  type HistoricalSessionLaunch
-} from './sessionHistory/controller';
+import { SessionHistoryController, type HistoricalSessionLaunch } from './sessionHistory/controller';
 import {
   SessionManager,
-  type ClosedSessionState,
   type SessionCreateOptions,
   type SessionAttention,
   type SessionStartupTiming
 } from './sessionManager';
+import { SessionLifecycleController } from './sessionLifecycleController';
 import type { HostMessage, WebviewMessage } from './shared';
 import { promptSessionRename } from './sessionRename';
 import { StartupLogger } from './startupLogger';
@@ -36,10 +34,7 @@ import { WebviewReadyBarrier } from './webviewReadyBarrier';
 import { handleWebviewUtilityMessage } from './webviewUtilityMessages';
 import { getWebviewHtml } from './webviewHtml';
 import { defaultWorkingDirectory, pickWorkingDirectory } from './workingDirectory';
-import {
-  detectLaunchProvider,
-  WorkspaceSessionRestore
-} from './workspaceSessionRestore';
+import { detectLaunchProvider, WorkspaceSessionRestore } from './workspaceSessionRestore';
 import { launchWorkspaceRestore } from './workspaceSessionRestoreLaunch';
 
 export const VIEW_ID = 'agentTerminalPanel.terminalView';
@@ -48,10 +43,11 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
   private readonly viewDisposables: vscode.Disposable[] = [];
   private readonly readyBarrier = new WebviewReadyBarrier();
   private readonly sessions: SessionManager;
+  private readonly lifecycle: SessionLifecycleController;
   private readonly notifier: CompletionNotifier;
   private readonly sessionHistory: SessionHistoryController;
   private readonly workspaceRestore: WorkspaceSessionRestore;
-  private readonly sessionRegistry = createSessionHistoryRegistry();
+  private readonly sessionRegistry: ReturnType<typeof createSessionHistoryRegistry>;
   private readonly attachments: AttachmentController;
   private readonly closedSessions: ClosedSessionRecovery;
   private readonly startupLogger = new StartupLogger();
@@ -69,6 +65,10 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
     globalStorageUri: vscode.Uri,
     workspaceState: vscode.Memento
   ) {
+    const extensionVersion = vscode.extensions.getExtension(extensionId)?.packageJSON.version;
+    this.sessionRegistry = createSessionHistoryRegistry(
+      typeof extensionVersion === 'string' ? extensionVersion : 'unknown'
+    );
     this.attachments = new AttachmentController(
       storageUri ?? globalStorageUri,
       (message) => this.post(message)
@@ -80,8 +80,17 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
       onAttention: (event) => this.handleAttention(event),
       onStartupTiming: (event) => this.handleStartupTiming(event)
     });
+    this.lifecycle = new SessionLifecycleController({
+      sessions: this.sessions,
+      registry: this.sessionRegistry,
+      ensureLaunchCommand: () => this.ensureLaunchCommand(),
+      currentDefaultLaunchCommand: getLaunchCommand,
+      createSessionAt: (cwd, options) => this.createSessionAt(cwd, options),
+      trackProviderSession: (id, providerId, startedAt) =>
+        trackProviderSession(this.workspaceRestore, this.sessions, id, providerId, startedAt)
+    });
     this.closedSessions = new ClosedSessionRecovery(
-      (session) => this.reopenClosedSessionState(session),
+      (session) => this.lifecycle.reopenClosedSession(session),
       (closedSessions) => this.post({ type: 'closedSessions', closedSessions })
     );
     this.notifier = new CompletionNotifier({
@@ -100,7 +109,10 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
       (vscode.workspace.workspaceFolders ?? []).map((folder) => folder.uri.fsPath),
       this.sessionRegistry,
       {
-        onIdentity: (id, identity) => this.sessions.setResumeIdentity(id, identity),
+        onIdentity: (id, identity) => {
+          this.sessions.setResumeIdentity(id, identity);
+          void this.lifecycle.syncProviderName(id, false);
+        },
         onPendingChanged: () => this.postWorkspaceRestore()
       }
     );
@@ -217,16 +229,12 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
       await this.waitForWebviewReady();
     }
     const id = this.sessions.create(cwd, this.lastSize, options);
-    const restorable = this.sessions.restorableSession(id);
-    const providerId = detectLaunchProvider(getLaunchCommand());
-    if (
-      restorable &&
-      !restorable.identity &&
-      this.sessions.get(id)?.launchSource === 'default' &&
-      providerId
-    ) {
-      this.workspaceRestore.trackDefaultSession(restorable, providerId);
-    }
+    trackProviderSession(
+      this.workspaceRestore,
+      this.sessions,
+      id,
+      detectLaunchProvider(options.launchCommand ?? getLaunchCommand())
+    );
     await this.show();
     this.post({ type: 'focusSession', id });
     this.acknowledgeVisibleSession();
@@ -239,12 +247,10 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
   async reopenClosedSession(): Promise<boolean> {
     return this.closedSessions.reopenLatest();
   }
-
   activeSessionForInbox(): { id: string; name: string } | undefined {
     const session = this.sessions.getActive();
     return session ? { id: session.id, name: session.name } : undefined;
   }
-
   insertIntoSession(id: string, text: string): boolean {
     if (!this.sessions.get(id)) return false;
     this.sessions.activate(id);
@@ -252,10 +258,16 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
     void this.show().then(() => this.post({ type: 'focusSession', id }));
     return true;
   }
-
   async restartActiveSession(): Promise<void> {
+    const session = this.sessions.getActive();
+    if (session) {
+      await this.lifecycle.restart(session.id, session.canContinue ? 'continue' : 'rerun');
+    }
+  }
+
+  async rerunActiveSession(): Promise<void> {
     const id = this.sessions.getActiveId();
-    if (id) await this.restartSession(id);
+    if (id) await this.lifecycle.restart(id, 'rerun');
   }
 
   openSettings(): void {
@@ -276,7 +288,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
     const session = this.sessions.get(id);
     if (!session) return;
     const name = await promptSessionRename(session.name);
-    if (name !== undefined) this.sessions.rename(session.id, name);
+    if (name !== undefined) await this.lifecycle.rename(session.id, name);
   }
 
   switchSession(direction: 1 | -1): void {
@@ -349,7 +361,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
         this.acknowledgeVisibleSession();
         return;
       case 'renameSession':
-        this.sessions.rename(message.id, message.name);
+        await this.lifecycle.rename(message.id, message.name);
         return;
       case 'promptRenameSession':
         await this.renameSession(message.id);
@@ -361,7 +373,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
         await this.reopenClosedSession();
         return;
       case 'restartSession':
-        await this.restartSession(message.id);
+        await this.lifecycle.restart(message.id, message.mode);
         return;
       case 'status':
         this.sessions.setDetectedStatus(
@@ -439,33 +451,6 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
     this.closedSessions.remember(this.sessions.close(id));
   }
 
-  private async reopenClosedSessionState(session: ClosedSessionState): Promise<boolean> {
-    if (!session.options.launchCommand && !(await this.ensureLaunchCommand())) return false;
-    await this.createSessionAt(session.cwd, session.options);
-    return true;
-  }
-
-  private async restartSession(id: string): Promise<void> {
-    if (this.sessions.get(id)?.canRestart === false) {
-      void vscode.window.showInformationMessage(
-        vscode.l10n.t('A Fork launch runs only once. Resume the newly generated session from history to avoid repeating the Fork.')
-      );
-      return;
-    }
-    const usesDefaultCommand = this.sessions.requiresDefaultLaunchCommand(id);
-    if (usesDefaultCommand && !(await this.ensureLaunchCommand())) return;
-    if (usesDefaultCommand) this.sessions.clearResumeIdentity(id);
-    const startedAt = this.sessions.restart(id);
-    const restorable = this.sessions.restorableSession(id);
-    const providerId = detectLaunchProvider(getLaunchCommand());
-    if (usesDefaultCommand && startedAt !== undefined && restorable && providerId) {
-      this.workspaceRestore.trackDefaultSession(
-        { ...restorable, startedAt },
-        providerId
-      );
-    }
-  }
-
   private async launchHistoricalSession(options: HistoricalSessionLaunch): Promise<void> {
     this.didAutoStart = true;
     if (!this.webviewReady) {
@@ -473,6 +458,9 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
       await this.waitForWebviewReady();
     }
     const id = this.sessions.create(options.cwd, this.lastSize, options);
+    if (options.expectedProviderId) {
+      trackProviderSession(this.workspaceRestore, this.sessions, id, options.expectedProviderId);
+    }
     await this.show();
     this.post({ type: 'focusSession', id });
     this.acknowledgeVisibleSession();

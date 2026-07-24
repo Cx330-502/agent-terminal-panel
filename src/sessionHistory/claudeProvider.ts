@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+import { appendFile } from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import {
@@ -8,6 +10,7 @@ import {
   readTailJsonLines
 } from './fileUtils';
 import type {
+  AgentSessionIdentity,
   AgentSessionProvider,
   HistoricalSession,
   SessionLaunchMode
@@ -51,13 +54,51 @@ export class ClaudeSessionProvider implements AgentSessionProvider {
     return result;
   }
 
-  buildLaunchCommand(session: HistoricalSession, mode: SessionLaunchMode): string {
+  buildLaunchCommand(session: AgentSessionIdentity, mode: SessionLaunchMode): string {
     const resume = `${this.commandPrefix} --resume ${safeSessionId(session.sessionId)}`;
     return mode === 'fork' ? `${resume} --fork-session` : resume;
+  }
+
+  async renameSession(
+    session: AgentSessionIdentity,
+    cwd: string,
+    name: string
+  ): Promise<void> {
+    const sessionId = safeSessionId(session.sessionId);
+    const expectedName = `${sessionId}.jsonl`;
+    const files = await listJsonlFiles(this.projectsRoot);
+    for (const file of files) {
+      if (path.basename(file.path) !== expectedName || file.path.includes(`${path.sep}subagents${path.sep}`)) {
+        continue;
+      }
+      const head = await readHeadJsonLines(file.path);
+      if (findString(head, 'sessionId') !== sessionId || !samePath(findString(head, 'cwd'), cwd)) {
+        continue;
+      }
+      await appendFile(
+        file.path,
+        `${JSON.stringify({
+          type: 'custom-title',
+          customTitle: name.trim(),
+          sessionId,
+          uuid: randomUUID(),
+          timestamp: new Date().toISOString()
+        })}\n`,
+        'utf8'
+      );
+      return;
+    }
+    throw new Error(`Claude Code session ${sessionId} was not found in the current workspace`);
   }
 }
 
 function findTitle(records: unknown[]): string | undefined {
+  for (let index = records.length - 1; index >= 0; index--) {
+    const record = asRecord(records[index]);
+    if (record?.type === 'custom-title' && typeof record.customTitle === 'string') {
+      if (record.customTitle.trim()) return record.customTitle;
+    }
+  }
   for (let index = records.length - 1; index >= 0; index--) {
     const record = asRecord(records[index]);
     if (record?.type === 'last-prompt' && typeof record.lastPrompt === 'string') {
@@ -94,8 +135,19 @@ function findString(records: unknown[], key: string): string | undefined {
 }
 
 function safeSessionId(value: string): string {
-  if (!/^[a-zA-Z0-9-]+$/u.test(value)) throw new Error('Invalid Claude session id');
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(value)) {
+    throw new Error('Invalid Claude session id');
+  }
   return value;
+}
+
+function samePath(left: string | undefined, right: string): boolean {
+  if (!left) return false;
+  const normalizedLeft = path.resolve(left);
+  const normalizedRight = path.resolve(right);
+  return process.platform === 'win32'
+    ? normalizedLeft.toLowerCase() === normalizedRight.toLowerCase()
+    : normalizedLeft === normalizedRight;
 }
 
 function asRecord(value: unknown): JsonRecord | undefined {

@@ -109,17 +109,15 @@
     display: none;
   }
 
-  .communication-summary {
-    padding: 0 5px;
-  }
-}
-
-@container panel (max-width: 370px) {
   .communication-health-full {
     display: none;
   }
 
   .communication-health-compact {
     display: inline;
+  }
+
+  .communication-summary {
+    padding: 0 5px;
   }
 }

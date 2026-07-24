@@ -23,6 +23,7 @@ VS Code workspace extension host
       CommunicationMonitor
         process tree -> Linux ss / macOS nettop / Windows TCP connections
         CodexSessionTracker -> process-open rollout JSONL metadata
+    SessionLifecycleController -> continue / reset / closed-session recovery / name sync
     SessionHistoryController -> Codex / Claude provider adapters
     WorkspaceSessionRestore -> workspaceState snapshot + provider identity correlation
     AttachmentStore -> workspace/global extension storage
@@ -59,7 +60,7 @@ Startup timings are written to the `Agent Terminal Panel` LogOutputChannel. Do n
 
 `media/launchMenu.ts` owns the anchored Webview menu, focus navigation, outside-click dismissal, and left/right collision handling. Keep the menu in the Webview document top level so the resizable session sidebar cannot clip it. The Extension Host resolves command IDs against the latest configuration before starting a PTY.
 
-`SessionManager` records a launch source for every terminal. The rerun action must preserve that source: default sessions resolve the latest default command, saved and one-off commands retain their command snapshot, history Resume repeats its Provider command, and history Fork remains non-rerunnable. Automatic `Agent N` display names are allocated independently from session UUIDs and always choose the lowest free positive index.
+`SessionManager` records a launch source plus independent `canContinue` and `canRerun` capabilities for every terminal. `SessionLifecycleController` turns those capabilities into explicit actions: continue always builds a fresh Provider Resume command from the verified identity, while reset clears the terminal and reruns the source command. Default resets resolve the latest default command, saved and one-off commands retain their command snapshot, history Resume repeats its original Provider command, and history Fork remains non-rerunnable until its new identity is discovered and can be resumed. Automatic `Agent N` display names are allocated independently from session UUIDs and always choose the lowest free positive index.
 
 ### Attachment flow
 
@@ -75,9 +76,11 @@ The xterm viewport uses a custom scroll model, so browser-native text selection 
 
 Providers implement discovery, workspace matching, presentation, and native resume/fork command generation. New providers should be added under `src/sessionHistory/` and registered by `SessionHistoryController`. Do not guess undocumented resume arguments: provider support should ship only with verified commands and fixtures.
 
+Provider name sync is equally adapter-specific. Codex uses the stable app-server `thread/name/set` request after the normal initialize handshake; never edit Codex SQLite directly. Claude Code appends its own `custom-title` JSONL record only after both the session UUID and cwd match. Unsupported providers keep panel-only names, and adapter failure must not roll back the user's local title.
+
 ### Previous-window restore
 
-`WorkspaceSessionRestore` is distinct from the Provider history picker. It continuously serializes only default-launch sessions that have a verified Provider session identity. Explicit closes remove entries through the normal `SessionManager` state update; custom commands and manually launched history sessions never become eligible.
+`WorkspaceSessionRestore` is distinct from the Provider history picker. Identity correlation may track direct Codex / Claude default, saved, one-off, and Fork launches so lifecycle actions and name sync can work, but serialization still requires `windowRestoreEligible` and therefore remains limited to default-`+` sessions with a verified Provider identity. Explicit closes remove entries through the normal `SessionManager` state update; custom commands and manually launched history sessions never become eligible.
 
 The snapshot lives in `ExtensionContext.workspaceState` and contains no launch command or terminal output. On the next activation it remains pending until the user selects **Restore all** or **Ignore**. Pending recovery suppresses automatic session creation so proxy or network dependencies can be prepared first. Identity correlation polls current-workspace Codex/Claude history only while a new default session is unresolved, then stops after a bounded window.
 
@@ -98,6 +101,7 @@ Do not derive TPOT from terminal output timing or token-count deltas. Codex expo
 | --- | --- |
 | `src/` | Extension-host orchestration, PTY, communication probes, storage, notifications, configuration |
 | `src/sessionHistory/` | Provider-specific history discovery and launch adapters |
+| `src/sessionLifecycleController.ts` | Provider-aware restart/reset, closed-session recovery, and rename synchronization |
 | `src/workspaceSessionRestore.ts` | Workspace snapshot persistence and default-session identity correlation |
 | `media/` | Webview TypeScript, CSS, icons, generated browser bundle |
 | `test/*.test.ts` | Node unit and PTY integration tests |

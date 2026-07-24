@@ -10,6 +10,7 @@ export interface AgentProcessConfig {
   launchCommand: string;
   environment: Record<string, string>;
   terminalImagesEnabled: boolean;
+  vscodeVersion: string;
 }
 
 export type CompletionSoundMode = 'never' | 'whenHidden' | 'always';
@@ -59,7 +60,8 @@ export function getAgentProcessConfig(): AgentProcessConfig {
   return {
     launchCommand: config.get<string>('launchCommand', '').trim(),
     environment: config.get<Record<string, string>>('environment', {}),
-    terminalImagesEnabled: config.get<boolean>('terminalImages.enabled', false)
+    terminalImagesEnabled: config.get<boolean>('terminalImages.enabled', false),
+    vscodeVersion: vscode.version
   };
 }
 

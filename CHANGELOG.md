@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.2.0
+
+- 重做会话生命周期语义：主重启按钮在识别到 Provider Session 后使用原生 Resume 继续同一 Agent 上下文，尚未识别时明确回退为重置终端并重跑启动命令。
+- 重启按钮新增原位下拉菜单，同时提供“重启进程并继续 Provider 会话”和“重置终端并重跑原启动命令”；默认、保存、自定义、历史 Resume 与 Fork 的实际行为和提示分别处理。
+- 默认、保存和自定义命令的重置会清除旧 Provider identity、启动新上下文并重新跟踪；历史 Fork 仍禁止重复 Fork，但新会话 identity 被识别后可以通过 Resume 重启。
+- 最近关闭会话在已有 Provider identity 时优先恢复同一 Codex / Claude Code 上下文；未识别 Provider 的普通会话继续按原命令重新创建，不伪装成原 PTY 尚存。
+- 面板重命名可同步 Provider Session 名称：Codex 通过官方 `codex app-server` 的稳定 `thread/name/set` 接口，Claude Code 在校验 Session ID 与 cwd 后追加其 `custom-title` 记录；不直接修改 Codex SQLite。
+- 未识别或暂不支持名称同步的 Provider 仍可正常修改面板名称；同步失败不会回滚本地名称，并会给出明确 warning。名称统一限制为 200 个字符，快速连续改名按会话顺序同步。
+- Provider identity 跟踪扩展到直接 Codex / Claude 的默认、保存、自定义与 Fork 启动；只有默认 `+` 会话继续进入上次窗口恢复存储，保持原有隐私与恢复边界。
+- 新增 Codex app-server 握手、Claude `custom-title`、生命周期能力、临时 Resume 命令、关闭身份保留，以及九视口重启菜单与 Fork 状态回归。
+
 ## 1.1.0
 
 - 默认标签名称不再单调累加：新会话会选择当前存活标签中最小可用的 `Agent N`，关闭或改名后释放的编号可立即复用；Profile、历史和自定义名称不再暗中消耗编号。

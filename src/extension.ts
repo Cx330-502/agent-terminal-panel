@@ -61,6 +61,9 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('agentTerminalPanel.restartSession', () =>
       provider.restartActiveSession()
     ),
+    vscode.commands.registerCommand('agentTerminalPanel.rerunSession', () =>
+      provider.rerunActiveSession()
+    ),
     vscode.commands.registerCommand('agentTerminalPanel.configureLaunchCommand', () =>
       provider.configureLaunchCommand()
     ),

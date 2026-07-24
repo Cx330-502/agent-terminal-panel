@@ -7,6 +7,7 @@ export type SessionLaunchSource =
   | 'custom'
   | 'historyResume'
   | 'historyFork';
+export type SessionRestartMode = 'continue' | 'rerun';
 export type CommunicationHealthState = 'active' | 'quiet' | 'stalled' | 'idle' | 'unavailable';
 export type CommunicationHealthBasis = 'network' | 'provider' | 'pty' | 'none';
 export type NetworkProbeSource = 'linux-ss' | 'macos-nettop' | 'windows-connections';
@@ -67,7 +68,10 @@ export interface SessionSnapshot {
   unread: boolean;
   isActive: boolean;
   canRestart: boolean;
+  canContinue: boolean;
+  canRerun: boolean;
   launchSource: SessionLaunchSource;
+  providerName?: string;
   exitCode?: number;
   spawnDurationMs?: number;
   startupElapsedMs?: number;
@@ -173,7 +177,7 @@ export type WebviewMessage =
   | { type: 'renameSession'; id: string; name: string }
   | { type: 'promptRenameSession'; id: string }
   | { type: 'closeSession'; id: string }
-  | { type: 'restartSession'; id: string }
+  | { type: 'restartSession'; id: string; mode: SessionRestartMode }
   | {
       type: 'status';
       id: string;

@@ -14,7 +14,7 @@ Agent Terminal Panel 不绑定 Codex、Claude 或任何单一产品。你提供�
 
 - **一个面板管理所有 Agent**：`codex`、`claude`、`gemini`、`aider`、内部 CLI、代理包装命令或任意交互式 shell 程序都可以使用。
 - **不是“看起来像终端”的文本框**：底层使用 xterm.js + node-pty，支持 resize、Bracketed Paste、中文 IME、真彩色、OSC 10/11/12 和 Codex 灰色输入区。
-- **会话真正并行**：新建、切换、重命名、关闭、重新运行；切走视图后 PTY 仍在后台运行，Webview 重建时可回放近期输出。
+- **会话真正并行**：新建、切换、重命名、关闭、继续上下文或重置重跑；切走视图后 PTY 仍在后台运行，Webview 重建时可回放近期输出。
 - **长输出也能快速定位**：`Ctrl/Cmd+F` 在当前终端 scrollback 中查找，支持上一项、下一项、匹配计数和中文关键词。
 - **Codex 历史不再被 xterm 局部滚动吞掉**：对 ratatui 的顶部区域滚屏帧做精确、可删除的兼容处理，实时输出和 Webview replay 都保留完整 scrollback，其他终端序列不受影响。
 - **每个会话都有自己的上下文**：可选择 cwd，也可用一次性自定义命令和独立名称启动，不污染默认命令。
@@ -58,9 +58,11 @@ Agent Terminal Panel 不绑定 Codex、Claude 或任何单一产品。你提供�
 
 ## 会话与布局
 
-- 双击会话名、双击顶部名称、点击铅笔或按 `F2` 可重命名。
+- 双击会话名、双击顶部名称、点击铅笔或按 `F2` 可重命名。面板名称立即生效；识别到 Codex / Claude Code Session 后还会同步 Provider 名称，同步失败只提示 warning，不回滚面板名称。
 - 默认名称会自动填补最小空位：关闭或改名释放 `Agent 2` 后，下一个默认会话会重新使用 `Agent 2`；内部会话 UUID 不会复用。
-- 圆形箭头表示“重新运行启动命令”：默认标签读取当前默认命令，保存命令与一次性命令重跑各自命令，历史 Resume 再次恢复同一 Provider session，Fork 不允许重复运行。
+- 主圆形箭头表示“重启当前会话”：识别到 Provider Session 时使用原生 Resume 继续同一 Agent 上下文；尚未识别时重置终端并重跑该标签的启动命令。
+- 当“继续上下文”和“重置重跑”都可用时，箭头旁会出现就地下拉按钮。重置默认会话会读取当前默认命令并创建新 Agent 上下文；保存命令与一次性命令原样重跑；历史 Resume 重跑原 Resume 命令。
+- 历史 Fork 只执行一次，不允许重置后重复 Fork；新 Fork 写入 Provider 历史并被识别后，主按钮会切换为 Resume 新会话。
 - 拖动会话列表边缘可调整宽度；分隔条聚焦后也可用左右方向键。
 - `agentTerminalPanel.sessionListPosition` 可把会话列放在终端左侧或右侧。
 - 右键视图标题选择 **Move View**，或直接拖动视图标题，可移动到任一侧栏或 Panel。
@@ -92,8 +94,8 @@ Agent Terminal Panel 不绑定 Codex、Claude 或任何单一产品。你提供�
 
 - 可重新运行的会话关闭后会在内存中保留 30 分钟，最多保留最近 10 个；不会写入 workspaceState，也不会跨 extension-host 重启保留。
 - 可通过关闭后的原生 Toast、加号下拉菜单或 `Ctrl/Cmd+Shift+T` 显式重新创建，插件不会静默启动命令。
-- 重开会保留名称、cwd 和启动命令，但不伪装成原进程继续运行，也不恢复已丢失的终端输出。
-- 为避免重复派生，同一个历史会话的单次 Fork 关闭后不会进入快速重开记录。
+- 已识别 Provider Session 的标签会通过原生 Resume 重新创建并继续同一 Agent 上下文；未识别的普通标签才重跑原命令。两者都不会伪装成原 PTY 尚存，也不会恢复已丢失的终端输出。
+- 为避免重复派生，尚未识别新 identity 的单次 Fork 不会进入快速重开记录；identity 被识别后可按 Resume 会话恢复。
 
 ## 图片粘贴、选择与拖放
 

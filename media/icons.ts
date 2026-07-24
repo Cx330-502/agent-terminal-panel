@@ -14,6 +14,7 @@ const ICON_PATHS = {
   arrowDown: '<path d="m4 6 4 4 4-4"/>',
   pencil:
     '<path d="m3 11.75-.5 2 2-.5 7.75-7.75-1.5-1.5z"/><path d="m9.75 5 1.5 1.5"/>',
+  continue: '<path d="M3 3.25v9.5l8-4.75z"/><path d="M13 3.5v9"/>',
   restart:
     '<path d="M13.25 5.5V2.75M13.25 5.5H10.5"/><path d="M12.75 5A5.5 5.5 0 1 0 13.5 9"/>',
   close: '<path d="m4 4 8 8M12 4l-8 8"/>'

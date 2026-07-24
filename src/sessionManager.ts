@@ -21,7 +21,7 @@ interface SessionRecord {
   output: OutputBuffer;
   launchCommand?: string;
   launchSource: SessionLaunchSource;
-  canRestart: boolean;
+  canRerun: boolean;
   automaticName: boolean;
   startedAt: number;
   pid?: number;
@@ -29,13 +29,15 @@ interface SessionRecord {
   startupDurationMs?: number;
   windowRestoreEligible: boolean;
   resumeIdentity?: AgentSessionIdentity;
+  desiredProviderName?: string;
+  pendingProviderName?: string;
 }
 
 export interface SessionCreateOptions {
   name?: string;
   launchCommand?: string;
   launchSource?: SessionLaunchSource;
-  canRestart?: boolean;
+  canRerun?: boolean;
   automaticName?: boolean;
   windowRestoreEligible?: boolean;
   resumeIdentity?: AgentSessionIdentity;
@@ -53,7 +55,14 @@ export interface RestorableSessionState {
   cwd: string;
   isActive: boolean;
   startedAt: number;
+  windowRestoreEligible: boolean;
   identity?: AgentSessionIdentity;
+}
+
+export interface ProviderRenameRequest {
+  identity: AgentSessionIdentity;
+  cwd: string;
+  name: string;
 }
 
 export interface SessionAttention {
@@ -121,7 +130,7 @@ export class SessionManager {
       activityEpoch: 0,
       output: new OutputBuffer(),
       launchSource,
-      canRestart: launchSource === 'historyFork' ? false : options.canRestart ?? true,
+      canRerun: launchSource === 'historyFork' ? false : options.canRerun ?? true,
       automaticName,
       startedAt: Date.now(),
       windowRestoreEligible: options.windowRestoreEligible ?? false,
@@ -141,20 +150,18 @@ export class SessionManager {
     const index = ids.indexOf(id);
     if (index < 0) return undefined;
     const session = this.sessions.get(id)!;
-    const closed = session.canRestart
+    const closed = session.canRerun || session.resumeIdentity
       ? {
           name: session.name,
           cwd: session.cwd,
           options: {
             name: session.name,
             launchSource: session.launchSource,
-            canRestart: true,
+            canRerun: session.canRerun,
             automaticName: session.automaticName,
             windowRestoreEligible: session.windowRestoreEligible,
             ...(session.launchCommand ? { launchCommand: session.launchCommand } : {}),
-            ...(session.launchCommand && session.resumeIdentity
-              ? { resumeIdentity: session.resumeIdentity }
-              : {})
+            ...(session.resumeIdentity ? { resumeIdentity: session.resumeIdentity } : {})
           }
         }
       : undefined;
@@ -169,9 +176,9 @@ export class SessionManager {
     return closed;
   }
 
-  restart(id: string): number | undefined {
+  restart(id: string, launchCommand?: string): number | undefined {
     const session = this.sessions.get(id);
-    if (!session || !session.canRestart) return undefined;
+    if (!session) return undefined;
     this.ptyHost.kill(id);
     this.communication.restart(id);
     session.output.clear();
@@ -186,7 +193,7 @@ export class SessionManager {
     session.lastAttentionKey = undefined;
     this.callbacks.onClear(id);
     this.callbacks.onStateChanged();
-    this.spawn(session);
+    this.spawn(session, launchCommand);
     return session.startedAt;
   }
 
@@ -218,13 +225,16 @@ export class SessionManager {
     this.ptyHost.resize(id, session.size);
   }
 
-  rename(id: string, name: string): void {
+  rename(id: string, name: string): boolean {
     const session = this.sessions.get(id);
-    const trimmed = name.trim();
-    if (!session || !trimmed || trimmed === session.name) return;
+    const trimmed = name.trim().slice(0, 200);
+    if (!session || !trimmed || trimmed === session.name) return false;
     session.name = trimmed;
     session.automaticName = false;
+    session.desiredProviderName = trimmed;
+    session.pendingProviderName = trimmed;
     this.callbacks.onStateChanged();
+    return true;
   }
 
   activate(id: string): void {
@@ -301,16 +311,23 @@ export class SessionManager {
     return this.sessions.get(id)?.launchSource === 'default';
   }
 
+  savedLaunchCommand(id: string): string | undefined {
+    return this.sessions.get(id)?.launchCommand;
+  }
+
   clearResumeIdentity(id: string): void {
     const session = this.sessions.get(id);
     if (!session?.resumeIdentity) return;
     session.resumeIdentity = undefined;
+    if (session.desiredProviderName) {
+      session.pendingProviderName = session.desiredProviderName;
+    }
     this.callbacks.onStateChanged();
   }
 
   setResumeIdentity(id: string, identity: AgentSessionIdentity): void {
     const session = this.sessions.get(id);
-    if (!session || !session.windowRestoreEligible) return;
+    if (!session) return;
     if (
       session.resumeIdentity?.providerId === identity.providerId &&
       session.resumeIdentity.sessionId === identity.sessionId
@@ -318,28 +335,52 @@ export class SessionManager {
       return;
     }
     session.resumeIdentity = identity;
+    if (session.desiredProviderName) {
+      session.pendingProviderName = session.desiredProviderName;
+    }
     this.callbacks.onStateChanged();
   }
 
   restorableSessions(): RestorableSessionState[] {
-    return [...this.sessions.values()].flatMap((session) =>
-      session.windowRestoreEligible
-        ? [
-            {
-              id: session.id,
-              name: session.name,
-              cwd: session.cwd,
-              isActive: session.id === this.activeId,
-              startedAt: session.startedAt,
-              ...(session.resumeIdentity ? { identity: session.resumeIdentity } : {})
-            }
-          ]
-        : []
-    );
+    return [...this.sessions.values()].map((session) => ({
+      id: session.id,
+      name: session.name,
+      cwd: session.cwd,
+      isActive: session.id === this.activeId,
+      startedAt: session.startedAt,
+      windowRestoreEligible: session.windowRestoreEligible,
+      ...(session.resumeIdentity ? { identity: session.resumeIdentity } : {})
+    }));
   }
 
   restorableSession(id: string): RestorableSessionState | undefined {
     return this.restorableSessions().find((session) => session.id === id);
+  }
+
+  providerRenameRequest(id: string): ProviderRenameRequest | undefined {
+    const session = this.sessions.get(id);
+    if (!session?.resumeIdentity || !session.pendingProviderName) return undefined;
+    return {
+      identity: session.resumeIdentity,
+      cwd: session.cwd,
+      name: session.pendingProviderName
+    };
+  }
+
+  providerSession(id: string): ProviderRenameRequest | undefined {
+    const session = this.sessions.get(id);
+    if (!session?.resumeIdentity) return undefined;
+    return {
+      identity: session.resumeIdentity,
+      cwd: session.cwd,
+      name: session.name
+    };
+  }
+
+  completeProviderRename(id: string, name: string): void {
+    const session = this.sessions.get(id);
+    if (!session || session.pendingProviderName !== name) return;
+    session.pendingProviderName = undefined;
   }
 
   refreshCommunicationHealth(): void {
@@ -362,11 +403,11 @@ export class SessionManager {
     this.sessions.clear();
   }
 
-  private spawn(session: SessionRecord): void {
+  private spawn(session: SessionRecord, launchCommand?: string): void {
     const config = this.getProcessConfig();
     const info = this.ptyHost.spawn(session.id, session.cwd, session.size, {
       ...config,
-      launchCommand: session.launchCommand ?? config.launchCommand
+      launchCommand: launchCommand ?? session.launchCommand ?? config.launchCommand
     });
     if (!info) return;
     session.pid = info.pid;
@@ -447,8 +488,11 @@ export class SessionManager {
       status: session.status,
       unread: session.unread,
       isActive: session.id === this.activeId,
-      canRestart: session.canRestart,
+      canRestart: session.canRerun || Boolean(session.resumeIdentity),
+      canContinue: Boolean(session.resumeIdentity),
+      canRerun: session.canRerun,
       launchSource: session.launchSource,
+      ...(session.resumeIdentity ? { providerName: session.resumeIdentity.providerName } : {}),
       ...(session.spawnDurationMs === undefined
         ? {}
         : { spawnDurationMs: session.spawnDurationMs }),

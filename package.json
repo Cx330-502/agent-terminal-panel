@@ -2,7 +2,7 @@
   "name": "agent-terminal-panel",
   "displayName": "%extension.displayName%",
   "description": "%extension.description%",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "publisher": "Cx330-502",
   "author": "Cx330-502",
   "license": "MIT",
@@ -56,6 +56,7 @@
     "onCommand:agentTerminalPanel.renameSession",
     "onCommand:agentTerminalPanel.closeSession",
     "onCommand:agentTerminalPanel.restartSession",
+    "onCommand:agentTerminalPanel.rerunSession",
     "onCommand:agentTerminalPanel.configureLaunchCommand",
     "onCommand:agentTerminalPanel.openSettings",
     "onCommand:agentTerminalPanel.nextSession",
@@ -155,6 +156,11 @@
         "title": "%command.restartSession%",
         "category": "Agent Terminal Panel",
         "icon": "$(debug-restart)"
+      },
+      {
+        "command": "agentTerminalPanel.rerunSession",
+        "title": "%command.rerunSession%",
+        "category": "Agent Terminal Panel"
       },
       {
         "command": "agentTerminalPanel.configureLaunchCommand",

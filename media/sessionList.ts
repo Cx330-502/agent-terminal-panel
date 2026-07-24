@@ -113,6 +113,7 @@ export class SessionList {
     const input = document.createElement('input');
     input.className = 'session-rename';
     input.value = session.name;
+    input.maxLength = 200;
     input.setAttribute('aria-label', this.strings.sessionName);
     details.replaceChildren(input);
     input.focus();
