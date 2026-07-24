@@ -1,6 +1,12 @@
 import type { LayoutSettings } from './config';
 
 export type SessionStatus = 'running' | 'waiting' | 'approval' | 'completed';
+export type SessionLaunchSource =
+  | 'default'
+  | 'profile'
+  | 'custom'
+  | 'historyResume'
+  | 'historyFork';
 export type CommunicationHealthState = 'active' | 'quiet' | 'stalled' | 'idle' | 'unavailable';
 export type CommunicationHealthBasis = 'network' | 'provider' | 'pty' | 'none';
 export type NetworkProbeSource = 'linux-ss' | 'macos-nettop' | 'windows-connections';
@@ -61,6 +67,7 @@ export interface SessionSnapshot {
   unread: boolean;
   isActive: boolean;
   canRestart: boolean;
+  launchSource: SessionLaunchSource;
   exitCode?: number;
   spawnDurationMs?: number;
   startupElapsedMs?: number;

@@ -33,7 +33,10 @@ export function registerProviderEvents(
       if (event.affectsConfiguration('agentTerminalPanel.sessionListPosition')) {
         callbacks.post({ type: 'layoutSettings', settings: getLayoutSettings() });
       }
-      if (event.affectsConfiguration('agentTerminalPanel.launchProfiles')) {
+      if (
+        event.affectsConfiguration('agentTerminalPanel.launchCommands') ||
+        event.affectsConfiguration('agentTerminalPanel.launchProfiles')
+      ) {
         callbacks.post({ type: 'launchProfiles', profiles: getLaunchProfiles() });
       }
       if (event.affectsConfiguration('agentTerminalPanel.communicationHealth')) {

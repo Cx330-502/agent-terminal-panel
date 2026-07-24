@@ -53,11 +53,13 @@ Webview
 
 Startup timings are written to the `Agent Terminal Panel` LogOutputChannel. Do not log launch-command contents because they may include sensitive arguments.
 
-### Launch profiles and menu
+### Launch commands and menu
 
-`src/launchProfiles.ts` normalizes the ordered `launchProfiles` setting. The primary `+` remains the only default-launch path; profile sessions carry their own name and command and therefore stay outside previous-window default-session recovery.
+`src/launchProfiles.ts` normalizes the key/value `launchCommands` setting and merges the legacy ordered `launchProfiles` array. Key/value commands win on duplicate names. The primary `+` remains the only default-launch path; saved-command sessions carry their own name and command and therefore stay outside previous-window default-session recovery.
 
-`media/launchMenu.ts` owns the anchored Webview menu, focus navigation, outside-click dismissal, and left/right collision handling. Keep the menu in the Webview document top level so the resizable session sidebar cannot clip it. The Extension Host resolves profile IDs against the latest configuration before starting a PTY.
+`media/launchMenu.ts` owns the anchored Webview menu, focus navigation, outside-click dismissal, and left/right collision handling. Keep the menu in the Webview document top level so the resizable session sidebar cannot clip it. The Extension Host resolves command IDs against the latest configuration before starting a PTY.
+
+`SessionManager` records a launch source for every terminal. The rerun action must preserve that source: default sessions resolve the latest default command, saved and one-off commands retain their command snapshot, history Resume repeats its Provider command, and history Fork remains non-rerunnable. Automatic `Agent N` display names are allocated independently from session UUIDs and always choose the lowest free positive index.
 
 ### Attachment flow
 

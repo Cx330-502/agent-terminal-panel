@@ -25,7 +25,7 @@ export async function configureDefaultLaunchCommand(
   await config.update('launchCommand', trimmed, target);
   if (showConfirmation) {
     void vscode.window.showInformationMessage(
-      vscode.l10n.t('The Agent launch command was updated and will apply to new or restarted sessions.')
+      vscode.l10n.t('The Agent launch command was updated and will apply to new sessions and rerun default sessions.')
     );
   }
   return trimmed;

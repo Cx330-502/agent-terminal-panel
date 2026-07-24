@@ -72,6 +72,7 @@
               unread: false,
               isActive: true,
               canRestart: true,
+              launchSource: 'default',
               communication: {
                 health: 'idle',
                 healthBasis: 'network',
@@ -222,7 +223,7 @@
           <button id="find-terminal" class="icon-button" type="button" aria-label="在当前终端中查找" data-icon="search"></button>
           <button id="pick-attachments" class="icon-button" type="button" aria-label="选择图片文件" data-icon="image"></button>
           <button id="rename-active-session" class="icon-button" type="button" aria-label="重命名当前会话" data-icon="pencil"></button>
-          <button id="restart-session" class="icon-button" type="button" aria-label="重启当前会话" data-icon="restart"></button>
+          <button id="restart-session" class="icon-button" type="button" aria-label="重新运行启动命令" data-icon="restart"></button>
         </span>
       </header>
       <section id="workspace-restore" class="workspace-restore" aria-live="polite" hidden>

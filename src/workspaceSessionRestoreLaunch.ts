@@ -32,6 +32,7 @@ export async function launchWorkspaceRestore(
       const id = context.sessions.create(entry.cwd, context.size, {
         name: entry.name,
         launchCommand: context.registry.buildLaunchCommand(toHistoricalSession(entry), 'resume'),
+        launchSource: 'historyResume',
         canRestart: true,
         windowRestoreEligible: true,
         resumeIdentity: entry

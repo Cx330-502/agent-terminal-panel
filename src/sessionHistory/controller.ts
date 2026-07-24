@@ -2,11 +2,13 @@ import * as vscode from 'vscode';
 import { getSessionHistoryConfig } from '../config';
 import { createSessionHistoryRegistry } from './createRegistry';
 import type { HistoricalSession, SessionLaunchMode } from './types';
+import type { SessionLaunchSource } from '../shared';
 
 export interface HistoricalSessionLaunch {
   cwd: string;
   name: string;
   launchCommand: string;
+  launchSource: Extract<SessionLaunchSource, 'historyResume' | 'historyFork'>;
   canRestart: boolean;
 }
 
@@ -72,7 +74,7 @@ export class SessionHistoryController {
     const actions: ModePickItem[] = [
       {
         label: '$(debug-continue) Resume',
-        description: vscode.l10n.t('Continue the original session; it can be restarted after the terminal closes.'),
+        description: vscode.l10n.t('Continue the original session; its Provider Resume command can be run again.'),
         mode: 'resume'
       }
     ];
@@ -93,6 +95,7 @@ export class SessionHistoryController {
       cwd: selected.session.cwd,
       name: `${action.mode === 'fork' ? 'Fork' : selected.session.providerName}: ${selected.session.title}`,
       launchCommand: registry.buildLaunchCommand(selected.session, action.mode),
+      launchSource: action.mode === 'fork' ? 'historyFork' : 'historyResume',
       canRestart: action.mode === 'resume'
     });
   }

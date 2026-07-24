@@ -4,8 +4,9 @@ import type { AgentProcessConfig, CommunicationHealthConfig } from './config';
 import { isApprovalDecisionInput, isSubmissionInput } from './input';
 import { OutputBuffer } from './outputBuffer';
 import { PtyHost, type PtySize } from './ptyHost';
+import { allocateAutomaticSessionName } from './sessionNames';
 import type { AgentSessionIdentity } from './sessionHistory/types';
-import type { SessionSnapshot, SessionStatus } from './shared';
+import type { SessionLaunchSource, SessionSnapshot, SessionStatus } from './shared';
 
 interface SessionRecord {
   id: string;
@@ -19,7 +20,9 @@ interface SessionRecord {
   lastAttentionKey?: string;
   output: OutputBuffer;
   launchCommand?: string;
+  launchSource: SessionLaunchSource;
   canRestart: boolean;
+  automaticName: boolean;
   startedAt: number;
   pid?: number;
   spawnDurationMs?: number;
@@ -31,7 +34,9 @@ interface SessionRecord {
 export interface SessionCreateOptions {
   name?: string;
   launchCommand?: string;
+  launchSource?: SessionLaunchSource;
   canRestart?: boolean;
+  automaticName?: boolean;
   windowRestoreEligible?: boolean;
   resumeIdentity?: AgentSessionIdentity;
 }
@@ -79,7 +84,6 @@ export class SessionManager {
   private readonly ptyHost: PtyHost;
   private readonly communication: CommunicationMonitor;
   private activeId: string | undefined;
-  private nameCounter = 0;
 
   constructor(
     private readonly getProcessConfig: () => AgentProcessConfig,
@@ -98,21 +102,31 @@ export class SessionManager {
 
   create(cwd: string, size: PtySize, options: SessionCreateOptions = {}): string {
     const id = randomUUID();
-    const defaultName = `Agent ${++this.nameCounter}`;
+    const requestedName = options.name?.trim();
+    const automaticName = options.automaticName === true || !requestedName;
+    const launchCommand = options.launchCommand?.trim();
+    const launchSource = options.launchSource ?? (launchCommand ? 'custom' : 'default');
     const session: SessionRecord = {
       id,
-      name: options.name?.trim() || defaultName,
+      name: automaticName
+        ? allocateAutomaticSessionName(
+            [...this.sessions.values()].map((candidate) => candidate.name),
+            requestedName
+          )
+        : requestedName,
       cwd,
       status: 'running',
       unread: false,
       size: normalizeSize(size),
       activityEpoch: 0,
       output: new OutputBuffer(),
-      canRestart: options.canRestart ?? true,
+      launchSource,
+      canRestart: launchSource === 'historyFork' ? false : options.canRestart ?? true,
+      automaticName,
       startedAt: Date.now(),
       windowRestoreEligible: options.windowRestoreEligible ?? false,
       ...(options.resumeIdentity ? { resumeIdentity: options.resumeIdentity } : {}),
-      ...(options.launchCommand?.trim() ? { launchCommand: options.launchCommand.trim() } : {})
+      ...(launchCommand ? { launchCommand } : {})
     };
     this.sessions.set(id, session);
     this.communication.create(id);
@@ -133,7 +147,9 @@ export class SessionManager {
           cwd: session.cwd,
           options: {
             name: session.name,
+            launchSource: session.launchSource,
             canRestart: true,
+            automaticName: session.automaticName,
             windowRestoreEligible: session.windowRestoreEligible,
             ...(session.launchCommand ? { launchCommand: session.launchCommand } : {}),
             ...(session.launchCommand && session.resumeIdentity
@@ -207,6 +223,7 @@ export class SessionManager {
     const trimmed = name.trim();
     if (!session || !trimmed || trimmed === session.name) return;
     session.name = trimmed;
+    session.automaticName = false;
     this.callbacks.onStateChanged();
   }
 
@@ -281,7 +298,7 @@ export class SessionManager {
   }
 
   requiresDefaultLaunchCommand(id: string): boolean {
-    return !this.sessions.get(id)?.launchCommand;
+    return this.sessions.get(id)?.launchSource === 'default';
   }
 
   clearResumeIdentity(id: string): void {
@@ -431,6 +448,7 @@ export class SessionManager {
       unread: session.unread,
       isActive: session.id === this.activeId,
       canRestart: session.canRestart,
+      launchSource: session.launchSource,
       ...(session.spawnDurationMs === undefined
         ? {}
         : { spawnDurationMs: session.spawnDurationMs }),

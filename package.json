@@ -2,7 +2,7 @@
   "name": "agent-terminal-panel",
   "displayName": "%extension.displayName%",
   "description": "%extension.description%",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "publisher": "Cx330-502",
   "author": "Cx330-502",
   "license": "MIT",
@@ -243,10 +243,19 @@
           "default": "",
           "description": "%configuration.launchCommand.description%"
         },
+        "agentTerminalPanel.launchCommands": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "description": "%configuration.launchCommands.description%"
+        },
         "agentTerminalPanel.launchProfiles": {
           "type": "array",
           "default": [],
           "description": "%configuration.launchProfiles.description%",
+          "deprecationMessage": "%configuration.launchProfiles.deprecation%",
           "items": {
             "type": "object",
             "required": [

@@ -5,7 +5,7 @@ async (page) => {
       heading: '会话',
       find: '在当前终端中查找',
       running: '运行中',
-      launchGroup: '启动配置',
+      launchGroup: '启动命令',
       noResults: '无结果',
       restorePrefix: '上次窗口保留了 2 个会话'
     },
@@ -14,7 +14,7 @@ async (page) => {
       heading: 'Sessions',
       find: 'Find in current terminal',
       running: 'Running',
-      launchGroup: 'Launch profiles',
+      launchGroup: 'Launch commands',
       noResults: 'No results',
       restorePrefix: 'The previous window kept 2 sessions'
     }
@@ -34,7 +34,8 @@ async (page) => {
           status: 'running',
           unread: false,
           isActive: true,
-          canRestart: true
+          canRestart: true,
+          launchSource: 'default'
         }],
         activeId: 'session-1'
       });

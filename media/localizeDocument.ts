@@ -20,7 +20,7 @@ export function localizeDocument(strings: WebviewStrings): void {
   setControl('find-terminal', strings.findTerminal);
   setControl('pick-attachments', strings.pickAttachmentsAria, strings.pickAttachmentsTitle);
   setControl('rename-active-session', strings.renameCurrentSession);
-  setControl('restart-session', strings.restartCurrentSession);
+  setControl('restart-session', strings.rerunCurrentSession);
   setControl('terminal-search-input', strings.searchInputAria);
   setControl('terminal-search-previous', strings.searchPreviousAria, strings.searchPreviousTitle);
   setControl('terminal-search-next', strings.searchNextAria, strings.searchNextTitle);

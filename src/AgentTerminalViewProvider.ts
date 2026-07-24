@@ -151,16 +151,25 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
   }
   async createSession(chooseCwd = false): Promise<string | undefined> {
     if (!(await this.ensureLaunchCommand())) return undefined;
-    return this.createSessionWithOptions(chooseCwd, { windowRestoreEligible: true });
+    return this.createSessionWithOptions(chooseCwd, {
+      launchSource: 'default',
+      windowRestoreEligible: true
+    });
   }
   async createCustomSession(chooseCwd = false): Promise<string | undefined> {
     const options = await promptCustomSessionOptions();
-    return options ? this.createSessionWithOptions(chooseCwd, options) : undefined;
+    return options
+      ? this.createSessionWithOptions(chooseCwd, { ...options, launchSource: 'custom' })
+      : undefined;
   }
   async createProfileSession(id: string): Promise<string | undefined> {
     const profile = getLaunchProfiles().find((item) => item.id === id);
     if (!profile) return undefined;
-    return this.createSessionWithOptions(false, { name: profile.name, launchCommand: profile.command });
+    return this.createSessionWithOptions(false, {
+      name: profile.name,
+      launchCommand: profile.command,
+      launchSource: 'profile'
+    });
   }
   async showNewSessionMenu(): Promise<void> {
     await this.show();
@@ -210,7 +219,12 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
     const id = this.sessions.create(cwd, this.lastSize, options);
     const restorable = this.sessions.restorableSession(id);
     const providerId = detectLaunchProvider(getLaunchCommand());
-    if (restorable && !restorable.identity && !options.launchCommand && providerId) {
+    if (
+      restorable &&
+      !restorable.identity &&
+      this.sessions.get(id)?.launchSource === 'default' &&
+      providerId
+    ) {
       this.workspaceRestore.trackDefaultSession(restorable, providerId);
     }
     await this.show();

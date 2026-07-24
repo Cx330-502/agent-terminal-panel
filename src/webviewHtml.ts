@@ -79,7 +79,7 @@ export function getWebviewHtml(
           <button id="find-terminal" class="icon-button" type="button" title="${html(strings.findTerminal)}" aria-label="${html(strings.findTerminal)}" data-icon="search"></button>
           <button id="pick-attachments" class="icon-button" type="button" title="${html(strings.pickAttachmentsTitle)}" aria-label="${html(strings.pickAttachmentsAria)}" data-icon="image"></button>
           <button id="rename-active-session" class="icon-button" type="button" title="${html(strings.renameCurrentSession)}" aria-label="${html(strings.renameCurrentSession)}" data-icon="pencil"></button>
-          <button id="restart-session" class="icon-button" type="button" title="${html(strings.restartCurrentSession)}" aria-label="${html(strings.restartCurrentSession)}" data-icon="restart"></button>
+          <button id="restart-session" class="icon-button" type="button" title="${html(strings.rerunCurrentSession)}" aria-label="${html(strings.rerunCurrentSession)}" data-icon="restart"></button>
         </span>
       </header>
       <section id="workspace-restore" class="workspace-restore" aria-live="polite" hidden>

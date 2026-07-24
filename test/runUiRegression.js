@@ -63,6 +63,7 @@ async (page) => {
       unread: false,
       isActive: true,
       canRestart: true,
+      launchSource: 'default',
       startupDurationMs: 680,
       communication: activeCommunication,
       ...active
@@ -74,7 +75,8 @@ async (page) => {
       status: 'approval',
       unread: true,
       isActive: false,
-      canRestart: true
+      canRestart: true,
+      launchSource: 'historyResume'
     },
     {
       id: 'session-3',
@@ -84,6 +86,7 @@ async (page) => {
       unread: false,
       isActive: false,
       canRestart: true,
+      launchSource: 'custom',
       exitCode: 0
     }
   ];
@@ -272,6 +275,7 @@ async (page) => {
     await page.locator('#restore-workspace-sessions').click();
     await page.locator('#active-name').dblclick();
     await page.locator('#restart-session').hover();
+    const rerunDefaultTitle = await page.locator('#restart-session').getAttribute('title');
     await page.locator('.session-row').first().focus();
     await page.locator('#session-splitter').focus();
     await page.keyboard.press(position === 'left' ? 'ArrowRight' : 'ArrowLeft');
@@ -296,6 +300,7 @@ async (page) => {
       status: 'completed',
       unread: true,
       canRestart: false,
+      launchSource: 'historyFork',
       exitCode: 0
     }));
     await page.screenshot({
@@ -342,6 +347,7 @@ async (page) => {
         occluded,
         communicationClipped: summary ? summary.scrollWidth > summary.clientWidth + 1 : false,
         restartDisabled: document.querySelector('#restart-session')?.disabled === true,
+        restartTitle: document.querySelector('#restart-session')?.getAttribute('title'),
         rightLayout: document.querySelector('#app')?.classList.contains('session-list-right') === true,
         profileLaunchPosted: window.__webviewMessages.some(
           (message) => message.type === 'newProfileSession' && message.id === 'profile-0'
@@ -368,6 +374,7 @@ async (page) => {
       quietProbe,
       stalledProbe,
       completedProbe,
+      rerunDefaultTitle,
       inlineRenamePreserved,
       launchMenuAriaLength: launchMenuAria.length,
       launchMenuProbe,
@@ -438,6 +445,8 @@ async (page) => {
       !result.restoreVisible ||
       !result.renamePosted ||
       !result.restartDisabled ||
+      !result.rerunDefaultTitle?.includes('默认启动命令') ||
+      !result.restartTitle?.includes('Fork') ||
       result.iconButtonCount === 0
     ) {
       failures.push(`${prefix}: interaction probes failed`);

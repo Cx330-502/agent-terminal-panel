@@ -234,9 +234,11 @@ export class WebviewApp {
     );
     this.activeStatus.title = statusLabel(active, this.strings);
     this.restartButton.disabled = !active.canRestart;
-    this.restartButton.title = active.canRestart
-      ? this.strings.restartCurrentSession
+    const rerunLabel = active.canRestart
+      ? rerunSessionLabel(active, this.strings)
       : this.strings.restartForkUnavailable;
+    this.restartButton.title = rerunLabel;
+    this.restartButton.setAttribute('aria-label', rerunLabel);
   }
 
   private bindControls(): void {
@@ -332,6 +334,14 @@ export class WebviewApp {
   private post(message: WebviewMessage): void {
     this.vscode.postMessage(message);
   }
+}
+
+function rerunSessionLabel(session: SessionSnapshot, strings: WebviewStrings): string {
+  if (session.launchSource === 'default') return strings.rerunDefaultSession;
+  if (session.launchSource === 'profile') return strings.rerunProfileSession;
+  if (session.launchSource === 'custom') return strings.rerunCustomSession;
+  if (session.launchSource === 'historyResume') return strings.rerunResumeSession;
+  return strings.rerunCurrentSession;
 }
 
 function playTone(context: AudioContext, frequency: number, start: number, duration: number): void {
