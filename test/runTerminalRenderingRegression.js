@@ -164,6 +164,25 @@ async (page) => {
     fullPage: true
   });
 
+  const contextDisposal = await page.evaluate(async () => {
+    const canvas = [...document.querySelectorAll('.terminal-surface.active .xterm-screen > canvas')]
+      .find((candidate) => !candidate.className);
+    const context = canvas?.getContext('webgl2');
+    if (!canvas || !context?.getExtension('WEBGL_lose_context')) return { supported: false };
+    let contextLossEvent = false;
+    canvas.addEventListener('webglcontextlost', () => {
+      contextLossEvent = true;
+    });
+    window.dispatchEvent(new Event('unload'));
+    await new Promise((resolve) => window.setTimeout(resolve, 50));
+    return {
+      supported: true,
+      contextLost: context.isContextLost(),
+      contextLossEvent,
+      terminalRemoved: !document.querySelector('.terminal-surface')
+    };
+  });
+
   const failures = [];
   for (const [mode, resizes] of [
     ['plain', plainInitialResizes],
@@ -189,14 +208,23 @@ async (page) => {
   if (!petsRefresh.finalAlphaPixels || petsRefresh.finalAlphaPixels <= 0) {
     failures.push(`Pets image did not survive the refresh loop: ${JSON.stringify(petsRefresh)}`);
   }
+  if (
+    !contextDisposal.supported ||
+    !contextDisposal.contextLost ||
+    !contextDisposal.contextLossEvent ||
+    !contextDisposal.terminalRemoved
+  ) {
+    failures.push(`WebGL context was not explicitly released on disposal: ${JSON.stringify(contextDisposal)}`);
+  }
   if (failures.length || consoleErrors.length || failedRequests.length) {
-    throw new Error(JSON.stringify({ failures, contextLoss, petsRefresh, consoleErrors, failedRequests }, null, 2));
+    throw new Error(JSON.stringify({ failures, contextLoss, petsRefresh, contextDisposal, consoleErrors, failedRequests }, null, 2));
   }
   return {
     plainInitialResizes,
     petsInitialResizes,
     contextLoss,
     petsRefresh,
+    contextDisposal,
     consoleErrors,
     failedRequests
   };

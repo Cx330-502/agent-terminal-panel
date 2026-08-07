@@ -5,6 +5,7 @@ import type {
   WebviewMessage,
   WorkspaceRestoreSummary
 } from '../src/shared';
+import { WEBVIEW_HEARTBEAT_INTERVAL_MS } from '../src/shared';
 import {
   formatWebviewString,
   type WebviewStrings
@@ -54,6 +55,7 @@ export class WebviewApp {
   private sessions: SessionSnapshot[] = [];
   private activeId: string | undefined;
   private audioContext: AudioContext | undefined;
+  private heartbeatTimer: number | undefined;
   private lastSoundAt = 0;
 
   constructor(
@@ -139,10 +141,16 @@ export class WebviewApp {
       this.handleHostMessage(event.data);
     });
     this.post({ type: 'ready', cols: 80, rows: 24 });
+    this.heartbeatTimer = window.setInterval(
+      () => this.post({ type: 'heartbeat' }),
+      WEBVIEW_HEARTBEAT_INTERVAL_MS
+    );
     this.reportFocus();
   }
 
   dispose(): void {
+    if (this.heartbeatTimer !== undefined) window.clearInterval(this.heartbeatTimer);
+    this.heartbeatTimer = undefined;
     this.attachmentController.dispose();
     this.launchMenu.dispose();
     this.lifecycleMenu.dispose();

@@ -30,9 +30,8 @@ import { SessionLifecycleController } from './sessionLifecycleController';
 import type { HostMessage, WebviewMessage } from './shared';
 import { promptSessionRename } from './sessionRename';
 import { StartupLogger } from './startupLogger';
-import { WebviewReadyBarrier } from './webviewReadyBarrier';
+import { WebviewDocumentHost } from './webviewDocumentHost';
 import { handleWebviewUtilityMessage } from './webviewUtilityMessages';
-import { getWebviewHtml } from './webviewHtml';
 import { defaultWorkingDirectory, pickWorkingDirectory } from './workingDirectory';
 import { detectLaunchProvider, WorkspaceSessionRestore } from './workspaceSessionRestore';
 import { launchWorkspaceRestore } from './workspaceSessionRestoreLaunch';
@@ -40,8 +39,6 @@ import { launchWorkspaceRestore } from './workspaceSessionRestoreLaunch';
 export const VIEW_ID = 'agentTerminalPanel.terminalView';
 export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   private readonly disposables: vscode.Disposable[] = [];
-  private readonly viewDisposables: vscode.Disposable[] = [];
-  private readonly readyBarrier = new WebviewReadyBarrier();
   private readonly sessions: SessionManager;
   private readonly lifecycle: SessionLifecycleController;
   private readonly notifier: CompletionNotifier;
@@ -51,15 +48,13 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
   private readonly attachments: AttachmentController;
   private readonly closedSessions: ClosedSessionRecovery;
   private readonly startupLogger = new StartupLogger();
-  private view: vscode.WebviewView | undefined;
-  private webviewReady = false;
-  private viewVisible = false;
+  private readonly webviewHost: WebviewDocumentHost;
   private windowFocused = vscode.window.state.focused;
   private didAutoStart = false;
   private lastSize = { cols: 80, rows: 24 };
 
   constructor(
-    private readonly extensionUri: vscode.Uri,
+    extensionUri: vscode.Uri,
     private readonly extensionId: string,
     storageUri: vscode.Uri | undefined,
     globalStorageUri: vscode.Uri,
@@ -72,6 +67,17 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
     this.attachments = new AttachmentController(
       storageUri ?? globalStorageUri,
       (message) => this.post(message)
+    );
+    this.webviewHost = new WebviewDocumentHost(
+      extensionUri,
+      `${VIEW_ID}.focus`,
+      this.startupLogger,
+      {
+        receiveMessage: (message) => void this.handleMessage(message),
+        visibilityChanged: (visible) => {
+          if (visible) this.acknowledgeVisibleSession();
+        }
+      }
     );
     this.sessions = new SessionManager(getAgentProcessConfig, getCommunicationHealthConfig, {
       onOutput: (id, data) => this.post({ type: 'output', id, data }),
@@ -95,7 +101,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
     );
     this.notifier = new CompletionNotifier({
       isActiveSession: (id) => this.sessions.getActiveId() === id,
-      isViewVisible: () => this.viewVisible,
+      isViewVisible: () => this.webviewHost.visible,
       isWindowFocused: () => this.windowFocused,
       setUnread: (id, unread) => this.sessions.setUnread(id, unread),
       reveal: (id) => void this.revealSession(id),
@@ -133,32 +139,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
     );
   }
   resolveWebviewView(webviewView: vscode.WebviewView): void {
-    this.startupLogger.beginWebviewResolve();
-    this.clearViewDisposables();
-    this.view = webviewView;
-    this.viewVisible = webviewView.visible;
-    webviewView.webview.options = {
-      enableScripts: true,
-      localResourceRoots: [this.extensionUri]
-    };
-    webviewView.webview.html = getWebviewHtml(webviewView.webview, this.extensionUri);
-
-    this.viewDisposables.push(
-      webviewView.webview.onDidReceiveMessage((message: WebviewMessage) => {
-        void this.handleMessage(message);
-      }),
-      webviewView.onDidChangeVisibility(() => {
-        this.viewVisible = webviewView.visible;
-        if (webviewView.visible) this.acknowledgeVisibleSession();
-      }),
-      webviewView.onDidDispose(() => {
-        if (this.view === webviewView) {
-          this.view = undefined;
-          this.webviewReady = false;
-          this.viewVisible = false;
-        }
-      })
-    );
+    this.webviewHost.resolve(webviewView);
     this.updateBadge();
   }
   async createSession(chooseCwd = false): Promise<string | undefined> {
@@ -224,7 +205,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
     options: SessionCreateOptions = {}
   ): Promise<string> {
     this.didAutoStart = true;
-    if (!this.webviewReady) {
+    if (!this.webviewHost.ready) {
       await this.show();
       await this.waitForWebviewReady();
     }
@@ -270,6 +251,10 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
     if (id) await this.lifecycle.restart(id, 'rerun');
   }
 
+  async reloadWebview(): Promise<void> {
+    await this.webviewHost.reloadManually();
+  }
+
   openSettings(): void {
     void vscode.commands.executeCommand('workbench.action.openSettings', `@ext:${this.extensionId}`);
   }
@@ -299,7 +284,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
   }
 
   dispose(): void {
-    this.clearViewDisposables();
+    this.webviewHost.dispose();
     for (const disposable of this.disposables.splice(0)) disposable.dispose();
     this.sessions.dispose();
   }
@@ -312,9 +297,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
     })) return;
     switch (message.type) {
       case 'ready':
-        this.webviewReady = true;
-        this.startupLogger.webviewReady();
-        this.readyBarrier.resolve();
+        this.webviewHost.markReady();
         this.lastSize = normalizePtySize(message.cols, message.rows);
         this.postInitialize();
         if (
@@ -326,6 +309,8 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
           this.didAutoStart = true;
           await this.createSession(false);
         }
+        return;
+      case 'heartbeat':
         return;
       case 'input':
         this.sessions.write(message.id, message.data);
@@ -417,8 +402,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
   }
 
   private post(message: HostMessage): void {
-    if (!this.webviewReady || !this.view) return;
-    void this.view.webview.postMessage(message);
+    this.webviewHost.post(message);
   }
 
   private postWorkspaceRestore(): void {
@@ -426,13 +410,13 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
   }
 
   private acknowledgeVisibleSession(): void {
-    if (!this.viewVisible || !this.windowFocused) return;
+    if (!this.webviewHost.visible || !this.windowFocused) return;
     const id = this.sessions.getActiveId();
     if (id) this.sessions.acknowledge(id);
   }
 
   private updateBadge(): void {
-    updateViewBadge(this.view, this.sessions);
+    updateViewBadge(this.webviewHost.view, this.sessions);
   }
 
   private async revealSession(id: string): Promise<void> {
@@ -453,7 +437,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
 
   private async launchHistoricalSession(options: HistoricalSessionLaunch): Promise<void> {
     this.didAutoStart = true;
-    if (!this.webviewReady) {
+    if (!this.webviewHost.ready) {
       await this.show();
       await this.waitForWebviewReady();
     }
@@ -467,7 +451,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
   }
 
   private async prepareView(): Promise<void> {
-    if (this.webviewReady) return;
+    if (this.webviewHost.ready) return;
     await this.show();
     await this.waitForWebviewReady();
   }
@@ -479,21 +463,10 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
   }
 
   private async show(): Promise<void> {
-    if (this.view) {
-      this.view.show(false);
-      return;
-    }
-    await vscode.commands.executeCommand(`${VIEW_ID}.focus`);
+    await this.webviewHost.show();
   }
 
   private waitForWebviewReady(): Promise<void> {
-    if (this.webviewReady) return Promise.resolve();
-    return this.readyBarrier.wait((timeoutMs) =>
-      this.startupLogger.webviewReadyTimeout(timeoutMs)
-    );
-  }
-
-  private clearViewDisposables(): void {
-    for (const disposable of this.viewDisposables.splice(0)) disposable.dispose();
+    return this.webviewHost.waitUntilReady();
   }
 }

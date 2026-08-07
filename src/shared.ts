@@ -1,5 +1,7 @@
 import type { LayoutSettings } from './config';
 
+export const WEBVIEW_HEARTBEAT_INTERVAL_MS = 5_000;
+
 export type SessionStatus = 'running' | 'waiting' | 'approval' | 'completed';
 export type SessionLaunchSource =
   | 'default'
@@ -163,6 +165,7 @@ export type HostMessage =
 
 export type WebviewMessage =
   | { type: 'ready'; cols: number; rows: number }
+  | { type: 'heartbeat' }
   | { type: 'input'; id: string; data: string }
   | { type: 'resize'; id: string; cols: number; rows: number }
   | { type: 'newSession'; chooseCwd: boolean }

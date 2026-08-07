@@ -102,6 +102,7 @@ Do not derive TPOT from terminal output timing or token-count deltas. Codex expo
 | `src/` | Extension-host orchestration, PTY, communication probes, storage, notifications, configuration |
 | `src/sessionHistory/` | Provider-specific history discovery and launch adapters |
 | `src/sessionLifecycleController.ts` | Provider-aware restart/reset, closed-session recovery, and rename synchronization |
+| `src/webviewDocumentHost.ts` | Webview document generations, heartbeat recovery, delivery checks, and replay-safe reloads |
 | `src/workspaceSessionRestore.ts` | Workspace snapshot persistence and default-session identity correlation |
 | `media/` | Webview TypeScript, CSS, icons, generated browser bundle |
 | `test/*.test.ts` | Node unit and PTY integration tests |

@@ -9,6 +9,7 @@
   "command.newSession": "使用默认命令新建 Agent 会话",
   "command.showNewSessionMenu": "选择 Agent 会话启动方式",
   "command.find": "在当前终端中查找",
+  "command.reloadWebview": "重载终端界面（保持会话运行）",
   "command.newSessionInFolder": "在所选目录中新建会话",
   "command.newCustomSession": "使用自定义命令新建会话",
   "command.openSessionHistory": "从 Agent 历史会话启动",

@@ -15,6 +15,7 @@ Agent Terminal Panel is provider-agnostic. You supply the launch command; it sup
 - **One panel for many agents**: run Codex, Claude Code, Gemini CLI, Aider, internal tools, proxy wrappers, scripts, or another interactive shell command.
 - **A real terminal stack**: xterm.js + node-pty with resize, bracketed paste, CJK IME, true color, OSC 10/11/12, and correct rendering of the Codex shaded composer.
 - **Parallel sessions**: create, switch, rename, close, continue context, or reset and rerun. PTYs continue in the background and recent output is replayed when the Webview is rebuilt.
+- **Recover the view without killing Agents**: heartbeat and delivery checks rebuild an unhealthy visible Webview, while the title-bar refresh action manually recovers a gray/white surface and keeps every background PTY running.
 - **Find in long Agent output**: `Ctrl/Cmd+F` searches the active terminal scrollback with previous/next navigation, result counts, and Unicode queries.
 - **Codex history survives xterm region scrolling**: a precise, removable compatibility path handles ratatui's top-anchored scroll frames for both live output and Webview replay without changing unrelated terminal sequences.
 - **Per-session context**: choose a cwd or launch a named one-off custom command without changing the default.

@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 import type { SessionStartupTiming } from './sessionManager';
+import type { HostMessage } from './shared';
+import type { WebviewReloadReason } from './webviewRecoveryController';
 
 export class StartupLogger implements vscode.Disposable {
   private readonly channel = vscode.window.createOutputChannel('Agent Terminal Panel', {
@@ -12,6 +14,11 @@ export class StartupLogger implements vscode.Disposable {
     this.channel.debug('Webview resolve started');
   }
 
+  beginWebviewReload(reason: WebviewReloadReason, generation: number): void {
+    this.webviewStartedAt = process.hrtime.bigint();
+    this.channel.warn(`Reloading Webview document (${reason}, generation ${generation})`);
+  }
+
   webviewReady(): void {
     if (this.webviewStartedAt === undefined) return;
     this.channel.info(`Webview ready in ${elapsedMilliseconds(this.webviewStartedAt)} ms`);
@@ -20,6 +27,11 @@ export class StartupLogger implements vscode.Disposable {
 
   webviewReadyTimeout(timeoutMs: number): void {
     this.channel.warn(`Webview did not report ready within ${timeoutMs} ms; continuing startup`);
+  }
+
+  webviewPostFailed(messageType: HostMessage['type'], error?: unknown): void {
+    const detail = error instanceof Error ? `: ${error.message}` : '';
+    this.channel.warn(`Webview rejected host message "${messageType}"${detail}`);
   }
 
   sessionTiming(event: SessionStartupTiming): void {

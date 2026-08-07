@@ -265,7 +265,7 @@ export class TerminalController {
     if (entry.settleTimer !== undefined) window.clearTimeout(entry.settleTimer);
     if (entry.signalTimer !== undefined) window.clearTimeout(entry.signalTimer);
     this.discardPendingOutput(entry);
-    this.detachWebglContextLossListener(entry);
+    this.releaseWebglContext(entry);
     entry.selectionAutoScroll.dispose();
     entry.terminal.dispose();
     entry.element.remove();
@@ -348,6 +348,15 @@ export class TerminalController {
     }
     entry.webglCanvas = undefined;
     entry.webglContextLossListener = undefined;
+  }
+
+  private releaseWebglContext(entry: TerminalEntry): void {
+    const canvas = entry.webglCanvas;
+    this.detachWebglContextLossListener(entry);
+    // Ignore the addon's asynchronous context-loss callback while this terminal is being removed.
+    entry.webglAddon = undefined;
+    const context = canvas?.getContext('webgl2');
+    context?.getExtension('WEBGL_lose_context')?.loseContext();
   }
 
   private flushOutput(entry: TerminalEntry): void {

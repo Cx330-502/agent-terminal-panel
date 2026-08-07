@@ -5,29 +5,24 @@ import { getWebviewStrings } from './webviewStrings';
 export function getWebviewHtml(
   webview: vscode.Webview,
   extensionUri: vscode.Uri,
-  language = vscode.env.language
+  language = vscode.env.language,
+  generation = 0
 ): string {
   const nonce = randomBytes(18).toString('base64');
   const strings = getWebviewStrings(language);
   const lang = language.toLowerCase().replace('_', '-').startsWith('zh-cn') ? 'zh-CN' : 'en';
-  const xtermCss = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'xterm.css'));
-  const styles = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'styles.css'));
-  const attachmentStyles = webview.asWebviewUri(
-    vscode.Uri.joinPath(extensionUri, 'media', 'attachments.css')
+  const resource = (...path: string[]): vscode.Uri => versionedResource(
+    webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, ...path)),
+    generation
   );
-  const startupStyles = webview.asWebviewUri(
-    vscode.Uri.joinPath(extensionUri, 'media', 'startup.css')
-  );
-  const communicationStyles = webview.asWebviewUri(
-    vscode.Uri.joinPath(extensionUri, 'media', 'communication.css')
-  );
-  const sessionControlsStyles = webview.asWebviewUri(
-    vscode.Uri.joinPath(extensionUri, 'media', 'sessionControls.css')
-  );
-  const searchStyles = webview.asWebviewUri(
-    vscode.Uri.joinPath(extensionUri, 'media', 'search.css')
-  );
-  const script = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'main.js'));
+  const xtermCss = resource('media', 'xterm.css');
+  const styles = resource('media', 'styles.css');
+  const attachmentStyles = resource('media', 'attachments.css');
+  const startupStyles = resource('media', 'startup.css');
+  const communicationStyles = resource('media', 'communication.css');
+  const sessionControlsStyles = resource('media', 'sessionControls.css');
+  const searchStyles = resource('media', 'search.css');
+  const script = resource('media', 'main.js');
 
   return `<!doctype html>
 <html lang="${lang}">
@@ -130,6 +125,10 @@ export function getWebviewHtml(
   <script nonce="${nonce}" src="${script}"></script>
 </body>
 </html>`;
+}
+
+function versionedResource(uri: vscode.Uri, generation: number): vscode.Uri {
+  return uri.with({ query: `generation=${generation}` });
 }
 
 function html(value: string): string {

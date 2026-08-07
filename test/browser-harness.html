@@ -122,7 +122,7 @@
               }
             }],
             activeId: 'session-1',
-            replays: {},
+            replays: JSON.parse(sessionStorage.getItem('__agentTerminalPanelReplays') || '{}'),
             terminalSettings: {
               fontFamily: 'DejaVu Sans Mono',
               fontSize: 14,

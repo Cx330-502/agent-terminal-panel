@@ -2,7 +2,7 @@
   "name": "agent-terminal-panel",
   "displayName": "%extension.displayName%",
   "description": "%extension.description%",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "publisher": "Cx330-502",
   "author": "Cx330-502",
   "license": "MIT",
@@ -50,6 +50,7 @@
     "onCommand:agentTerminalPanel.newCustomSession",
     "onCommand:agentTerminalPanel.showNewSessionMenu",
     "onCommand:agentTerminalPanel.find",
+    "onCommand:agentTerminalPanel.reloadWebview",
     "onCommand:agentTerminalPanel.openSessionHistory",
     "onCommand:agentTerminalPanel.restoreWorkspaceSessions",
     "onCommand:agentTerminalPanel.reopenClosedSession",
@@ -109,6 +110,12 @@
         "title": "%command.find%",
         "category": "Agent Terminal Panel",
         "icon": "$(search)"
+      },
+      {
+        "command": "agentTerminalPanel.reloadWebview",
+        "title": "%command.reloadWebview%",
+        "category": "Agent Terminal Panel",
+        "icon": "$(refresh)"
       },
       {
         "command": "agentTerminalPanel.newSessionInFolder",
@@ -192,7 +199,7 @@
           "group": "navigation@1"
         },
         {
-          "command": "agentTerminalPanel.restartSession",
+          "command": "agentTerminalPanel.reloadWebview",
           "when": "view == agentTerminalPanel.terminalView",
           "group": "navigation@3"
         },

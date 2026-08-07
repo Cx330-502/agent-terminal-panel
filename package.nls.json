@@ -9,6 +9,7 @@
   "command.newSession": "Create Agent Session with Default Command",
   "command.showNewSessionMenu": "Choose Agent Session Launch Method",
   "command.find": "Find in Current Terminal",
+  "command.reloadWebview": "Reload Terminal View (Keep Sessions Running)",
   "command.newSessionInFolder": "Create Session in Selected Folder",
   "command.newCustomSession": "Create Session with Custom Command",
   "command.openSessionHistory": "Launch from Agent Session History",

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.1
+
+- 修复整个 Agent Terminal Webview 偶发变成纯灰色或纯白色、且原重启按钮无法恢复的问题：新增可见视图心跳、Host 消息投递检查、失联超时与冷却控制，只重建 Webview 文档，不重启或关闭后台 PTY。
+- 新 Webview ready 后会从现有 SessionManager 快照与 replay 恢复全部标签和终端内容；静态资源带重载 generation，避免失效文档继续复用陈旧的脚本或样式缓存。
+- 视图标题栏的圆形箭头改为“重载终端界面（保持会话运行）”，用于合成层失效但 JavaScript 心跳仍存活时手动自愈；Agent 的 Resume / 重跑操作继续保留在终端顶栏的生命周期按钮中。
+- 终端销毁前显式释放 WebGL context，规避 xterm.js WebGL addon 上游尚未合入的 context 泄漏；新增心跳、失联、投递失败、冷却、文档重建、replay 与 context 释放回归。
+
 ## 1.2.0
 
 - 重做会话生命周期语义：主重启按钮在识别到 Provider Session 后使用原生 Resume 继续同一 Agent 上下文，尚未识别时明确回退为重置终端并重跑启动命令。

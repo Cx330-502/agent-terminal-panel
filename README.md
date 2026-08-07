@@ -15,6 +15,7 @@ Agent Terminal Panel 不绑定 Codex、Claude 或任何单一产品。你提供�
 - **一个面板管理所有 Agent**：`codex`、`claude`、`gemini`、`aider`、内部 CLI、代理包装命令或任意交互式 shell 程序都可以使用。
 - **不是“看起来像终端”的文本框**：底层使用 xterm.js + node-pty，支持 resize、Bracketed Paste、中文 IME、真彩色、OSC 10/11/12 和 Codex 灰色输入区。
 - **会话真正并行**：新建、切换、重命名、关闭、继续上下文或重置重跑；切走视图后 PTY 仍在后台运行，Webview 重建时可回放近期输出。
+- **整屏失效也不丢进程**：可见视图心跳与投递检查会自动重建异常 Webview；标题栏刷新按钮可手动恢复灰屏/白屏，后台 PTY 和 Agent 上下文继续运行。
 - **长输出也能快速定位**：`Ctrl/Cmd+F` 在当前终端 scrollback 中查找，支持上一项、下一项、匹配计数和中文关键词。
 - **Codex 历史不再被 xterm 局部滚动吞掉**：对 ratatui 的顶部区域滚屏帧做精确、可删除的兼容处理，实时输出和 Webview replay 都保留完整 scrollback，其他终端序列不受影响。
 - **每个会话都有自己的上下文**：可选择 cwd，也可用一次性自定义命令和独立名称启动，不污染默认命令。
