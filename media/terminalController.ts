@@ -386,6 +386,18 @@ export class TerminalController {
     if (event.type !== 'keydown') return true;
     if (event.isComposing || event.keyCode === 229) return true;
     const key = event.key.toLowerCase();
+    if (
+      event.ctrlKey &&
+      !event.altKey &&
+      !event.metaKey &&
+      !event.shiftKey &&
+      key === '/'
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      terminal.input('\x1f');
+      return false;
+    }
     const copyShortcut =
       (this.platform === 'darwin' && event.metaKey && key === 'c') ||
       (this.platform !== 'darwin' && event.ctrlKey && key === 'c' && terminal.hasSelection());
@@ -401,7 +413,6 @@ export class TerminalController {
       (this.platform !== 'darwin' && this.platform !== 'win32' && event.ctrlKey && event.shiftKey && key === 'v') ||
       (event.shiftKey && event.key === 'Insert');
     if (pasteShortcut) {
-      event.stopImmediatePropagation();
       return false;
     }
     return true;

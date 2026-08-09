@@ -6,6 +6,7 @@ import { chromium } from 'playwright';
 const harnessUrl = 'http://127.0.0.1:4173/test/browser-harness.html';
 const artifactDirectory = join('artifacts', 'browser');
 const regressionFiles = [
+  'test/runKeyboardClipboardRegression.js',
   'test/runAttachmentRegression.js',
   'test/runSelectionScrollRegression.js',
   'test/runOutputFollowRegression.js',

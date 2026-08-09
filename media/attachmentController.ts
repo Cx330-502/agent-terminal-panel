@@ -239,10 +239,16 @@ export class AttachmentController {
 }
 
 function imageFiles(transfer: DataTransfer): File[] {
-  const files = Array.from(transfer.files);
-  return files.filter(
-    (file) => file.type.toLowerCase().startsWith('image/') || IMAGE_EXTENSION.test(file.name)
-  );
+  const files = Array.from(transfer.files).filter(isImageFile);
+  if (files.length > 0) return files;
+  return Array.from(transfer.items)
+    .filter((item) => item.kind === 'file')
+    .map((item) => item.getAsFile())
+    .filter((file): file is File => file !== null && isImageFile(file));
+}
+
+function isImageFile(file: File): boolean {
+  return file.type.toLowerCase().startsWith('image/') || IMAGE_EXTENSION.test(file.name);
 }
 
 function imageUris(transfer: DataTransfer): string[] {

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.2
+
+- 修复 Codex 新增的 `Ctrl+/` 快捷键在 xterm.js 6.0.0 中未编码为 `0x1F`、导致 Side Conversation 无法切换的问题；仅对纯 `Ctrl+/` 补发对应终端控制字符，不影响其他组合键或中文输入。
+- 修复 macOS 下 `Cmd+V` 被终端键盘处理提前阻断的问题，恢复系统剪贴板的原生 paste 事件，同时保持 `Cmd+C` 复制终端选区正常。
+- 兼容 Electron/macOS 剪贴板只在 `DataTransfer.items` 暴露图片的情况；即使 `clipboardData.files` 为空，也能保存图片并把 workspace-host 路径插入当前 Agent。
+- 新增键盘与剪贴板浏览器回归，覆盖 `Ctrl+/`、`Cmd+C`、`Cmd+V` 事件传播和 items-only PNG 粘贴。
+
 ## 1.2.1
 
 - 修复整个 Agent Terminal Webview 偶发变成纯灰色或纯白色、且原重启按钮无法恢复的问题：新增可见视图心跳、Host 消息投递检查、失联超时与冷却控制，只重建 Webview 文档，不重启或关闭后台 PTY。
