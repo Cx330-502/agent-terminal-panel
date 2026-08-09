@@ -13,7 +13,7 @@ test('Codex rename performs initialize handshake and thread/name/set request', a
   await writeFile(server, fakeServerSource, 'utf8');
 
   await renameCodexThread(
-    `${quoteCommandArgument(process.execPath)} ${quoteCommandArgument(server)}`,
+    `node ${quoteCommandArgument(server)}`,
     '019f91ef-e88a-79e2-aaa3-bcdf9906e4e7',
     '通信健康检查',
     {
@@ -48,7 +48,7 @@ test('Codex rename surfaces app-server protocol errors', async (t) => {
 
   await assert.rejects(
     renameCodexThread(
-      `${quoteCommandArgument(process.execPath)} ${quoteCommandArgument(server)}`,
+      `node ${quoteCommandArgument(server)}`,
       '019f91ef-e88a-79e2-aaa3-bcdf9906e4e7',
       'Name',
       {
