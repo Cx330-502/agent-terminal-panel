@@ -1,19 +1,18 @@
 import assert from 'node:assert/strict';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import test from 'node:test';
 import { renameCodexThread } from '../src/sessionHistory/codexAppServer';
 
 test('Codex rename performs initialize handshake and thread/name/set request', async (t) => {
-  const root = await mkdtemp(path.join(tmpdir(), 'agent-panel-codex-rpc-'));
+  const root = await mkdtemp(path.join(process.cwd(), '.agent-panel-codex-rpc-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const server = path.join(root, 'fake-app-server.cjs');
   const log = path.join(root, 'requests.jsonl');
   await writeFile(server, fakeServerSource, 'utf8');
 
   await renameCodexThread(
-    `node ${quoteCommandArgument(server)}`,
+    `node ${path.relative(process.cwd(), server)}`,
     '019f91ef-e88a-79e2-aaa3-bcdf9906e4e7',
     '通信健康检查',
     {
@@ -41,14 +40,14 @@ test('Codex rename performs initialize handshake and thread/name/set request', a
 });
 
 test('Codex rename surfaces app-server protocol errors', async (t) => {
-  const root = await mkdtemp(path.join(tmpdir(), 'agent-panel-codex-rpc-error-'));
+  const root = await mkdtemp(path.join(process.cwd(), '.agent-panel-codex-rpc-error-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const server = path.join(root, 'fake-app-server.cjs');
   await writeFile(server, fakeServerSource, 'utf8');
 
   await assert.rejects(
     renameCodexThread(
-      `node ${quoteCommandArgument(server)}`,
+      `node ${path.relative(process.cwd(), server)}`,
       '019f91ef-e88a-79e2-aaa3-bcdf9906e4e7',
       'Name',
       {
@@ -84,7 +83,3 @@ process.stdin.on('data', (chunk) => {
   }
 });
 `;
-
-function quoteCommandArgument(value: string): string {
-  return `"${value.replaceAll('"', '\\"')}"`;
-}
