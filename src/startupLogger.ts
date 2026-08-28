@@ -16,7 +16,16 @@ export class StartupLogger implements vscode.Disposable {
 
   beginWebviewReload(reason: WebviewReloadReason, generation: number): void {
     this.webviewStartedAt = process.hrtime.bigint();
-    this.channel.warn(`Reloading Webview document (${reason}, generation ${generation})`);
+    this.channel.warn(`Recreating Webview renderer (${reason}, generation ${generation})`);
+  }
+
+  webviewContainerRecreated(reason: WebviewReloadReason): void {
+    this.channel.info(`Webview container recreated (${reason})`);
+  }
+
+  webviewContainerRecreationFailed(reason: WebviewReloadReason, error?: unknown): void {
+    const detail = error instanceof Error ? `: ${error.message}` : '';
+    this.channel.error(`Could not recreate Webview container (${reason})${detail}`);
   }
 
   webviewReady(): void {

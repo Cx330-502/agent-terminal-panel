@@ -7,6 +7,7 @@ import {
   WebviewRecoveryController,
   type WebviewReloadReason
 } from './webviewRecoveryController';
+import { recreateWebviewView } from './webviewViewRecreator';
 
 interface WebviewDocumentHostCallbacks {
   receiveMessage(message: WebviewMessage): void;
@@ -21,6 +22,7 @@ export class WebviewDocumentHost implements vscode.Disposable {
   private currentReady = false;
   private currentVisible = false;
   private generation = 0;
+  private reloadTask: Promise<void> | undefined;
 
   constructor(
     private readonly extensionUri: vscode.Uri,
@@ -64,6 +66,7 @@ export class WebviewDocumentHost implements vscode.Disposable {
       view.onDidChangeVisibility(() => {
         if (this.currentView !== view) return;
         this.currentVisible = view.visible;
+        if (!view.visible) this.currentReady = false;
         this.recovery.setVisible(view.visible);
         this.callbacks.visibilityChanged(view.visible);
       }),
@@ -133,10 +136,31 @@ export class WebviewDocumentHost implements vscode.Disposable {
 
   private reloadDocument(reason: WebviewReloadReason): void {
     const view = this.currentView;
-    if (!view) return;
+    if (!view || this.reloadTask) return;
     this.currentReady = false;
     this.logger.beginWebviewReload(reason, this.generation + 1);
     this.writeDocument(view);
+    const task = this.recreateDocument(view, reason);
+    this.reloadTask = task;
+    void task.then(() => {
+      if (this.reloadTask === task) this.reloadTask = undefined;
+    });
+  }
+
+  private async recreateDocument(
+    view: vscode.WebviewView,
+    reason: WebviewReloadReason
+  ): Promise<void> {
+    try {
+      const recreated = await recreateWebviewView(
+        view,
+        (command, ...args) => vscode.commands.executeCommand(command, ...args)
+      );
+      if (recreated) this.logger.webviewContainerRecreated(reason);
+      else this.logger.webviewContainerRecreationFailed(reason);
+    } catch (error) {
+      this.logger.webviewContainerRecreationFailed(reason, error);
+    }
   }
 
   private writeDocument(view: vscode.WebviewView): void {

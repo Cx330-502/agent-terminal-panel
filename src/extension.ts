@@ -23,7 +23,7 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     provider,
     vscode.window.registerWebviewViewProvider(VIEW_ID, provider, {
-      webviewOptions: { retainContextWhenHidden: true }
+      webviewOptions: { retainContextWhenHidden: false }
     }),
     vscode.window.createTreeView(ATTACHMENT_INBOX_VIEW_ID, {
       treeDataProvider: attachmentInbox,

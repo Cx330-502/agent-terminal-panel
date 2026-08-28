@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.3
+
+- Webview renderer 心跳失联或消息投递失败后，不再只重写失效文档，而会隐藏并重新打开当前视图以重建底层 Webview 容器；兼容主侧边栏、辅助侧边栏和 Panel。
+- 重建界面期间 workspace host 中的 PTY 会话继续后台运行；新 Webview ready 后恢复会话标签并重放已有终端输出。
+- 隐藏视图时释放 Chromium Webview 上下文，减少失效 renderer 被长期保留后无法从灰色或白色界面恢复的情况。
+
 ## 1.2.2
 
 - 修复 Codex 新增的 `Ctrl+/` 快捷键在 xterm.js 6.0.0 中未编码为 `0x1F`、导致 Side Conversation 无法切换的问题；仅对纯 `Ctrl+/` 补发对应终端控制字符，不影响其他组合键或中文输入。

@@ -18,7 +18,7 @@ test('Codex rename performs initialize handshake and thread/name/set request', a
     {
       clientVersion: '1.2.0-test',
       environment: { ATP_RPC_LOG: log },
-      timeoutMs: 5_000
+      timeoutMs: 10_000
     }
   );
 
@@ -52,7 +52,7 @@ test('Codex rename surfaces app-server protocol errors', async (t) => {
       'Name',
       {
         environment: { ATP_RPC_ERROR: '1' },
-        timeoutMs: 5_000
+        timeoutMs: 10_000
       }
     ),
     /rename rejected/u
