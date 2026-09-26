@@ -1,6 +1,60 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { StatusDetector, classifyScreen, type StatusUpdate } from '../media/statusDetector';
+import { readVisibleScreen } from '../media/terminalScreen';
+import type { Terminal } from '@xterm/xterm';
+
+test('status reads live rows while the user scrolls through old prompts', () => {
+  const lines = ['› old prompt', 'old output', '• Working (esc to interrupt)', '› composer'];
+  const terminal = { rows: 2, buffer: { active: {
+    baseY: 2, viewportY: 0, length: lines.length,
+    getLine: (index: number) => ({ translateToString: () => lines[index] })
+  } } } as unknown as Terminal;
+  assert.equal(classifyScreen(readVisibleScreen(terminal)), 'running');
+});
+
+test('signals during work and unknown frames do not announce completion', () => {
+  const updates: StatusUpdate[] = [];
+  const detector = new StatusDetector((update) => updates.push(update));
+  detector.onInput('\r');
+  detector.onScreen('• Working (esc to interrupt)', false);
+  detector.onSignal('• Working (esc to interrupt)', 'BEL');
+  detector.onSignal('tool output', 'OSC 9');
+  assert.equal(updates.filter((update) => update.attention).length, 0);
+  detector.onScreen('› Type a message', true);
+  detector.onScreen('• Working (esc to interrupt)', false);
+  detector.onScreen('› Type a message', true);
+  assert.equal(updates.filter((update) => update.status === 'completed').length, 1);
+  detector.onInput('next\r');
+  detector.onScreen('• Working (esc to interrupt)', false);
+  detector.onScreen('› Type a message', true);
+  assert.equal(updates.filter((update) => update.status === 'completed').length, 2);
+});
+
+test('stale composer after Enter and reset cannot complete a turn', () => {
+  const updates: StatusUpdate[] = [];
+  const detector = new StatusDetector((update) => updates.push(update));
+  detector.onInput('\r');
+  detector.onScreen('› Type a message', true);
+  detector.onScreen('• Working (esc to interrupt)', false);
+  detector.reset();
+  detector.onScreen('› Type a message', true);
+  assert.equal(updates.filter((update) => update.status === 'completed').length, 0);
+});
+
+test('host echoes of approval and waiting preserve an observed running turn', () => {
+  const updates: StatusUpdate[] = [];
+  const detector = new StatusDetector((update) => updates.push(update));
+  detector.onScreen('• Working (esc to interrupt)', false);
+  detector.onScreen('Would you like to run this?', false);
+  detector.adoptStatus('approval');
+  detector.onInput('y');
+  detector.onScreen('Waiting for your response', false);
+  detector.adoptStatus('waiting');
+  detector.onInput('answer\r');
+  detector.onScreen('› Type a message', true);
+  assert.equal(updates.filter((update) => update.status === 'completed').length, 1);
+});
 
 test('classifies common Agent running, approval, input and idle screens', () => {
   assert.equal(classifyScreen('• Working (2s • esc to interrupt)\n› Ask Codex to do anything'), 'running');

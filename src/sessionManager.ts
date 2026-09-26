@@ -17,7 +17,7 @@ interface SessionRecord {
   exitCode?: number;
   size: PtySize;
   activityEpoch: number;
-  lastAttentionKey?: string;
+  attentionStates: Set<SessionStatus>;
   output: OutputBuffer;
   launchCommand?: string;
   launchSource: SessionLaunchSource;
@@ -128,6 +128,7 @@ export class SessionManager {
       unread: false,
       size: normalizeSize(size),
       activityEpoch: 0,
+      attentionStates: new Set(),
       output: new OutputBuffer(),
       launchSource,
       canRerun: launchSource === 'historyFork' ? false : options.canRerun ?? true,
@@ -190,7 +191,7 @@ export class SessionManager {
     session.spawnDurationMs = undefined;
     session.startupDurationMs = undefined;
     session.activityEpoch++;
-    session.lastAttentionKey = undefined;
+    session.attentionStates.clear();
     this.callbacks.onClear(id);
     this.callbacks.onStateChanged();
     this.spawn(session, launchCommand);
@@ -207,10 +208,13 @@ export class SessionManager {
       session.unread = false;
       changed = true;
     }
-    if ((submitted || approvalDecision) && session.status !== 'running') {
+    if (submitted && session.status !== 'approval') {
+      session.activityEpoch++;
+      session.attentionStates.clear();
+    }
+    if (submitted || approvalDecision) {
       session.status = 'running';
       session.exitCode = undefined;
-      session.activityEpoch++;
       changed = true;
     }
     if (changed) this.callbacks.onStateChanged();
@@ -261,15 +265,14 @@ export class SessionManager {
   ): void {
     const session = this.sessions.get(id);
     if (!session || (session.exitCode !== undefined && status !== 'completed')) return;
-    if (status === 'running' && session.status !== 'running') session.activityEpoch++;
     const changed = session.status !== status;
     session.status = status;
 
     let attentionEvent: SessionAttention | undefined;
     if (attention && status !== 'running') {
       const key = `${id}:${session.activityEpoch}:${status}`;
-      if (session.lastAttentionKey !== key) {
-        session.lastAttentionKey = key;
+      if (!session.attentionStates.has(status)) {
+        session.attentionStates.add(status);
         attentionEvent = { key, session: this.snapshot(session), detail };
       }
     }

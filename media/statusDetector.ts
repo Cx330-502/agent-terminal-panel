@@ -12,21 +12,33 @@ type ScreenState = SessionStatus | 'idle' | 'unknown';
 export class StatusDetector {
   private status: SessionStatus = 'running';
   private turnActive = false;
+  private turnCompleted = false;
   private attentionSentForState = false;
 
   constructor(private readonly onUpdate: (update: StatusUpdate) => void) {}
 
   adoptStatus(status: SessionStatus): void {
+    if (this.status === status) return;
     this.status = status;
-    if (status !== 'running') this.turnActive = false;
+    if (status === 'completed') {
+      this.turnActive = false;
+      this.turnCompleted = true;
+    }
     this.attentionSentForState = status !== 'running';
+  }
+
+  reset(): void {
+    this.status = 'running';
+    this.turnActive = false;
+    this.turnCompleted = false;
+    this.attentionSentForState = false;
   }
 
   onInput(data: string): void {
     const submitted = isSubmissionInput(data);
     const decision = this.status === 'approval' && isApprovalDecisionInput(data);
     if (submitted || decision) {
-      if (this.status !== 'approval' || this.turnActive) this.turnActive = true;
+      if (this.status !== 'approval') this.turnCompleted = false;
       this.emit('running', false);
       return;
     }
@@ -46,6 +58,7 @@ export class StatusDetector {
       return;
     }
     if (state === 'running') {
+      if (this.turnCompleted) return;
       this.turnActive = true;
       this.emit('running', false);
       return;
@@ -53,6 +66,7 @@ export class StatusDetector {
     if (state !== 'idle' || !settled) return;
     if (this.turnActive) {
       this.turnActive = false;
+      this.turnCompleted = true;
       this.emit('completed', true);
     } else if (this.status !== 'completed') {
       this.emit('waiting', false);
@@ -69,8 +83,9 @@ export class StatusDetector {
       this.emit('waiting', true, detail);
       return;
     }
-    if (this.turnActive) {
+    if (state === 'idle' && this.turnActive) {
       this.turnActive = false;
+      this.turnCompleted = true;
       this.emit('completed', true, detail);
     }
   }

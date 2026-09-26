@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { SessionManager } from '../src/sessionManager';
+import { SessionManager, type SessionAttention } from '../src/sessionManager';
 import type { AgentSessionIdentity } from '../src/sessionHistory/types';
 
 const identity: AgentSessionIdentity = {
@@ -75,7 +75,32 @@ test('a panel rename waits for Provider identity and clears only after sync', (t
   assert.equal(manager.providerRenameRequest(id), undefined);
 });
 
-function createManager(): SessionManager {
+test('attention is deduplicated per submitted turn, not screen transitions', (t) => {
+  const events: SessionAttention[] = [];
+  const manager = createManager((event) => events.push(event));
+  t.after(() => manager.dispose());
+  const id = manager.create(process.cwd(), { cols: 80, rows: 24 });
+  manager.write(id, '\r');
+  manager.setDetectedStatus(id, 'completed', true);
+  manager.setDetectedStatus(id, 'running', false);
+  manager.setDetectedStatus(id, 'waiting', true);
+  manager.setDetectedStatus(id, 'completed', true);
+  assert.equal(events.filter((event) => event.session.status === 'completed').length, 1);
+  manager.setDetectedStatus(id, 'running', false);
+  manager.write(id, '\r');
+  manager.setDetectedStatus(id, 'completed', true);
+  assert.equal(events.filter((event) => event.session.status === 'completed').length, 2);
+  assert.notEqual(events[0]?.key, events.at(-1)?.key);
+  manager.setDetectedStatus(id, 'approval', true);
+  manager.write(id, 'y');
+  manager.setDetectedStatus(id, 'completed', true);
+  assert.equal(events.filter((event) => event.session.status === 'completed').length, 2);
+  manager.restart(id);
+  manager.setDetectedStatus(id, 'completed', true);
+  assert.equal(events.filter((event) => event.session.status === 'completed').length, 3);
+});
+
+function createManager(onAttention: (event: SessionAttention) => void = () => {}): SessionManager {
   return new SessionManager(
     () => ({
       launchCommand: idleCommand('default'),
@@ -96,7 +121,7 @@ function createManager(): SessionManager {
       onOutput() {},
       onClear() {},
       onStateChanged() {},
-      onAttention() {},
+      onAttention,
       onStartupTiming() {}
     }
   );

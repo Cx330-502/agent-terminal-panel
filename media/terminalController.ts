@@ -18,6 +18,7 @@ import { SelectionAutoScroll } from './selectionAutoScroll';
 import { searchDecorations } from './searchTheme';
 import { StatusDetector } from './statusDetector';
 import { applyTerminalSettings } from './theme';
+import { readVisibleScreen } from './terminalScreen';
 
 interface TerminalEntry {
   terminal: Terminal;
@@ -104,9 +105,13 @@ export class TerminalController {
     const entry = this.entries.get(id);
     if (!entry) return;
     this.discardPendingOutput(entry);
+    if (entry.settleTimer !== undefined) window.clearTimeout(entry.settleTimer);
+    if (entry.signalTimer !== undefined) window.clearTimeout(entry.signalTimer);
+    entry.settleTimer = undefined;
+    entry.signalTimer = undefined;
     entry.scrollbackCompat.reset();
     entry.terminal.reset();
-    entry.detector.adoptStatus('running');
+    entry.detector.reset();
   }
 
   activate(id: string | undefined, focus = true): void {
@@ -241,8 +246,8 @@ export class TerminalController {
 
     terminal.onData((data) => {
       if (entry.replaying) return;
-      detector.onInput(data);
       this.post({ type: 'input', id, data });
+      detector.onInput(data);
     });
     terminal.onBell(() => {
       if (!entry.replaying) this.scheduleSignal(entry, 'BEL');
@@ -487,17 +492,6 @@ export class TerminalController {
   private post(message: WebviewMessage): void {
     this.vscode.postMessage(message);
   }
-}
-
-function readVisibleScreen(terminal: Terminal): string {
-  const buffer = terminal.buffer.active;
-  const start = Math.max(0, buffer.viewportY);
-  const end = Math.min(buffer.length, start + terminal.rows);
-  const lines: string[] = [];
-  for (let index = start; index < end; index++) {
-    lines.push(buffer.getLine(index)?.translateToString(true) ?? '');
-  }
-  return lines.join('\n');
 }
 
 function detectUiPlatform(fallback: NodeJS.Platform): NodeJS.Platform {

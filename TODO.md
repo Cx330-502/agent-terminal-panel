@@ -9,10 +9,10 @@
 - Editor WebviewPanel uses VS Code floating editor windows to move the session group to a second display and back to the sidebar.
 - One active terminal surface uses the same workspace-host PTYs. Host tests cover message ownership, return on close, disposed sidebar and panel replacement. Native multi-display drag and remote focus remain manual validation items.
 
-## Subsequent fix — completion detection and repeated sounds
+## Completed in 1.4.1 — completion detection and repeated sounds
 
-- Investigate user reports that running/completed detection is often wrong and completion sounds repeat. Trace screen detection, state transitions, unread state and focus/sound deduplication before changing behavior.
-- Reproduce with continuous output, tool execution, approvals and switching between windows; one completed turn should produce at most one eligible completion sound.
+- Read the live grid instead of the scrollback viewport; require observed work before composer completion, and ignore running/unknown BEL/OSC notifications as completion evidence.
+- Deduplicate host attention per submitted turn, preserve work through approval echoes, latch completed turns against stale redraws, and clear stale timers on restart. Generic TUI status remains heuristic; providers without recognizable work/idle signals may not report completion.
 
 ## Subsequent fix — intermittent black composer background
 
