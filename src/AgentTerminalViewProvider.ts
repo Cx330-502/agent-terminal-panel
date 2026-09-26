@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { isTerminalColors } from './terminalColors';
 import { AttachmentController } from './attachmentController';
 import { ClosedSessionRecovery } from './closedSessionRecovery';
 import {
@@ -307,6 +308,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
     })) return;
     switch (message.type) {
       case 'ready':
+        if (isTerminalColors(message.colors)) this.sessions.setTerminalColors(message.colors);
         this.webviewHost.markReady();
         this.lastSize = normalizePtySize(message.cols, message.rows);
         this.postInitialize();
@@ -319,6 +321,9 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
           this.didAutoStart = true;
           await this.createSession(false);
         }
+        return;
+      case 'terminalColors':
+        if (isTerminalColors(message.colors)) this.sessions.setTerminalColors(message.colors);
         return;
       case 'heartbeat':
         return;

@@ -14,10 +14,11 @@
 - Read the live grid instead of the scrollback viewport; require observed work before composer completion, and ignore running/unknown BEL/OSC notifications as completion evidence.
 - Deduplicate host attention per submitted turn, preserve work through approval echoes, latch completed turns against stale redraws, and clear stale timers on restart. Generic TUI status remains heuristic; providers without recognizable work/idle signals may not report completion.
 
-## Subsequent fix — intermittent black composer background
+## Completed in 1.4.2 — palette query latency and resets
 
-- Investigate reports that the Agent input area still intermittently renders black instead of gray, including first open, replay/resize, WebGL recovery and Pets on/off.
-- Capture the PTY color sequence and rendered cells for the same frame to distinguish Agent output, terminal state restoration and renderer failures; retain regression evidence for the confirmed cause.
+- Initial Webview handshake supplies VS Code RGB colors before Agent spawn; workspace host answers exact default OSC 10/11/12 probes without renderer round trips and omits consumed probes from replay. Dynamic color setters remain owned by xterm.
+- A real PTY fixture reproduces timeout without a responding renderer and succeeds within its 250ms budget with host-side colors. Browser coverage checks unchanged-setting palette preservation, delayed CSS theme injection, and replay isolation.
+- Manual follow-up: verify the user's intermittent black composer on the affected machine. Existing WebGL/Pets tests remain, but these deterministic palette tests do not prove every GPU, provider repaint or raw-tail replay failure resolved. Capture the raw frame and color response if it recurs.
 
 ## Completed in 1.2.0
 

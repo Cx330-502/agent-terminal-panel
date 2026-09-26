@@ -25,6 +25,7 @@ import { SessionList, statusLabel } from './sessionList';
 import { SidebarResize } from './sidebarResize';
 import { StartupIndicator } from './startupIndicator';
 import { TerminalController } from './terminalController';
+import { readTerminalColors } from './theme';
 import { TerminalSearch } from './terminalSearch';
 
 export class WebviewApp {
@@ -140,7 +141,7 @@ export class WebviewApp {
     window.addEventListener('message', (event: MessageEvent<HostMessage>) => {
       this.handleHostMessage(event.data);
     });
-    this.post({ type: 'ready', cols: 80, rows: 24 });
+    this.post({ type: 'ready', cols: 80, rows: 24, colors: readTerminalColors() });
     this.heartbeatTimer = window.setInterval(
       () => this.post({ type: 'heartbeat' }),
       WEBVIEW_HEARTBEAT_INTERVAL_MS

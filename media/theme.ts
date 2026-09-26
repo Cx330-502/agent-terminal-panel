@@ -1,5 +1,24 @@
 import type { ITheme, Terminal } from '@xterm/xterm';
 import type { TerminalSettings } from '../src/shared';
+import type { TerminalColors } from '../src/terminalColors';
+
+const appliedThemes = new WeakMap<Terminal, string>();
+
+/** Resolve CSS colors in Chromium before sending the palette to the remote host. */
+export function readTerminalColors(): TerminalColors {
+  const theme = buildTheme();
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 1;
+  const context = canvas.getContext('2d')!;
+  const resolve = (color: string): string => {
+    context.clearRect(0, 0, 1, 1);
+    context.fillStyle = color;
+    context.fillRect(0, 0, 1, 1);
+    return '#' + [...context.getImageData(0, 0, 1, 1).data].slice(0, 3)
+      .map((value) => value.toString(16).padStart(2, '0')).join('');
+  };
+  return { 10: resolve(theme.foreground!), 11: resolve(theme.background!), 12: resolve(theme.cursor!) };
+}
 
 export function buildTheme(): ITheme {
   return {
@@ -73,7 +92,13 @@ export function applyTerminalSettings(terminal: Terminal, settings: TerminalSett
   terminal.options.minimumContrastRatio = settings.minimumContrastRatio;
   terminal.options.drawBoldTextInBrightColors = settings.drawBoldTextInBrightColors;
   terminal.options.customGlyphs = settings.customGlyphs;
-  terminal.options.theme = buildTheme();
+  const theme = buildTheme();
+  const key = JSON.stringify(theme);
+  // Reassigning an unchanged theme resets OSC-defined colors inside xterm.
+  if (appliedThemes.get(terminal) !== key) {
+    terminal.options.theme = theme;
+    appliedThemes.set(terminal, key);
+  }
 }
 
 function cssColor(primary: string, secondary: string | undefined, fallback: string): string {

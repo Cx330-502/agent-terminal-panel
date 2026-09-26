@@ -5,6 +5,7 @@ import { isApprovalDecisionInput, isSubmissionInput } from './input';
 import { OutputBuffer } from './outputBuffer';
 import { PtyHost, type PtySize } from './ptyHost';
 import { allocateAutomaticSessionName } from './sessionNames';
+import { TerminalColorResponder, type TerminalColors } from './terminalColors';
 import type { AgentSessionIdentity } from './sessionHistory/types';
 import type { SessionLaunchSource, SessionSnapshot, SessionStatus } from './shared';
 
@@ -19,6 +20,7 @@ interface SessionRecord {
   activityEpoch: number;
   attentionStates: Set<SessionStatus>;
   output: OutputBuffer;
+  colorResponder: TerminalColorResponder;
   launchCommand?: string;
   launchSource: SessionLaunchSource;
   canRerun: boolean;
@@ -93,6 +95,7 @@ export class SessionManager {
   private readonly ptyHost: PtyHost;
   private readonly communication: CommunicationMonitor;
   private activeId: string | undefined;
+  private terminalColors: TerminalColors | undefined;
 
   constructor(
     private readonly getProcessConfig: () => AgentProcessConfig,
@@ -130,6 +133,7 @@ export class SessionManager {
       activityEpoch: 0,
       attentionStates: new Set(),
       output: new OutputBuffer(),
+      colorResponder: new TerminalColorResponder(this.terminalColors),
       launchSource,
       canRerun: launchSource === 'historyFork' ? false : options.canRerun ?? true,
       automaticName,
@@ -183,6 +187,7 @@ export class SessionManager {
     this.ptyHost.kill(id);
     this.communication.restart(id);
     session.output.clear();
+    session.colorResponder = new TerminalColorResponder(this.terminalColors);
     session.exitCode = undefined;
     session.unread = false;
     session.status = 'running';
@@ -227,6 +232,11 @@ export class SessionManager {
     if (!session) return;
     session.size = normalizeSize(size);
     this.ptyHost.resize(id, session.size);
+  }
+
+  setTerminalColors(colors: TerminalColors): void {
+    this.terminalColors = colors;
+    for (const session of this.sessions.values()) session.colorResponder.setColors(colors);
   }
 
   rename(id: string, name: string): boolean {
@@ -434,8 +444,12 @@ export class SessionManager {
       this.callbacks.onStateChanged();
     }
     this.communication.recordPtyOutput(id, data);
-    session.output.append(data);
-    this.callbacks.onOutput(id, data);
+    const { output, replies } = session.colorResponder.transform(data);
+    for (const reply of replies) this.ptyHost.write(id, reply);
+    if (output) {
+      session.output.append(output);
+      this.callbacks.onOutput(id, output);
+    }
   }
 
   private handlePtyExit(id: string, exitCode: number): void {
@@ -445,7 +459,7 @@ export class SessionManager {
       this.finishStartup(session, 'exitedBeforeOutput', `exit ${exitCode}`);
     }
     session.exitCode = exitCode;
-    const message = `\r\n[Agent process exited with code ${exitCode}]\r\n`;
+    const message = session.colorResponder.flush() + `\r\n[Agent process exited with code ${exitCode}]\r\n`;
     this.communication.recordPtyOutput(id, message);
     session.output.append(message);
     this.callbacks.onOutput(id, message);

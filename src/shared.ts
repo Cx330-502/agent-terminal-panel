@@ -1,4 +1,5 @@
 import type { LayoutSettings } from './config';
+import type { TerminalColors } from './terminalColors';
 
 export const WEBVIEW_HEARTBEAT_INTERVAL_MS = 5_000;
 
@@ -164,7 +165,8 @@ export type HostMessage =
   | { type: 'playCompletionSound' };
 
 export type WebviewMessage =
-  | { type: 'ready'; cols: number; rows: number }
+  | { type: 'ready'; cols: number; rows: number; colors: TerminalColors }
+  | { type: 'terminalColors'; colors: TerminalColors }
   | { type: 'heartbeat' }
   | { type: 'input'; id: string; data: string }
   | { type: 'resize'; id: string; cols: number; rows: number }

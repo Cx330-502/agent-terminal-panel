@@ -214,3 +214,11 @@ Every package excludes the other five native prebuilds. Inspect package contents
 4. `.github/workflows/marketplace-publish.yml` verifies the tag/version match, repeats the unit/PTY gate, rebuilds all targets, generates structured notes from the matching `CHANGELOG.md` section, uploads six GitHub Release assets, signs into Azure through GitHub OIDC, verifies publisher access, and publishes the six Marketplace packages.
 
 The workflow stores no long-lived Marketplace PAT. Publishing depends on the GitHub Environment variables and Azure federated identity configured for this repository.
+
+## Palette-query compatibility (1.4.2)
+
+The Webview sends resolved VS Code RGB foreground/background/cursor colors in its ready handshake, before automatic Agent creation. `SessionManager` answers exact OSC 10/11/12 default-color probes on the workspace host. Consumed queries are excluded from rendered output and raw replay; replies bypass user-input/status detection. OSC color setters delegate the affected slots back to xterm until a reset or palette change. Unsupported/chained queries retain native xterm handling.
+
+Why: upstream Codex uses a [bounded startup palette probe](https://github.com/openai/codex/blob/main/codex-rs/tui/src/terminal_probe.rs) (250ms at inspection) and [caches unavailable results](https://github.com/openai/codex/blob/main/codex-rs/tui/src/terminal_palette.rs). The PTY regression compares an unanswered probe with host-side responses under the same deadline. It does not require Codex login or a network request.
+
+VS Code [injects theme variables on documentElement](https://github.com/microsoft/vscode/blob/main/src/vs/workbench/contrib/webview/browser/pre/index.html). Observe that injection as well as host theme notifications: the two messages can arrive in either order. Do not reassign an unchanged xterm theme, which would reset OSC-defined colors on unrelated settings updates.

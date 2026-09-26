@@ -17,7 +17,7 @@ import { ScrollRegionScrollbackCompat } from './scrollbackCompat';
 import { SelectionAutoScroll } from './selectionAutoScroll';
 import { searchDecorations } from './searchTheme';
 import { StatusDetector } from './statusDetector';
-import { applyTerminalSettings } from './theme';
+import { applyTerminalSettings, readTerminalColors } from './theme';
 import { readVisibleScreen } from './terminalScreen';
 
 interface TerminalEntry {
@@ -46,6 +46,7 @@ export class TerminalController {
   private readonly entries = new Map<string, TerminalEntry>();
   private readonly pendingPastes = new Map<string, string>();
   private readonly resizeObserver: ResizeObserver;
+  private readonly themeObserver: MutationObserver;
   private activeId: string | undefined;
   private settings: TerminalSettings | undefined;
   private platform: NodeJS.Platform = 'linux';
@@ -58,6 +59,9 @@ export class TerminalController {
   ) {
     this.resizeObserver = new ResizeObserver(() => this.fitActive());
     this.resizeObserver.observe(stack);
+    // VS Code injects CSS variables separately from extension-host theme messages.
+    this.themeObserver = new MutationObserver(() => this.refreshTheme());
+    this.themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
   }
 
   initialize(settings: TerminalSettings, platform: NodeJS.Platform): void {
@@ -138,6 +142,7 @@ export class TerminalController {
       applyTerminalSettings(entry.terminal, settings);
       this.updateImageAddon(entry, settings.imagesEnabled);
     }
+    this.post({ type: 'terminalColors', colors: readTerminalColors() });
     this.scheduleFit();
   }
 
@@ -196,6 +201,7 @@ export class TerminalController {
 
   dispose(): void {
     this.resizeObserver.disconnect();
+    this.themeObserver.disconnect();
     if (this.fitFrame !== undefined) cancelAnimationFrame(this.fitFrame);
     for (const id of [...this.entries.keys()]) this.remove(id);
   }
