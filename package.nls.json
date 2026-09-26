@@ -30,6 +30,8 @@
   "configuration.launchProfiles.deprecation": "Use agentTerminalPanel.launchCommands for the key/value Settings UI. Existing profiles remain supported.",
   "configuration.launchProfiles.name.description": "Menu label and initial name for new sessions.",
   "configuration.launchProfiles.command.description": "The complete command executed by the workspace host system shell.",
+  "configuration.shell.path.description": "Shell executable on the workspace host, for example /bin/bash, /bin/zsh, cmd.exe or pwsh.exe. Enter the path without quotes or arguments. Empty uses SHELL on Unix or ComSpec on Windows, independently of the VS Code terminal profile. Applies to new/restarted sessions and Codex name synchronization. In WSL/SSH, configure the remote host path.",
+  "configuration.shell.args.description": "Shell arguments before the complete Agent command, which is appended as one final argument. An empty list selects defaults: -ic for Unix shells, /d /s /c for CMD, or -NoLogo -Command for PowerShell (loads its profile). Add each argument as a separate item in Settings, e.g. -ilc for a Unix login shell; or -NoLogo, -NoProfile, -Command for PowerShell without a profile. A non-empty list replaces all defaults. Applies on the next process launch.",
   "configuration.environment.description": "Environment variables added to Agent sessions.",
   "configuration.sessionListPosition.left": "Show the session list to the left of the terminal.",
   "configuration.sessionListPosition.right": "Show the session list to the right of the terminal.",

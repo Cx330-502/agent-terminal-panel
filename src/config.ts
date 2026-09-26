@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import type { ShellLaunchConfig } from './launchCommand';
 import {
   mergeLaunchProfiles,
   normalizeLaunchCommands,
@@ -8,6 +9,7 @@ import type { LaunchProfileSnapshot, TerminalSettings } from './shared';
 
 export interface AgentProcessConfig {
   launchCommand: string;
+  shell: ShellLaunchConfig;
   environment: Record<string, string>;
   terminalImagesEnabled: boolean;
   vscodeVersion: string;
@@ -59,9 +61,18 @@ export function getAgentProcessConfig(): AgentProcessConfig {
   const config = vscode.workspace.getConfiguration(SECTION);
   return {
     launchCommand: config.get<string>('launchCommand', '').trim(),
+    shell: getAgentShellConfig(),
     environment: config.get<Record<string, string>>('environment', {}),
     terminalImagesEnabled: config.get<boolean>('terminalImages.enabled', false),
     vscodeVersion: vscode.version
+  };
+}
+
+export function getAgentShellConfig(): ShellLaunchConfig {
+  const config = vscode.workspace.getConfiguration(SECTION);
+  return {
+    path: config.get<string>('shell.path', '').trim(),
+    args: config.get<string[]>('shell.args', [])
   };
 }
 

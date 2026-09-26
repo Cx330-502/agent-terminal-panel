@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.0
+
+- 新增 `shell.path` 与 `shell.args` 设置，可指定 workspace host 上的 Bash、Zsh、CMD 或 PowerShell 来启动 Agent，解决默认 shell 与 Agent 环境配置不一致的问题（#2）。
+- 按所选 shell 自动选择执行参数，也可指定登录 shell 或自定义参数；新建、重启、历史 Resume/Fork、关闭恢复和 Codex 名称同步共用 shell 配置，下次启动时读取最新设置。
+- 补充中英文设置说明与配置示例，以及 shell 选择、真实 PTY 环境加载和 Codex 名称同步回归。
+
 ## 1.2.3
 
 - Webview renderer 心跳失联或消息投递失败后，不再只重写失效文档，而会隐藏并重新打开当前视图以重建底层 Webview 容器；兼容主侧边栏、辅助侧边栏和 Panel。

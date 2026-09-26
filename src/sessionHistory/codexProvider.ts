@@ -3,6 +3,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { createInterface } from 'node:readline';
 import { renameCodexThread } from './codexAppServer';
+import type { ShellLaunchConfig } from '../launchCommand';
 import {
   compactTitle,
   isInsideWorkspace,
@@ -25,6 +26,7 @@ interface JsonRecord {
 export interface CodexSessionProviderOptions {
   clientVersion?: string;
   environment?: Record<string, string>;
+  getShellConfig?: () => ShellLaunchConfig;
   renameThread?: typeof renameCodexThread;
   sessionIndexPath?: string;
   sessionsRoot?: string;
@@ -36,6 +38,7 @@ export class CodexSessionProvider implements AgentSessionProvider {
   private readonly clientVersion: string;
   private readonly commandPrefix: string;
   private readonly environment: Record<string, string>;
+  private readonly getShellConfig: (() => ShellLaunchConfig) | undefined;
   private readonly renameThread: typeof renameCodexThread;
   private readonly sessionIndexPath: string;
   private readonly sessionsRoot: string;
@@ -47,6 +50,7 @@ export class CodexSessionProvider implements AgentSessionProvider {
     this.clientVersion = options.clientVersion ?? 'unknown';
     this.commandPrefix = commandPrefix;
     this.environment = options.environment ?? {};
+    this.getShellConfig = options.getShellConfig;
     this.renameThread = options.renameThread ?? renameCodexThread;
     this.sessionsRoot = options.sessionsRoot ?? path.join(codexHome, 'sessions');
     this.sessionIndexPath = options.sessionIndexPath
@@ -91,7 +95,8 @@ export class CodexSessionProvider implements AgentSessionProvider {
   ): Promise<void> {
     await this.renameThread(this.commandPrefix, safeSessionId(session.sessionId), name, {
       clientVersion: this.clientVersion,
-      environment: this.environment
+      environment: this.environment,
+      shell: this.getShellConfig?.()
     });
   }
 }

@@ -8,6 +8,7 @@ import { CodexSessionProvider } from '../src/sessionHistory/codexProvider';
 import { compactTitle, isInsideWorkspace } from '../src/sessionHistory/fileUtils';
 import { SessionHistoryRegistry } from '../src/sessionHistory/registry';
 import type { AgentSessionProvider, HistoricalSession } from '../src/sessionHistory/types';
+import type { ShellLaunchConfig } from '../src/launchCommand';
 
 test('workspace matching rejects sibling paths and accepts nested cwd values', () => {
   assert.equal(isInsideWorkspace('/workspace/project', ['/workspace/project']), true);
@@ -62,6 +63,25 @@ test('Codex provider discovers only current-workspace sessions and builds comman
     threadId: 'codex-session-1',
     name: '新的 Codex 名称'
   });
+});
+
+test('Codex provider reads the current shell settings for each name synchronization', async () => {
+  let shell: ShellLaunchConfig = { path: '/bin/bash', args: [] };
+  const usedShells: (ShellLaunchConfig | undefined)[] = [];
+  const provider = new CodexSessionProvider('codex', {
+    getShellConfig: () => shell,
+    renameThread: async (_command, _id, _name, options) => {
+      usedShells.push(options?.shell);
+    }
+  });
+  const identity = { providerId: 'codex', providerName: 'Codex', sessionId: 'shell-session' };
+  await provider.renameSession(identity, process.cwd(), 'first');
+  shell = { path: '/bin/zsh', args: ['-ilc'] };
+  await provider.renameSession(identity, process.cwd(), 'second');
+  assert.deepEqual(usedShells, [
+    { path: '/bin/bash', args: [] },
+    { path: '/bin/zsh', args: ['-ilc'] }
+  ]);
 });
 
 test('Claude provider ignores subagents and supports resume plus fork', async (t) => {

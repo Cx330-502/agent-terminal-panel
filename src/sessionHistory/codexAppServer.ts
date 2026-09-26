@@ -1,9 +1,10 @@
 import { spawn } from 'node:child_process';
-import { resolveLaunchCommand } from '../launchCommand';
+import { resolveLaunchCommand, type ShellLaunchConfig } from '../launchCommand';
 
 interface CodexAppServerOptions {
   clientVersion?: string;
   environment?: Record<string, string>;
+  shell?: ShellLaunchConfig;
   timeoutMs?: number;
 }
 
@@ -28,7 +29,7 @@ export async function renameCodexThread(
   if (!trimmedName) throw new Error('Codex session name is empty');
 
   const environment = { ...process.env, ...options.environment };
-  const launch = resolveLaunchCommand(`${prefix} app-server`, process.platform, environment);
+  const launch = resolveLaunchCommand(`${prefix} app-server`, process.platform, environment, options.shell);
   const child = spawn(launch.command, launch.args, {
     env: environment,
     stdio: ['pipe', 'pipe', 'pipe'],

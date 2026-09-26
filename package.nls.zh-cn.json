@@ -30,6 +30,8 @@
   "configuration.launchProfiles.deprecation": "请使用 agentTerminalPanel.launchCommands 的键值设置界面；已有配置仍然兼容。",
   "configuration.launchProfiles.name.description": "菜单标签和新会话初始名称。",
   "configuration.launchProfiles.command.description": "在 workspace host 系统 shell 中执行的完整命令。",
+  "configuration.shell.path.description": "workspace host 上的 shell 可执行文件，例如 /bin/bash、/bin/zsh、cmd.exe 或 pwsh.exe。路径不要加引号或参数。留空时 Unix 使用 SHELL，Windows 使用 ComSpec，与 VS Code 终端 Profile 独立。对新建/重启会话及 Codex 名称同步生效。WSL/SSH 请填写远端主机路径。",
+  "configuration.shell.args.description": "完整 Agent 命令之前的 shell 参数，Agent 命令会作为最后一个完整参数追加。列表留空时自动选择：Unix shell 使用 -ic，CMD 使用 /d /s /c，PowerShell 使用 -NoLogo -Command（加载其 Profile）。在设置页每项填写一个参数：Unix 登录 shell 填 -ilc；PowerShell 不加载 Profile 则分别填 -NoLogo、-NoProfile、-Command。非空列表完整替换默认参数。下次进程启动时生效。",
   "configuration.environment.description": "叠加到 Agent 会话环境中的变量。",
   "configuration.sessionListPosition.left": "会话列表显示在终端左侧。",
   "configuration.sessionListPosition.right": "会话列表显示在终端右侧。",

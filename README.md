@@ -43,7 +43,7 @@ Agent Terminal Panel 不绑定 Codex、Claude 或任何单一产品。你提供�
 4. `+` 旁边的箭头会就地展开启动菜单，优先显示已保存启动命令，并保留选择 cwd、一次性自定义命令和 Provider 历史会话。
 5. 如果检测到上次窗口未关闭的默认会话，先准备好代理或网络环境，再点击横幅中的 **恢复全部**。
 
-默认命令没有绑定任何 provider，也没有偷偷预设 Codex。启动命令由 workspace host 的交互式系统 shell 执行，读取与原生终端一致的常规 shell rc/PATH，并在新建或重新运行默认命令时读取最新配置。
+默认命令由你选择。启动命令通过 workspace host 上的 shell 执行；Unix 默认使用 `$SHELL -ic` 加载交互式启动配置，Windows 默认使用 `ComSpec`（通常为 CMD）。插件的 shell 与 VS Code 默认终端 Profile 独立，可按下面的设置指定。
 
 可以在 VS Code 设置页像环境变量一样，通过 `launchCommands` 的“添加项”保存多个常用入口。主 `+` 仍执行默认命令，命名命令只出现在旁边的下拉菜单中：
 
@@ -56,6 +56,27 @@ Agent Terminal Panel 不绑定 Codex、Claude 或任何单一产品。你提供�
 ```
 
 键是菜单标签和新终端初始名称，值是在 workspace host 上运行的完整命令。配置修改会立即刷新菜单，不需要重载窗口。旧版 `launchProfiles` 数组继续兼容，但新配置应使用 `launchCommands`。
+
+## 选择启动 Shell
+
+在插件设置中搜索 `Shell: Path`，填写 **workspace host** 上的 shell 路径即可。例如原生终端使用 Zsh，但 Agent 的 PATH、代理和环境变量写在 `.bashrc` 时，填写 `/bin/bash`。路径包含空格时也无需加引号；启动参数单独配置。
+
+```json
+"agentTerminalPanel.shell.path": "/bin/bash"
+```
+
+`Shell: Args` 默认留空，自动使用所选 shell 的执行参数：Bash/Zsh 等使用 `-ic`，CMD 使用 `/d /s /c`，PowerShell 使用 `-NoLogo -Command` 并加载 Profile。可直接在设置页逐项添加参数。若环境写在 `.bash_profile`，可以添加 `-ilc` 改为登录式启动，等价配置为：
+
+```json
+"agentTerminalPanel.shell.path": "/bin/bash",
+"agentTerminalPanel.shell.args": ["-ilc"]
+```
+
+Bash 的登录模式读取登录配置，是否继续读取 `.bashrc` 取决于你的登录配置是否主动加载它。Windows 可将路径设为 `pwsh.exe` 或 `powershell.exe`，参数列表留空即可自动选择 `-Command`。
+
+非空的自定义参数列表会完整替换默认值，插件把 Agent 命令作为最后一个参数追加，所以执行命令的开关（如 `-ic`、`-Command`）必须包含在自定义参数中。启动命令的语法也需符合所选 shell，例如 CMD 的 `%VAR%` 与 PowerShell 的 `$env:VAR`。
+
+新建、重启、历史恢复和 Codex 名称同步会读取最新 shell 设置，已运行的进程保持原环境。WSL/SSH 请在远端设置中填写远端可用路径；Windows 本机配置的路径不能直接用于 Linux 远端。
 
 ## 会话与布局
 
@@ -141,6 +162,8 @@ Toast 与完成声音会结合“当前会话、视图是否可见、VS Code 是
 | `agentTerminalPanel.launchCommand` | 空 | workspace host 系统 shell 中执行的完整命令 |
 | `agentTerminalPanel.launchCommands` | `{}` | 加号旁下拉菜单中的名称/命令键值项，可在设置页逐项添加 |
 | `agentTerminalPanel.launchProfiles` | `[]` | 兼容旧版有序对象数组，新配置请使用 `launchCommands` |
+| `agentTerminalPanel.shell.path` | 空 | workspace host 上的 shell；留空使用 Unix SHELL / Windows ComSpec |
+| `agentTerminalPanel.shell.args` | `[]` | 留空自动选择执行参数；可在设置页逐项添加，非空列表替换默认值 |
 | `agentTerminalPanel.environment` | `{}` | 叠加到 Agent 会话的环境变量 |
 | `agentTerminalPanel.sessionListPosition` | `left` | 会话列表位于终端左侧或右侧 |
 | `agentTerminalPanel.startSessionOnOpen` | `true` | 首次打开视图时自动创建会话；有待恢复窗口会话时暂停 |

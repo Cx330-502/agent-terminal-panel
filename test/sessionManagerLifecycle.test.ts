@@ -79,6 +79,7 @@ function createManager(): SessionManager {
   return new SessionManager(
     () => ({
       launchCommand: idleCommand('default'),
+      shell: { path: '', args: [] },
       environment: {},
       terminalImagesEnabled: false,
       vscodeVersion: 'test'

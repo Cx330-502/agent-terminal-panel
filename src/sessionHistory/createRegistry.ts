@@ -1,4 +1,4 @@
-import { getAgentProcessConfig, getSessionHistoryConfig } from '../config';
+import { getAgentProcessConfig, getAgentShellConfig, getSessionHistoryConfig } from '../config';
 import { ClaudeSessionProvider } from './claudeProvider';
 import { CodexSessionProvider } from './codexProvider';
 import { SessionHistoryRegistry } from './registry';
@@ -7,7 +7,11 @@ export function createSessionHistoryRegistry(clientVersion = 'unknown'): Session
   const config = getSessionHistoryConfig();
   const environment = getAgentProcessConfig().environment;
   return new SessionHistoryRegistry([
-    new CodexSessionProvider(config.codexCommand, { clientVersion, environment }),
+    new CodexSessionProvider(config.codexCommand, {
+      clientVersion,
+      environment,
+      getShellConfig: getAgentShellConfig
+    }),
     new ClaudeSessionProvider(config.claudeCommand)
   ]);
 }

@@ -56,6 +56,10 @@ Startup timings are written to the `Agent Terminal Panel` LogOutputChannel. Do n
 
 ### Launch commands and menu
 
+`src/launchCommand.ts` resolves `shell.path` and `shell.args` for both PTY launches and Codex app-server RPC. An empty path preserves the workspace host's SHELL/ComSpec selection. An empty argument list selects Unix `-ic`, CMD `/d /s /c`, or PowerShell `-NoLogo -Command`; a non-empty list replaces the entire prefix, with the complete command appended once. The plain string-array schema enables the native Settings list editor. Shell settings use `machine-overridable` scope so remote hosts can have their own executable paths. Do not infer a VS Code terminal profile from `$SHELL`.
+
+`SessionManager.spawn` reads the current process configuration for every new process, including rerun, Resume/Fork and recovery. The long-lived Codex provider receives a shell-config getter so name synchronization also observes subsequent settings changes. Shell changes do not restart existing processes. Tests exercise actual PTY rc loading with a deliberately unusable inherited SHELL, reconfiguration on restart, and a fake Codex app-server reachable only through the selected Bash startup file. The Windows runtime test launches PowerShell through `PtyHost`.
+
 `src/launchProfiles.ts` normalizes the key/value `launchCommands` setting and merges the legacy ordered `launchProfiles` array. Key/value commands win on duplicate names. The primary `+` remains the only default-launch path; saved-command sessions carry their own name and command and therefore stay outside previous-window default-session recovery.
 
 `media/launchMenu.ts` owns the anchored Webview menu, focus navigation, outside-click dismissal, and left/right collision handling. Keep the menu in the Webview document top level so the resizable session sidebar cannot clip it. The Extension Host resolves command IDs against the latest configuration before starting a PTY.

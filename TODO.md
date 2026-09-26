@@ -1,5 +1,24 @@
 # Roadmap TODO
 
+## Completed in 1.3.0
+
+- Workspace-host shell path/arguments for Agent launches and Codex name synchronization (#2), with Bash/Zsh, CMD and PowerShell execution defaults.
+
+## Planned in 1.4.0 — floating Agent window (#1)
+
+- Add an editor WebviewPanel and use VS Code floating editor windows to move the session group to a second display and back to the sidebar.
+- Keep one active terminal surface backed by the same workspace-host PTYs; validate view transfer, resize, focus/notifications, window close behavior and renderer recovery.
+
+## Subsequent fix — completion detection and repeated sounds
+
+- Investigate user reports that running/completed detection is often wrong and completion sounds repeat. Trace screen detection, state transitions, unread state and focus/sound deduplication before changing behavior.
+- Reproduce with continuous output, tool execution, approvals and switching between windows; one completed turn should produce at most one eligible completion sound.
+
+## Subsequent fix — intermittent black composer background
+
+- Investigate reports that the Agent input area still intermittently renders black instead of gray, including first open, replay/resize, WebGL recovery and Pets on/off.
+- Capture the PTY color sequence and rendered cells for the same frame to distinguish Agent output, terminal state restoration and renderer failures; retain regression evidence for the confirmed cause.
+
 ## Completed in 1.2.0
 
 - Explicit Provider Resume versus terminal reset/rerun lifecycle actions, including one-shot Fork transition rules and Provider-aware recently closed recovery.

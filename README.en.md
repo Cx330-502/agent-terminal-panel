@@ -43,7 +43,7 @@ Agent Terminal Panel is provider-agnostic. You supply the launch command; it sup
 4. The arrow beside `+` opens an anchored menu with saved launch commands, cwd selection, one-off commands, and Provider history.
 5. When a previous-window banner appears, prepare any proxy or network dependency and then select **Restore all**.
 
-There is no hidden Codex default. Commands run through the workspace host's interactive system shell, loading the normal shell rc/PATH used by a native terminal, and the latest configuration is read for every new session or rerun default command.
+You choose the default command. Commands run through a shell on the workspace host: Unix defaults to `$SHELL -ic` to load interactive startup configuration, and Windows defaults to `ComSpec` (usually CMD). The extension's shell is independent of the VS Code terminal profile and can be selected below.
 
 Add name/value entries to `launchCommands` in the VS Code Settings UI, just like environment variables. The primary `+` still runs the default command; named commands appear only in the adjacent menu:
 
@@ -56,6 +56,27 @@ Add name/value entries to `launchCommands` in the VS Code Settings UI, just like
 ```
 
 Each key is the menu label and initial terminal title; each value is the complete workspace-host command. Configuration changes refresh the menu without reloading the window. The legacy `launchProfiles` array remains readable, but new configurations should use `launchCommands`.
+
+## Choose the launch shell
+
+Search for `Shell: Path` in the extension settings and enter the shell executable on the **workspace host**. For example, choose `/bin/bash` when your native terminal uses Zsh but the Agent's PATH, proxy and environment are configured in `.bashrc`. Enter the path without quotes, including paths with spaces; configure arguments separately.
+
+```json
+"agentTerminalPanel.shell.path": "/bin/bash"
+```
+
+`Shell: Args` defaults to an empty list and selects execution arguments automatically: `-ic` for Bash/Zsh and similar shells, `/d /s /c` for CMD, and `-NoLogo -Command` for PowerShell, including its Profile. Add arguments individually in the Settings UI. If your environment lives in `.bash_profile`, add `-ilc` for a login shell, equivalent to:
+
+```json
+"agentTerminalPanel.shell.path": "/bin/bash",
+"agentTerminalPanel.shell.args": ["-ilc"]
+```
+
+Bash login mode reads login configuration; reading `.bashrc` then depends on your login file sourcing it. On Windows, set the path to `pwsh.exe` or `powershell.exe` and leave the argument list empty to select the command flag automatically.
+
+A non-empty argument list replaces all defaults. The complete Agent command is appended as one final argument, so include the execution flag such as `-ic` or `-Command` in your custom arguments. Commands must use the selected shell's syntax, such as CMD's `%VAR%` versus PowerShell's `$env:VAR`.
+
+New sessions, restarts, history launches and Codex name synchronization read the latest shell settings. Running processes keep their existing environment. For WSL/SSH, use remote settings and an executable on that remote host; a local Windows path cannot be used on a Linux remote.
 
 ## Sessions and layout
 
@@ -129,6 +150,8 @@ The extension does not fabricate TPOT/TBT. Exact values are shown only when a pr
 | `agentTerminalPanel.launchCommand` | empty | Complete command executed by the workspace-host system shell |
 | `agentTerminalPanel.launchCommands` | `{}` | Name/command entries shown beside `+`, editable as key/value rows in Settings |
 | `agentTerminalPanel.launchProfiles` | `[]` | Legacy ordered object array; use `launchCommands` for new configuration |
+| `agentTerminalPanel.shell.path` | empty | Shell on the workspace host; empty uses Unix SHELL / Windows ComSpec |
+| `agentTerminalPanel.shell.args` | `[]` | Empty selects automatic arguments; add items in Settings to replace defaults |
 | `agentTerminalPanel.environment` | `{}` | Environment variables added to Agent sessions |
 | `agentTerminalPanel.sessionListPosition` | `left` | Place the session list left or right of the terminal |
 | `agentTerminalPanel.startSessionOnOpen` | `true` | Create a session when the view first opens; paused while window recovery is pending |

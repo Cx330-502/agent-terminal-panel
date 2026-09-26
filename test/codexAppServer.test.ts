@@ -59,6 +59,28 @@ test('Codex rename surfaces app-server protocol errors', async (t) => {
   );
 });
 
+test('Codex name synchronization uses the configured shell and its startup file', {
+  timeout: 10_000
+}, async (t) => {
+  if (process.platform === 'win32') return t.skip('Unix Bash fixture');
+  const root = await mkdtemp(path.join(process.cwd(), '.agent-panel-codex-shell-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const server = path.join(root, 'fake-app-server.cjs');
+  const rc = path.join(root, 'agent.rc');
+  const log = path.join(root, 'requests.jsonl');
+  const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
+  await writeFile(server, fakeServerSource);
+  await writeFile(rc,
+    `agent_rpc() { ${quote(process.execPath)} ${quote(server)} "$@"; }\n`);
+  await renameCodexThread('agent_rpc', 'shell-session', 'Shell-selected name', {
+    environment: { SHELL: '/missing-inherited-shell', ATP_RPC_LOG: log },
+    shell: { path: '/bin/bash', args: ['--rcfile', rc, '-ic'] },
+    timeoutMs: 5_000
+  });
+  const requests = (await readFile(log, 'utf8')).trim().split('\n').map(line => JSON.parse(line));
+  assert.deepEqual(requests[2]?.params, { threadId: 'shell-session', name: 'Shell-selected name' });
+});
+
 const fakeServerSource = String.raw`
 const fs = require('node:fs');
 let buffer = '';

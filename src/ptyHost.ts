@@ -38,7 +38,7 @@ export class PtyHost {
         imagesEnabled: config.terminalImagesEnabled,
         vscodeVersion: config.vscodeVersion
       });
-      const launch = resolveLaunchCommand(config.launchCommand, process.platform, environment);
+      const launch = resolveLaunchCommand(config.launchCommand, process.platform, environment, config.shell);
       const ptyProcess = nodePty.spawn(launch.command, launch.args, {
         name: config.terminalImagesEnabled ? 'xterm-sixel' : 'xterm-256color',
         cols: clampDimension(size.cols, 80),
