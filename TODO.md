@@ -4,10 +4,10 @@
 
 - Workspace-host shell path/arguments for Agent launches and Codex name synchronization (#2), with Bash/Zsh, CMD and PowerShell execution defaults.
 
-## Planned in 1.4.0 — floating Agent window (#1)
+## Completed in 1.4.0 — floating Agent window (#1)
 
-- Add an editor WebviewPanel and use VS Code floating editor windows to move the session group to a second display and back to the sidebar.
-- Keep one active terminal surface backed by the same workspace-host PTYs; validate view transfer, resize, focus/notifications, window close behavior and renderer recovery.
+- Editor WebviewPanel uses VS Code floating editor windows to move the session group to a second display and back to the sidebar.
+- One active terminal surface uses the same workspace-host PTYs. Host tests cover message ownership, return on close, disposed sidebar and panel replacement. Native multi-display drag and remote focus remain manual validation items.
 
 ## Subsequent fix — completion detection and repeated sounds
 

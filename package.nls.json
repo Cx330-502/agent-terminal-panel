@@ -1,4 +1,6 @@
 {
+  "command.openInEditor": "Open Agent Sessions in Editor (Drag to New Window)",
+  "command.moveToSidebar": "Move Agent Sessions Back to Sidebar",
   "extension.displayName": "Agent Terminal Panel",
   "extension.description": "Manage multiple Agent CLI sessions in a movable VS Code view with real PTYs, session recovery, image input, and communication health monitoring.",
   "viewContainer.title": "Agent Terminal",

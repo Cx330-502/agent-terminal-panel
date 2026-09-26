@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.0
+
+- 新增“在编辑器中打开 Agent 会话”，可将编辑器标签拖出主窗口，放到另一块显示器（#1）。
+- 整组会话在侧栏与编辑器之间共用 workspace-host PTY；关闭编辑器或点击“移回侧栏”保留运行中的会话。
+- 编辑器刷新会重建 WebviewPanel，侧栏保留定位入口；终端输入、尺寸及输出仅由当前界面处理。
+
 ## 1.3.0
 
 - 新增 `shell.path` 与 `shell.args` 设置，可指定 workspace host 上的 Bash、Zsh、CMD 或 PowerShell 来启动 Agent，解决默认 shell 与 Agent 环境配置不一致的问题（#2）。

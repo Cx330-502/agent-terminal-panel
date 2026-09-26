@@ -50,6 +50,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
   private readonly startupLogger = new StartupLogger();
   private readonly webviewHost: WebviewDocumentHost;
   private windowFocused = vscode.window.state.focused;
+  private webviewFocused = false;
   private didAutoStart = false;
   private lastSize = { cols: 80, rows: 24 };
 
@@ -102,7 +103,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
     this.notifier = new CompletionNotifier({
       isActiveSession: (id) => this.sessions.getActiveId() === id,
       isViewVisible: () => this.webviewHost.visible,
-      isWindowFocused: () => this.windowFocused,
+      isWindowFocused: () => this.isTerminalWindowFocused(),
       setUnread: (id, unread) => this.sessions.setUnread(id, unread),
       reveal: (id) => void this.revealSession(id),
       playCompletionSound: () => this.post({ type: 'playCompletionSound' })
@@ -255,6 +256,15 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
     await this.webviewHost.reloadManually();
   }
 
+  openInEditor(): void {
+    this.webviewFocused = false;
+    this.webviewHost.openInEditor();
+  }
+
+  async moveToSidebar(): Promise<void> {
+    await this.webviewHost.moveToSidebar();
+  }
+
   openSettings(): void {
     void vscode.commands.executeCommand('workbench.action.openSettings', `@ext:${this.extensionId}`);
   }
@@ -369,6 +379,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
         );
         return;
       case 'focusChanged':
+        this.webviewFocused = message.focused;
         if (message.focused) this.acknowledgeVisibleSession();
         return;
     }
@@ -410,9 +421,13 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
   }
 
   private acknowledgeVisibleSession(): void {
-    if (!this.webviewHost.visible || !this.windowFocused) return;
+    if (!this.webviewHost.visible || !this.isTerminalWindowFocused()) return;
     const id = this.sessions.getActiveId();
     if (id) this.sessions.acknowledge(id);
+  }
+
+  private isTerminalWindowFocused(): boolean {
+    return this.windowFocused && (!this.webviewHost.inEditor || this.webviewFocused);
   }
 
   private updateBadge(): void {

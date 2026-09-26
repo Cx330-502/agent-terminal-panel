@@ -43,6 +43,8 @@ export function activate(context: vscode.ExtensionContext): void {
       provider.showNewSessionMenu()
     ),
     vscode.commands.registerCommand('agentTerminalPanel.find', () => provider.showSearch()),
+    vscode.commands.registerCommand('agentTerminalPanel.openInEditor', () => provider.openInEditor()),
+    vscode.commands.registerCommand('agentTerminalPanel.moveToSidebar', () => provider.moveToSidebar()),
     vscode.commands.registerCommand('agentTerminalPanel.reloadWebview', () =>
       provider.reloadWebview()
     ),

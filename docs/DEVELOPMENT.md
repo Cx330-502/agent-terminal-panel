@@ -45,6 +45,8 @@ Webview
 
 ### Session lifecycle
 
+The document host owns a single active Webview surface: a sidebar WebviewView or an editor WebviewPanel. Moving surfaces replaces the document and reuses SessionManager snapshots/replay. Only the active surface has a terminal message listener. A parked sidebar contains restricted command links; closing the editor reattaches the sidebar without disposing SessionManager. Editor renderer recovery replaces the panel at its editor column. VS Code owns dragging editor tabs into auxiliary windows; test this in a native multi-display development host, including focus and WSL/SSH placement.
+
 1. The provider resolves the Webview and waits for its `ready` message.
 2. `SessionManager.create` publishes the session immediately so the UI can render a startup state.
 3. `PtyHost.spawn` resolves the configured command through the workspace-host system shell and returns the PID plus synchronous spawn duration.

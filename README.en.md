@@ -80,6 +80,7 @@ New sessions, restarts, history launches and Codex name synchronization read the
 
 ## Sessions and layout
 
+- Select **Open Agent Sessions in Editor** in the view title, then drag the editor tab onto another display to use a VS Code floating window. Use **Move Agent Sessions Back to Sidebar** in the editor title to return. Closing the editor also returns the surface to the sidebar while sessions keep running. The floating window belongs to the original workspace; closing that workspace ends its processes.
 - Rename by double-clicking a session or active title, clicking the pencil, or pressing `F2`. The panel title changes immediately; recognized Codex and Claude Code sessions also receive the Provider name, while sync failures warn without rolling back the panel title.
 - Automatic titles fill the lowest gap: after closing or renaming `Agent 2`, the next default session reuses `Agent 2`; internal session UUIDs are never reused.
 - The primary circular arrow means “restart this session.” With a recognized Provider identity it invokes native Resume to continue the same Agent context; before identity is known it resets the terminal and reruns that tab's launch command.

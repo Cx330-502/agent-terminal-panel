@@ -1,4 +1,6 @@
 {
+  "command.openInEditor": "在编辑器中打开 Agent 会话（可拖至新窗口）",
+  "command.moveToSidebar": "将 Agent 会话移回侧栏",
   "extension.displayName": "Agent Terminal Panel",
   "extension.description": "在可移动的 VS Code 视图中管理多个 Agent CLI 会话，支持真实 PTY、历史恢复、图片输入与通信健康监测。",
   "viewContainer.title": "Agent 终端",
