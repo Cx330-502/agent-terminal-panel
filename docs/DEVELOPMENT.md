@@ -215,6 +215,13 @@ Every package excludes the other five native prebuilds. Inspect package contents
 
 The workflow stores no long-lived Marketplace PAT. Publishing depends on the GitHub Environment variables and Azure federated identity configured for this repository.
 
+To backfill a historical Marketplace version, dispatch the current workflow on
+`main` with `release_tag` (for example, `gh workflow run marketplace-publish.yml
+--ref main -f release_tag=v1.4.1`). It downloads the six existing GitHub Release
+VSIX files, validates their publisher/name/version, and publishes those artifacts
+using current authentication. It does not rebuild old code, move tags, or change
+GitHub Release assets. Leave the input empty for the normal current-ref build.
+
 Marketplace authentication uses `AZURE_CLIENT_ID` and `AZURE_TENANT_ID`, with
 `allow-no-subscriptions: true`. It does not select an Azure resource subscription;
 an expired trial subscription must not block tenant-level token acquisition.

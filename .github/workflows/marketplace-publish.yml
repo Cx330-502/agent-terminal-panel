@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Existing GitHub Release to publish, e.g. v1.4.1 (empty builds current ref)'
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -36,7 +41,17 @@ jobs:
       - name: Verify version
         id: version
         shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
+          if [[ -n "$RELEASE_TAG" ]]; then
+            if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "Expected a stable release tag such as v1.4.1" >&2
+              exit 1
+            fi
+            echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           VERSION="$(node -p 'require("./package.json").version')"
           if [[ "$GITHUB_REF_TYPE" == "tag" && "$GITHUB_REF_NAME" != "v$VERSION" ]]; then
             echo "Tag $GITHUB_REF_NAME does not match package version $VERSION" >&2
@@ -45,10 +60,37 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Check and test
+        if: ${{ !inputs.release_tag }}
         run: npm run check && npm test
 
       - name: Package six platform VSIX files
+        if: ${{ !inputs.release_tag }}
         run: npm run package
+
+      - name: Download and validate historical Release packages
+        if: ${{ inputs.release_tag }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          directory="releases/v$VERSION"
+          gh release download "$RELEASE_TAG" --pattern '*.vsix' --dir "$directory"
+          for platform in darwin-arm64 darwin-x64 linux-arm64 linux-x64 win32-arm64 win32-x64; do
+            package="$directory/agent-terminal-panel-$VERSION-$platform.vsix"
+            unzip -p "$package" extension/package.json | node -e '
+              let json = "";
+              process.stdin.on("data", chunk => json += chunk);
+              process.stdin.on("end", () => {
+                const manifest = JSON.parse(json);
+                if (manifest.version !== process.env.VERSION ||
+                    manifest.publisher !== "Cx330-502" || manifest.name !== "agent-terminal-panel") {
+                  throw new Error("Historical VSIX identity/version mismatch");
+                }
+              });'
+          done
 
       - name: Generate release notes
         if: github.ref_type == 'tag'
