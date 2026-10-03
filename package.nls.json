@@ -1,4 +1,5 @@
 {
+  "configuration.links.wslUseWindowsBrowser.description": "In Remote WSL, open clicked HTTP/HTTPS terminal links in the Windows default browser through VS Code (recommended). Disable to use xdg-open inside WSL. Applies immediately; does not affect browsers launched automatically by Agents. Local and SSH windows continue to use the VS Code client's browser.",
   "command.openInEditor": "Open Agent Sessions in Editor (Drag to New Window)",
   "command.moveToSidebar": "Move Agent Sessions Back to Sidebar",
   "extension.displayName": "Agent Terminal Panel",

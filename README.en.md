@@ -80,6 +80,14 @@ New sessions, restarts, history launches and Codex name synchronization read the
 
 ## Sessions and layout
 
+### Web links in Remote WSL
+
+`agentTerminalPanel.links.wslUseWindowsBrowser` (default: `true`) opens clicked
+HTTP/HTTPS terminal links through VS Code in the Windows default browser. Turn
+it off to use `xdg-open` inside WSL. Changes apply on the next click. Local and
+SSH windows use the VS Code client's browser. This does not change browser
+launches initiated automatically by an Agent. Plain URLs and OSC 8 links are supported.
+
 - Select **Open Agent Sessions in Editor** in the view title, then drag the editor tab onto another display to use a VS Code floating window. Use **Move Agent Sessions Back to Sidebar** in the editor title to return. Closing the editor also returns the surface to the sidebar while sessions keep running. The floating window belongs to the original workspace; closing that workspace ends its processes.
 - Rename by double-clicking a session or active title, clicking the pencil, or pressing `F2`. The panel title changes immediately; recognized Codex and Claude Code sessions also receive the Provider name, while sync failures warn without rolling back the panel title.
 - Automatic titles fill the lowest gap: after closing or renaming `Agent 2`, the next default session reuses `Agent 2`; internal session UUIDs are never reused.

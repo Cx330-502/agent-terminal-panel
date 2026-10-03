@@ -1,4 +1,7 @@
 import * as vscode from 'vscode';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { openTerminalLink } from './terminalLinks';
 import type { AttachmentController } from './attachmentController';
 import type { HostMessage, WebviewMessage } from './shared';
 
@@ -13,6 +16,23 @@ export async function handleWebviewUtilityMessage(
   context: WebviewUtilityMessageContext
 ): Promise<boolean> {
   switch (message.type) {
+    case 'openLink':
+      if (!context.hasSession(message.id)) return true;
+      try {
+        await openTerminalLink(message.url, {
+          remoteName: vscode.env.remoteName,
+          useWindowsBrowser: vscode.workspace.getConfiguration('agentTerminalPanel')
+            .get<boolean>('links.wslUseWindowsBrowser', true),
+          openClient: (url) => vscode.env.openExternal(vscode.Uri.parse(url)),
+          openWorkspace: async (url) => { await promisify(execFile)('xdg-open', [url], { timeout: 10_000 }); }
+        });
+      } catch (error) {
+        void vscode.window.showErrorMessage(vscode.l10n.t(
+          'Could not open terminal link: {0}',
+          error instanceof Error ? error.message : String(error)
+        ));
+      }
+      return true;
     case 'clipboardRead': {
       const text = await vscode.env.clipboard.readText();
       context.post({ type: 'clipboardText', requestId: message.requestId, text });

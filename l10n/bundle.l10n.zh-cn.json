@@ -1,4 +1,5 @@
 {
+  "Could not open terminal link: {0}": "无法打开终端链接：{0}",
   "Agent sessions are open in the editor. Drag the editor tab out to another display.": "Agent 会话已在编辑器中打开，可将编辑器标签拖到另一块显示器。",
   "Show Agent editor": "显示 Agent 编辑器",
   "Move sessions back to sidebar": "将会话移回侧栏",

@@ -2,7 +2,7 @@
   "name": "agent-terminal-panel",
   "displayName": "%extension.displayName%",
   "description": "%extension.description%",
-  "version": "1.4.2",
+  "version": "1.5.0",
   "publisher": "Cx330-502",
   "author": "Cx330-502",
   "license": "MIT",
@@ -325,9 +325,17 @@
           "scope": "machine-overridable",
           "description": "%configuration.shell.path.description%"
         },
+        "agentTerminalPanel.links.wslUseWindowsBrowser": {
+          "type": "boolean",
+          "default": true,
+          "scope": "machine-overridable",
+          "description": "%configuration.links.wslUseWindowsBrowser.description%"
+        },
         "agentTerminalPanel.shell.args": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "default": [],
           "scope": "machine-overridable",
           "description": "%configuration.shell.args.description%"
@@ -460,6 +468,7 @@
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/addon-image": "0.9.0",
     "@xterm/addon-search": "^0.16.0",
+    "@xterm/addon-web-links": "0.12.0",
     "@xterm/addon-webgl": "^0.19.0",
     "@xterm/xterm": "^6.0.0",
     "esbuild": "^0.25.0",

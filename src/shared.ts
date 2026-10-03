@@ -168,6 +168,7 @@ export type WebviewMessage =
   | { type: 'ready'; cols: number; rows: number; colors: TerminalColors }
   | { type: 'terminalColors'; colors: TerminalColors }
   | { type: 'heartbeat' }
+  | { type: 'openLink'; id: string; url: string }
   | { type: 'input'; id: string; data: string }
   | { type: 'resize'; id: string; cols: number; rows: number }
   | { type: 'newSession'; chooseCwd: boolean }

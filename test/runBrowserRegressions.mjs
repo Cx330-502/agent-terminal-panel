@@ -15,6 +15,7 @@ const regressionFiles = [
   'test/runTerminalGutterRegression.js',
   'test/runTerminalRenderingRegression.js',
   'test/runTerminalPaletteRegression.js',
+  'test/runTerminalLinksRegression.js',
   'test/runWebviewRecoveryRegression.js',
   'test/runScrollbackCompatRegression.js',
   'test/runTerminalSearchRegression.js',

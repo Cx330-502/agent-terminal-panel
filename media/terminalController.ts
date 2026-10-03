@@ -6,6 +6,7 @@ import {
   type ISearchResultChangeEvent
 } from '@xterm/addon-search';
 import { WebglAddon } from '@xterm/addon-webgl';
+import { WebLinksAddon } from '@xterm/addon-web-links';
 import { Terminal } from '@xterm/xterm';
 import type {
   SessionSnapshot,
@@ -214,11 +215,16 @@ export class TerminalController {
     element.setAttribute('aria-hidden', 'true');
     this.stack.appendChild(element);
 
+    const activateLink = (event: MouseEvent, url: string) => {
+      event.preventDefault();
+      this.post({ type: 'openLink', id, url });
+    };
     const terminal = new Terminal({
       allowProposedApi: true,
       allowTransparency: false,
       convertEol: false,
       cursorInactiveStyle: 'outline',
+      linkHandler: { activate: activateLink },
       overviewRuler: { width: 10 }
     });
     applyTerminalSettings(terminal, this.settings);
@@ -226,6 +232,7 @@ export class TerminalController {
     const searchAddon = new SearchAddon({ highlightLimit: 1000 });
     terminal.loadAddon(fitAddon);
     terminal.loadAddon(searchAddon);
+    terminal.loadAddon(new WebLinksAddon(activateLink));
     terminal.open(element);
 
     const detector = new StatusDetector((update) => {

@@ -164,6 +164,7 @@ Toast 与完成声音会结合“当前会话、视图是否可见、VS Code 是
 | `agentTerminalPanel.launchCommands` | `{}` | 加号旁下拉菜单中的名称/命令键值项，可在设置页逐项添加 |
 | `agentTerminalPanel.launchProfiles` | `[]` | 兼容旧版有序对象数组，新配置请使用 `launchCommands` |
 | `agentTerminalPanel.shell.path` | 空 | workspace host 上的 shell；留空使用 Unix SHELL / Windows ComSpec |
+| `agentTerminalPanel.links.wslUseWindowsBrowser` | `true` | Remote WSL 中点击网页链接使用 Windows 默认浏览器；关闭则用 WSL 的 `xdg-open`。即时生效，不影响 Agent 自动打开浏览器 |
 | `agentTerminalPanel.shell.args` | `[]` | 留空自动选择执行参数；可在设置页逐项添加，非空列表替换默认值 |
 | `agentTerminalPanel.environment` | `{}` | 叠加到 Agent 会话的环境变量 |
 | `agentTerminalPanel.sessionListPosition` | `left` | 会话列表位于终端左侧或右侧 |

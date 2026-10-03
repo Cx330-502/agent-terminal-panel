@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.0
+
+- 新增 `links.wslUseWindowsBrowser` 设置（默认开启）：Remote WSL 下点击终端网页链接时，通过 VS Code 使用 Windows 默认浏览器；关闭后使用 WSL 内的 `xdg-open`，点击时即时读取设置。
+- 普通 HTTP/HTTPS 网址与 OSC 8 超链接统一交给 extension host 处理，本地和 SSH 窗口使用 VS Code 客户端浏览器。不改变 Agent 自动唤起浏览器的行为。
+- 限制网页链接协议，WSL 启动器使用独立参数传递 URL，不拼接 shell 命令；打开失败显示错误。补充开关路由、安全校验与真实终端点击回归。
+
 ## 1.4.2
 
 - 修复颜色查询因 Webview 往返延迟而超时的一条黑色输入区路径：启动握手同步 VS Code 实际终端配色，由 workspace host 就近应答 OSC 10/11/12 默认颜色查询。

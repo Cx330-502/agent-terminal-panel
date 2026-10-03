@@ -1,4 +1,5 @@
 {
+  "configuration.links.wslUseWindowsBrowser.description": "在 Remote WSL 中，点击终端 HTTP/HTTPS 链接时通过 VS Code 使用 Windows 默认浏览器（推荐）。关闭后使用 WSL 内的 xdg-open。即时生效，不影响 Agent 自动唤起浏览器的行为；本地和 SSH 窗口仍使用 VS Code 客户端的浏览器。",
   "command.openInEditor": "在编辑器中打开 Agent 会话（可拖至新窗口）",
   "command.moveToSidebar": "将 Agent 会话移回侧栏",
   "extension.displayName": "Agent Terminal Panel",
