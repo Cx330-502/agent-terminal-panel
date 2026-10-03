@@ -215,6 +215,13 @@ Every package excludes the other five native prebuilds. Inspect package contents
 
 The workflow stores no long-lived Marketplace PAT. Publishing depends on the GitHub Environment variables and Azure federated identity configured for this repository.
 
+Marketplace authentication uses `AZURE_CLIENT_ID` and `AZURE_TENANT_ID`, with
+`allow-no-subscriptions: true`. It does not select an Azure resource subscription;
+an expired trial subscription must not block tenant-level token acquisition.
+The federated identity must still exist and retain Marketplace publisher access.
+For a new identity independent of Azure resource lifecycle, use an Entra app
+registration with GitHub federation and grant that identity publisher access.
+
 ## Palette-query compatibility (1.4.2)
 
 The Webview sends resolved VS Code RGB foreground/background/cursor colors in its ready handshake, before automatic Agent creation. `SessionManager` answers exact OSC 10/11/12 default-color probes on the workspace host. Consumed queries are excluded from rendered output and raw replay; replies bypass user-input/status detection. OSC color setters delegate the affected slots back to xterm until a reset or palette change. Unsupported/chained queries retain native xterm handling.
