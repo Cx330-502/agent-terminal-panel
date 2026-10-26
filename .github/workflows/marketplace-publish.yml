@@ -61,7 +61,7 @@ jobs:
 
       - name: Check and test
         if: ${{ !inputs.release_tag }}
-        run: npm run check && npm test
+        run: npm run build && npm test
 
       - name: Package six platform VSIX files
         if: ${{ !inputs.release_tag }}
