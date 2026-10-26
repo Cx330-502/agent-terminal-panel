@@ -50,7 +50,9 @@ export class PtyHost {
       ptyProcess.onData((data) => this.callbacks.onData(id, data));
       ptyProcess.onExit(({ exitCode }) => {
         if (this.processes.get(id) !== ptyProcess) return;
-        this.processes.delete(id);
+        // node-pty's Windows output worker survives natural exit until the PTY is released.
+        if (process.platform === 'win32') this.kill(id);
+        else this.processes.delete(id);
         this.callbacks.onExit(id, exitCode);
       });
       return {

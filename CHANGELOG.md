@@ -10,6 +10,7 @@
 - 状态识别支持 Claude Code 的 spinner、`>` 输入框、编辑/创建权限确认、信任目录与 AskUserQuestion 选择界面，Claude 回合完成提醒可正常触发。
 - Claude 会话中 Shift+Enter 改为发送 Meta+Enter，在输入框内换行而不是提交；其他 Agent 行为不变。
 - `npx`/`bunx` 启动的 `@anthropic-ai/claude-code` 也能识别为 Claude Code。
+- Windows 命令自然退出后显式释放 PTY，清理残留的输出转发线程，修复测试进程无法退出的问题。
 
 ## 1.5.0
 

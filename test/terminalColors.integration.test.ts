@@ -3,7 +3,8 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 import { SessionManager } from '../src/sessionManager';
 
-test('PTY palette probe meets its 250 ms deadline without a responding Webview', { timeout: 10_000 }, async () => {
+test('PTY palette probe meets its 250 ms deadline without a responding Webview', { timeout: 10_000 }, async (t) => {
+  if (process.platform === 'win32') return t.skip('ConPTY consumes OSC palette queries before forwarding output');
   for (const hasPalette of [false, true]) {
     let output = '';
     let finish!: () => void;

@@ -239,6 +239,8 @@ registration with GitHub federation and grant that identity publisher access.
 
 ## Palette-query compatibility (1.4.2)
 
+The real PTY palette probe runs on Unix hosts. Windows ConPTY consumes OSC palette queries before forwarding output to the extension, so this probe is skipped there; the responder's parsing tests remain cross-platform. Windows PTYs are explicitly released after natural process exit to dispose node-pty's output worker.
+
 The Webview sends resolved VS Code RGB foreground/background/cursor colors in its ready handshake, before automatic Agent creation. `SessionManager` answers exact OSC 10/11/12 default-color probes on the workspace host. Consumed queries are excluded from rendered output and raw replay; replies bypass user-input/status detection. OSC color setters delegate the affected slots back to xterm until a reset or palette change. Unsupported/chained queries retain native xterm handling.
 
 Why: upstream Codex uses a [bounded startup palette probe](https://github.com/openai/codex/blob/main/codex-rs/tui/src/terminal_probe.rs) (250ms at inspection) and [caches unavailable results](https://github.com/openai/codex/blob/main/codex-rs/tui/src/terminal_palette.rs). The PTY regression compares an unanswered probe with host-side responses under the same deadline. It does not require Codex login or a network request.
