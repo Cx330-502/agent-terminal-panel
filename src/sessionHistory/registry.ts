@@ -9,16 +9,23 @@ import type {
 export class SessionHistoryRegistry {
   constructor(private readonly providers: AgentSessionProvider[]) {}
 
-  async discover(workspaceRoots: string[], limit: number): Promise<SessionHistoryDiscovery> {
+  async discover(
+    workspaceRoots: string[],
+    limit: number,
+    providerIds?: ReadonlySet<string>
+  ): Promise<SessionHistoryDiscovery> {
+    const providers = providerIds
+      ? this.providers.filter((provider) => providerIds.has(provider.id))
+      : this.providers;
     const outcomes = await Promise.allSettled(
-      this.providers.map((provider) => provider.discover(workspaceRoots, limit))
+      providers.map((provider) => provider.discover(workspaceRoots, limit))
     );
     const failedProviders: string[] = [];
     const discovered: HistoricalSession[] = [];
     outcomes.forEach((outcome, index) => {
       if (outcome.status === 'fulfilled') discovered.push(...outcome.value);
       else {
-        const provider = this.providers[index];
+        const provider = providers[index];
         if (provider) failedProviders.push(provider.name);
       }
     });

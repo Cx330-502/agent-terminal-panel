@@ -74,6 +74,8 @@ export interface SessionSnapshot {
   canContinue: boolean;
   canRerun: boolean;
   launchSource: SessionLaunchSource;
+  /** Provider detected from the launch command, e.g. `codex` or `claude`. */
+  launchProvider?: string;
   providerName?: string;
   exitCode?: number;
   spawnDurationMs?: number;

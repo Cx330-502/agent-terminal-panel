@@ -100,7 +100,28 @@ test('attention is deduplicated per submitted turn, not screen transitions', (t)
   assert.equal(events.filter((event) => event.session.status === 'completed').length, 3);
 });
 
-function createManager(onAttention: (event: SessionAttention) => void = () => {}): SessionManager {
+test('each spawn records the prepared Provider launch and its assigned session ID', (t) => {
+  const prepared: string[] = [];
+  let next = 0;
+  const manager = createManager(() => {}, (command) => {
+    prepared.push(command);
+    const providerSessionId = `assigned-${++next}`;
+    return { command, providerId: 'claude', providerSessionId };
+  });
+  t.after(() => manager.dispose());
+
+  const id = manager.create(process.cwd(), { cols: 80, rows: 24 });
+  assert.equal(manager.assignedProviderSessionId(id), 'assigned-1');
+  assert.equal(manager.get(id)?.launchProvider, 'claude');
+  manager.restart(id);
+  assert.equal(manager.assignedProviderSessionId(id), 'assigned-2');
+  assert.deepEqual(prepared, [idleCommand('default'), idleCommand('default')]);
+});
+
+function createManager(
+  onAttention: (event: SessionAttention) => void = () => {},
+  prepareLaunch?: ConstructorParameters<typeof SessionManager>[3]
+): SessionManager {
   return new SessionManager(
     () => ({
       launchCommand: idleCommand('default'),
@@ -123,7 +144,8 @@ function createManager(onAttention: (event: SessionAttention) => void = () => {}
       onStateChanged() {},
       onAttention,
       onStartupTiming() {}
-    }
+    },
+    prepareLaunch
   );
 }
 

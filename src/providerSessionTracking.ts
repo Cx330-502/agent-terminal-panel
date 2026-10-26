@@ -13,6 +13,7 @@ export function trackProviderSession(
   if (!session || session.identity) return;
   restore.trackSession(
     startedAt === undefined ? session : { ...session, startedAt },
-    providerId
+    providerId,
+    sessions.assignedProviderSessionId(id)
   );
 }

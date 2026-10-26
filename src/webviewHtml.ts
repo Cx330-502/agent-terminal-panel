@@ -1,4 +1,6 @@
 import { randomBytes } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { getWebviewStrings } from './webviewStrings';
 
@@ -11,17 +13,16 @@ export function getWebviewHtml(
   const nonce = randomBytes(18).toString('base64');
   const strings = getWebviewStrings(language);
   const lang = language.toLowerCase().replace('_', '-').startsWith('zh-cn') ? 'zh-CN' : 'en';
-  const resource = (...path: string[]): vscode.Uri => versionedResource(
-    webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, ...path)),
+  const resource = (...segments: string[]): vscode.Uri => versionedResource(
+    webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, ...segments)),
     generation
   );
-  const xtermCss = resource('media', 'xterm.css');
-  const styles = resource('media', 'styles.css');
-  const attachmentStyles = resource('media', 'attachments.css');
-  const startupStyles = resource('media', 'startup.css');
-  const communicationStyles = resource('media', 'communication.css');
-  const sessionControlsStyles = resource('media', 'sessionControls.css');
-  const searchStyles = resource('media', 'search.css');
+  const styles = STYLESHEETS.map((name) => {
+    const css = readStylesheet(extensionUri, name);
+    return css === undefined
+      ? `<link rel="stylesheet" href="${resource('media', name)}">`
+      : `<style data-stylesheet="${name}">\n${css}\n</style>`;
+  }).join('\n  ');
   const script = resource('media', 'main.js');
 
   return `<!doctype html>
@@ -30,13 +31,7 @@ export function getWebviewHtml(
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob:; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}' 'wasm-unsafe-eval';">
-  <link rel="stylesheet" href="${xtermCss}">
-  <link rel="stylesheet" href="${styles}">
-  <link rel="stylesheet" href="${attachmentStyles}">
-  <link rel="stylesheet" href="${startupStyles}">
-  <link rel="stylesheet" href="${communicationStyles}">
-  <link rel="stylesheet" href="${sessionControlsStyles}">
-  <link rel="stylesheet" href="${searchStyles}">
+  ${styles}
   <title>${html(strings.documentTitle)}</title>
 </head>
 <body>
@@ -125,6 +120,31 @@ export function getWebviewHtml(
   <script nonce="${nonce}" src="${script}"></script>
 </body>
 </html>`;
+}
+
+const STYLESHEETS = [
+  'xterm.css',
+  'styles.css',
+  'attachments.css',
+  'startup.css',
+  'communication.css',
+  'sessionControls.css',
+  'search.css'
+] as const;
+
+/**
+ * Webview documents are rebuilt whenever the hidden view is shown again or recovered.
+ * Each external stylesheet is then fetched again through the Webview resource service worker,
+ * and a single failed fetch (common on long-lived remote/WSL windows) leaves the panel with
+ * unstyled grey native controls. Inlining the extension's own CSS removes that dependency.
+ */
+function readStylesheet(extensionUri: vscode.Uri, name: string): string | undefined {
+  if (extensionUri.scheme !== 'file') return undefined;
+  try {
+    return readFileSync(path.join(extensionUri.fsPath, 'media', name), 'utf8');
+  } catch {
+    return undefined;
+  }
 }
 
 function versionedResource(uri: vscode.Uri, generation: number): vscode.Uri {

@@ -6,7 +6,7 @@ import {
   SessionManager
 } from './sessionManager';
 import type { SessionRestartMode } from './shared';
-import { detectLaunchProvider } from './workspaceSessionRestore';
+import { detectLaunchProvider } from './providerLaunch';
 
 interface SessionLifecycleContext {
   sessions: SessionManager;

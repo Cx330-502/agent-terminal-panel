@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.5.1
+
+- 修复长时间运行后界面样式部分丢失、按钮变成灰色原生控件的问题：Webview 每次隐藏后重新显示或自动恢复都会重建文档，原先 7 个样式表需要逐个经资源通道重新加载，任一请求失败就会缺失样式；现在扩展自带 CSS 直接内联到文档中，仅在文件不可读时回退为外链。
+- Claude Code 新会话启动时自动附加 `--session-id`，按确定 ID 关联 Provider 会话，不再依赖时间戳猜测；同一目录并发启动多个 Claude 也不会串号。Resume、Fork、`-p`、子命令或含 shell 语法的命令保持原样。
+- 会话关联优先保留已指定的 ID，避免被按时间匹配的并发启动抢占；识别紧凑的 `-r<会话ID>`、`-p内容` 参数和全局选项后的子命令，保留原启动语义。
+- Claude Code 首条消息后才写入会话记录，身份跟踪窗口相应延长，未指定 ID 的启动也可在 30 分钟内识别；轮询只扫描被跟踪的 Provider。
+- Claude 历史支持 `CLAUDE_CONFIG_DIR`（含 `environment` 设置），只读取当前 workspace 对应的项目目录并缓存解析结果；标题跳过 meta 消息与斜杠命令包装，并使用 summary 作为备选。
+- 状态识别支持 Claude Code 的 spinner、`>` 输入框、编辑/创建权限确认、信任目录与 AskUserQuestion 选择界面，Claude 回合完成提醒可正常触发。
+- Claude 会话中 Shift+Enter 改为发送 Meta+Enter，在输入框内换行而不是提交；其他 Agent 行为不变。
+- `npx`/`bunx` 启动的 `@anthropic-ai/claude-code` 也能识别为 Claude Code。
+
 ## 1.5.0
 
 - 新增 `links.wslUseWindowsBrowser` 设置（默认开启）：Remote WSL 下点击终端网页链接时，通过 VS Code 使用 Windows 默认浏览器；关闭后使用 WSL 内的 `xdg-open`，点击时即时读取设置。

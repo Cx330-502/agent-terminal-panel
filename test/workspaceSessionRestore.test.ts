@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { SessionHistoryRegistry } from '../src/sessionHistory/registry';
 import type { AgentSessionProvider, HistoricalSession } from '../src/sessionHistory/types';
+import { detectLaunchProvider } from '../src/providerLaunch';
 import {
-  detectLaunchProvider,
   LEGACY_WORKSPACE_SESSION_STORAGE_KEY,
   matchTrackedSessions,
   WORKSPACE_SESSION_STORAGE_KEY,
@@ -117,6 +117,8 @@ test('launch provider detection covers direct Codex and Claude commands only', (
   assert.equal(detectLaunchProvider('codex --profile work'), 'codex');
   assert.equal(detectLaunchProvider('env PROFILE=work /usr/local/bin/claude --model opus'), 'claude');
   assert.equal(detectLaunchProvider('npx codex'), 'codex');
+  assert.equal(detectLaunchProvider('npx -y @anthropic-ai/claude-code@latest'), 'claude');
+  assert.equal(detectLaunchProvider('C:\\Tools\\claude.cmd'), process.platform === 'win32' ? 'claude' : undefined);
   assert.equal(detectLaunchProvider('cc-switch-cli'), undefined);
   assert.equal(detectLaunchProvider('bash -lc codex'), undefined);
 });
@@ -152,6 +154,51 @@ test('tracked launches match unclaimed provider sessions by cwd, provider and st
       ['launch-1', 'codex-new'],
       ['launch-2', 'claude-new']
     ]
+  );
+});
+
+test('assigned provider session IDs match exactly, even long after launch', () => {
+  const sessions: HistoricalSession[] = [
+    historical('claude', 'closest-by-time', '/workspace/project', 1_000),
+    historical('claude', 'assigned-id', '/workspace/project', 9_000_000)
+  ];
+  const matches = matchTrackedSessions(
+    [{
+      id: 'launch',
+      cwd: '/workspace/project',
+      startedAt: 1_000,
+      expectedProviderId: 'claude',
+      expectedSessionId: 'assigned-id'
+    }],
+    sessions
+  );
+  assert.deepEqual(matches.map((match) => match.session.sessionId), ['assigned-id']);
+  assert.deepEqual(
+    matchTrackedSessions(
+      [{ id: 'launch', cwd: '/workspace/project', startedAt: 1_000, expectedProviderId: 'claude', expectedSessionId: 'missing' }],
+      sessions
+    ),
+    []
+  );
+});
+
+test('assigned identities are reserved before timestamp-based launches are matched', () => {
+  const matches = matchTrackedSessions(
+    [
+      { id: 'heuristic', cwd: '/workspace/project', startedAt: 1_000, expectedProviderId: 'claude' },
+      {
+        id: 'exact', cwd: '/workspace/project', startedAt: 2_000,
+        expectedProviderId: 'claude', expectedSessionId: 'assigned-id'
+      }
+    ],
+    [
+      historical('claude', 'assigned-id', '/workspace/project', 2_001),
+      historical('claude', 'other-id', '/workspace/project', 3_000)
+    ]
+  );
+  assert.deepEqual(
+    Object.fromEntries(matches.map(({ tracked, session }) => [tracked.id, session.sessionId])),
+    { exact: 'assigned-id', heuristic: 'other-id' }
   );
 });
 

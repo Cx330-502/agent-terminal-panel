@@ -81,6 +81,46 @@ test('classifies common Agent running, approval, input and idle screens', () => 
   );
 });
 
+test('classifies Claude Code spinner, permission, question and composer screens', () => {
+  const composer = '────────\n> \n────────\n  ? for shortcuts';
+  assert.equal(classifyScreen(`✻ Thinking… (12s · ↓ 1.2k tokens)\n${composer}`), 'running');
+  assert.equal(classifyScreen(`· Cogitating…\n${composer}`), 'running');
+  assert.equal(classifyScreen(`✻ Worked for 1m 3s\n${composer}`), 'idle');
+  assert.equal(classifyScreen('> Try "refactor <filepath>"\n  ⏵⏵ accept edits on (shift+tab to cycle)'), 'idle');
+  assert.equal(
+    classifyScreen(
+      'Do you want to make this edit to app.ts?\n❯ 1. Yes\n  2. Yes, allow all edits during this session (shift+tab)\n  3. No, and tell Claude what to do differently (esc)'
+    ),
+    'approval'
+  );
+  assert.equal(classifyScreen('Bash command\nDo you want to proceed?\n❯ 1. Yes\n  2. No'), 'approval');
+  assert.equal(classifyScreen('Do you trust the files in this folder?\n❯ 1. Yes, proceed'), 'approval');
+  assert.equal(
+    classifyScreen('Which database?\n❯ 1. Postgres\n  2. SQLite\nEnter to select · ↑/↓ to navigate · Esc to cancel'),
+    'waiting'
+  );
+  // A question in Claude's prose is not a permission dialog.
+  assert.equal(classifyScreen(`Do you want to create a migration as well?\n${composer}`), 'idle');
+  assert.equal(classifyScreen('❯ 1. Opus\n  2. Sonnet'), 'unknown');
+});
+
+test('a Claude turn completes when the spinner gives way to the composer', () => {
+  const updates: StatusUpdate[] = [];
+  const detector = new StatusDetector((update) => updates.push(update));
+  detector.onScreen('> \n  ? for shortcuts', true);
+  detector.onInput('fix the tests\r');
+  detector.onScreen('✶ Pondering… (esc to interrupt)\n> \n', false);
+  detector.onScreen('✻ Brewed for 4s\n> \n  ? for shortcuts', true);
+  assert.deepEqual(
+    updates.map(({ status, attention }) => ({ status, attention })),
+    [
+      { status: 'waiting', attention: false },
+      { status: 'running', attention: false },
+      { status: 'completed', attention: true }
+    ]
+  );
+});
+
 test('initial idle becomes waiting without a completion notification', () => {
   const updates: StatusUpdate[] = [];
   const detector = new StatusDetector((update) => updates.push(update));

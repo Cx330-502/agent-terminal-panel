@@ -8,6 +8,10 @@ export const LEGACY_WORKSPACE_SESSION_STORAGE_KEY = 'workspaceWindowSessions.v1'
 const STORAGE_VERSION = 1;
 const MAX_SESSIONS = 100;
 const TRACKING_WINDOW_MS = 60_000;
+// Claude Code creates its transcript only after the first prompt, which can be much later.
+const LAZY_TRANSCRIPT_TRACKING_WINDOW_MS = 30 * 60_000;
+const FAST_DISCOVERY_DELAY_MS = 2_000;
+const SLOW_DISCOVERY_DELAY_MS = 5_000;
 const TIMESTAMP_TOLERANCE_MS = 5_000;
 
 export interface WorkspaceState {
@@ -38,6 +42,7 @@ interface TrackedLaunch {
   cwd: string;
   startedAt: number;
   expectedProviderId: string;
+  expectedSessionId?: string;
 }
 
 interface PersistedWorkspaceSessions {
@@ -125,13 +130,18 @@ export class WorkspaceSessionRestore {
     this.persist();
   }
 
-  trackSession(session: RestorableLiveSession, expectedProviderId: string): void {
+  trackSession(
+    session: RestorableLiveSession,
+    expectedProviderId: string,
+    expectedSessionId?: string
+  ): void {
     if (this.workspaceRoots.length === 0 || session.identity) return;
     this.tracking.set(session.id, {
       id: session.id,
       cwd: session.cwd,
       startedAt: session.startedAt,
-      expectedProviderId
+      expectedProviderId,
+      ...(expectedSessionId ? { expectedSessionId } : {})
     });
     this.scheduleDiscovery(250);
   }
@@ -180,11 +190,14 @@ export class WorkspaceSessionRestore {
     try {
       const now = Date.now();
       for (const [id, tracked] of this.tracking) {
-        if (now - tracked.startedAt > TRACKING_WINDOW_MS) this.tracking.delete(id);
+        if (now - tracked.startedAt > trackingWindowMs(tracked)) this.tracking.delete(id);
       }
       if (this.tracking.size === 0) return;
       const limit = Math.min(MAX_SESSIONS, Math.max(20, this.tracking.size * 8));
-      const discovery = await this.registry.discover(this.workspaceRoots, limit);
+      const providerIds = new Set(
+        [...this.tracking.values()].map((tracked) => tracked.expectedProviderId)
+      );
+      const discovery = await this.registry.discover(this.workspaceRoots, limit, providerIds);
       if (this.disposed) return;
       const claimed = new Set(
         [
@@ -207,7 +220,11 @@ export class WorkspaceSessionRestore {
       }
     } finally {
       this.discovering = false;
-      this.scheduleDiscovery(2_000);
+      const now = Date.now();
+      const recentLaunch = [...this.tracking.values()].some(
+        (tracked) => now - tracked.startedAt <= TRACKING_WINDOW_MS
+      );
+      this.scheduleDiscovery(recentLaunch ? FAST_DISCOVERY_DELAY_MS : SLOW_DISCOVERY_DELAY_MS);
     }
   }
 
@@ -228,18 +245,6 @@ export class WorkspaceSessionRestore {
   }
 }
 
-export function detectLaunchProvider(command: string): string | undefined {
-  const tokens = command.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/gu)?.map(unquote) ?? [];
-  while (tokens[0] === 'env' || tokens[0] === 'command' || tokens[0] === 'exec') tokens.shift();
-  while (tokens[0]?.includes('=') && !tokens[0].startsWith('-')) tokens.shift();
-  if (tokens[0] === 'npx' || tokens[0] === 'bunx') tokens.shift();
-  if (tokens[0] === 'pnpm' && tokens[1] === 'dlx') tokens.splice(0, 2);
-  const executable = tokens[0] ? path.basename(tokens[0]).toLowerCase() : '';
-  if (executable === 'codex' || executable === 'codex.exe') return 'codex';
-  if (executable === 'claude' || executable === 'claude.exe') return 'claude';
-  return undefined;
-}
-
 export function matchTrackedSessions(
   trackedLaunches: TrackedLaunch[],
   sessions: HistoricalSession[],
@@ -247,7 +252,25 @@ export function matchTrackedSessions(
 ): Array<{ tracked: TrackedLaunch; session: HistoricalSession }> {
   const result: Array<{ tracked: TrackedLaunch; session: HistoricalSession }> = [];
   const claimed = new Set(claimedKeys);
-  for (const tracked of [...trackedLaunches].sort((left, right) => left.startedAt - right.startedAt)) {
+  // Reserve assigned identities before a timestamp-based match can claim the same transcript.
+  const orderedLaunches = [...trackedLaunches].sort((left, right) =>
+    Number(Boolean(right.expectedSessionId)) - Number(Boolean(left.expectedSessionId)) ||
+    left.startedAt - right.startedAt
+  );
+  for (const tracked of orderedLaunches) {
+    if (tracked.expectedSessionId) {
+      const exact = sessions.find(
+        (session) =>
+          session.providerId === tracked.expectedProviderId &&
+          session.sessionId === tracked.expectedSessionId &&
+          !claimed.has(identityKey(session))
+      );
+      if (exact) {
+        claimed.add(identityKey(exact));
+        result.push({ tracked, session: exact });
+      }
+      continue;
+    }
     const candidates = sessions.filter(
       (session) =>
         !claimed.has(identityKey(session)) &&
@@ -266,6 +289,13 @@ export function matchTrackedSessions(
     result.push({ tracked, session: selected });
   }
   return result;
+}
+
+function trackingWindowMs(tracked: TrackedLaunch): number {
+  if (tracked.expectedSessionId) return Number.POSITIVE_INFINITY;
+  return tracked.expectedProviderId === 'claude'
+    ? LAZY_TRANSCRIPT_TRACKING_WINDOW_MS
+    : TRACKING_WINDOW_MS;
 }
 
 function loadEntries(value: unknown): WorkspaceRestoreEntry[] {
@@ -331,12 +361,6 @@ function samePath(left: string, right: string): boolean {
   return process.platform === 'win32'
     ? normalizedLeft.toLowerCase() === normalizedRight.toLowerCase()
     : normalizedLeft === normalizedRight;
-}
-
-function unquote(value: string): string {
-  return value.length >= 2 && (value[0] === '"' || value[0] === "'")
-    ? value.slice(1, -1)
-    : value;
 }
 
 function boundedString(value: unknown, maxLength: number): string | undefined {

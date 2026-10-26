@@ -3,6 +3,7 @@ import { CommunicationMonitor } from './communication/monitor';
 import type { AgentProcessConfig, CommunicationHealthConfig } from './config';
 import { isApprovalDecisionInput, isSubmissionInput } from './input';
 import { OutputBuffer } from './outputBuffer';
+import type { PreparedLaunch } from './providerLaunch';
 import { PtyHost, type PtySize } from './ptyHost';
 import { allocateAutomaticSessionName } from './sessionNames';
 import { TerminalColorResponder, type TerminalColors } from './terminalColors';
@@ -31,6 +32,8 @@ interface SessionRecord {
   startupDurationMs?: number;
   windowRestoreEligible: boolean;
   resumeIdentity?: AgentSessionIdentity;
+  assignedProviderSessionId?: string;
+  launchProvider?: string;
   desiredProviderName?: string;
   pendingProviderName?: string;
 }
@@ -100,7 +103,8 @@ export class SessionManager {
   constructor(
     private readonly getProcessConfig: () => AgentProcessConfig,
     getCommunicationConfig: () => CommunicationHealthConfig,
-    private readonly callbacks: SessionManagerCallbacks
+    private readonly callbacks: SessionManagerCallbacks,
+    private readonly prepareLaunch: (command: string) => PreparedLaunch = (command) => ({ command })
   ) {
     this.ptyHost = new PtyHost({
       onData: (id, data) => this.handlePtyData(id, data),
@@ -328,6 +332,11 @@ export class SessionManager {
     return this.sessions.get(id)?.launchCommand;
   }
 
+  /** Provider session ID assigned to the current process launch, before the Provider confirms it. */
+  assignedProviderSessionId(id: string): string | undefined {
+    return this.sessions.get(id)?.assignedProviderSessionId;
+  }
+
   clearResumeIdentity(id: string): void {
     const session = this.sessions.get(id);
     if (!session?.resumeIdentity) return;
@@ -418,9 +427,12 @@ export class SessionManager {
 
   private spawn(session: SessionRecord, launchCommand?: string): void {
     const config = this.getProcessConfig();
+    const prepared = this.prepareLaunch(launchCommand ?? session.launchCommand ?? config.launchCommand);
+    session.assignedProviderSessionId = prepared.providerSessionId;
+    session.launchProvider = prepared.providerId ?? session.resumeIdentity?.providerId;
     const info = this.ptyHost.spawn(session.id, session.cwd, session.size, {
       ...config,
-      launchCommand: launchCommand ?? session.launchCommand ?? config.launchCommand
+      launchCommand: prepared.command
     });
     if (!info) return;
     session.pid = info.pid;
@@ -509,6 +521,7 @@ export class SessionManager {
       canContinue: Boolean(session.resumeIdentity),
       canRerun: session.canRerun,
       launchSource: session.launchSource,
+      ...(session.launchProvider ? { launchProvider: session.launchProvider } : {}),
       ...(session.resumeIdentity ? { providerName: session.resumeIdentity.providerName } : {}),
       ...(session.spawnDurationMs === undefined
         ? {}

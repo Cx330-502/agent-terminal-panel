@@ -16,6 +16,7 @@ import type {
 } from '../src/shared';
 import { ScrollRegionScrollbackCompat } from './scrollbackCompat';
 import { SelectionAutoScroll } from './selectionAutoScroll';
+import { META_ENTER } from '../src/input';
 import { searchDecorations } from './searchTheme';
 import { StatusDetector } from './statusDetector';
 import { applyTerminalSettings, readTerminalColors } from './theme';
@@ -33,6 +34,7 @@ interface TerminalEntry {
   webglCanvas?: HTMLCanvasElement;
   webglContextLossListener?: EventListener;
   imageAddon?: ImageAddon;
+  launchProvider?: string;
   pendingOutput: string[];
   outputTimer?: number;
   settleTimer?: number;
@@ -82,6 +84,7 @@ export class TerminalController {
     for (const session of sessions) {
       let entry = this.entries.get(session.id);
       if (!entry) entry = this.create(session.id);
+      entry.launchProvider = session.launchProvider;
       const replay = replays?.[session.id];
       if (replay && entry.terminal.buffer.active.length <= entry.terminal.rows) {
         entry.replaying = true;
@@ -272,7 +275,7 @@ export class TerminalController {
       }
       return true;
     });
-    terminal.attachCustomKeyEventHandler((event) => this.handleKeyEvent(terminal, event));
+    terminal.attachCustomKeyEventHandler((event) => this.handleKeyEvent(entry, event));
     element.addEventListener('contextmenu', (event) => this.handleContextMenu(id, terminal, event));
     return entry;
   }
@@ -400,9 +403,23 @@ export class TerminalController {
     entry.pendingOutput.length = 0;
   }
 
-  private handleKeyEvent(terminal: Terminal, event: KeyboardEvent): boolean {
-    if (event.type !== 'keydown') return true;
+  private handleKeyEvent(entry: TerminalEntry, event: KeyboardEvent): boolean {
+    const { terminal } = entry;
     if (event.isComposing || event.keyCode === 229) return true;
+    // xterm.js encodes Shift+Enter as a bare CR, which submits Claude Code's composer.
+    if (
+      entry.launchProvider === 'claude' &&
+      event.key === 'Enter' &&
+      event.shiftKey &&
+      !event.ctrlKey &&
+      !event.altKey &&
+      !event.metaKey
+    ) {
+      event.preventDefault();
+      if (event.type === 'keydown') terminal.input(META_ENTER);
+      return false;
+    }
+    if (event.type !== 'keydown') return true;
     const key = event.key.toLowerCase();
     if (
       event.ctrlKey &&

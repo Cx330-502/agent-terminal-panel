@@ -68,6 +68,14 @@ Startup timings are written to the `Agent Terminal Panel` LogOutputChannel. Do n
 
 `SessionManager` records a launch source plus independent `canContinue` and `canRerun` capabilities for every terminal. `SessionLifecycleController` turns those capabilities into explicit actions: continue always builds a fresh Provider Resume command from the verified identity, while reset clears the terminal and reruns the source command. Default resets resolve the latest default command, saved and one-off commands retain their command snapshot, history Resume repeats its original Provider command, and history Fork remains non-rerunnable until its new identity is discovered and can be resumed. Automatic `Agent N` display names are allocated independently from session UUIDs and always choose the lowest free positive index.
 
+### Webview styles
+
+`getWebviewHtml` inlines the extension's own stylesheets as `<style>` elements and loads only `main.js` as a resource. With `retainContextWhenHidden: false` the document is rebuilt every time the view is shown again or recovered. Before this change, each rebuild refetched seven stylesheets through the Webview resource service worker. A single failed fetch left native grey controls, and the heartbeat could not detect it because JavaScript kept running. If a stylesheet cannot be read from the extension folder, it falls back to a `<link>`. Keep CSS free of relative `url()` references so inlining stays valid.
+
+### Claude Code integration
+
+`src/providerLaunch.ts` detects the Provider from a launch command. For a plain, fresh `claude` invocation, it appends `--session-id <uuid>`. `SessionManager` records the assigned ID for each spawn. `WorkspaceSessionRestore` then matches that exact ID when Claude writes the transcript, which happens only after the first prompt, so this tracking has no time limit. Claude launches without an assigned ID use a 30-minute window. Discovery polls only the tracked Providers. The Claude adapter reads only `$CLAUDE_CONFIG_DIR/projects` folders whose encoded names match a workspace root, and it caches transcript heads and titles. The Webview receives `launchProvider` and maps Shift+Enter to Meta+Enter (`ESC CR`) for Claude sessions so the composer inserts a newline.
+
 ### Attachment flow
 
 Clipboard image bytes are encoded in the Webview and written by `AttachmentStore`. Dropped file/remote URI references and native-picker selections are validated through `vscode.workspace.fs`. Saved paths are quoted for the workspace-host platform before being pasted into xterm.js.

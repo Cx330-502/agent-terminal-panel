@@ -34,6 +34,29 @@ async (page) => {
       .map((message) => [...message.data].map((char) => char.codePointAt(0)))
   );
 
+  const shiftEnterInputs = async () => {
+    await page.evaluate(() => { window.__webviewMessages.length = 0; });
+    await terminal.focus();
+    await page.keyboard.press('Shift+Enter');
+    await page.waitForTimeout(30);
+    return page.evaluate(() =>
+      window.__webviewMessages
+        .filter((message) => message.type === 'input')
+        .map((message) => [...message.data].map((char) => char.codePointAt(0)))
+    );
+  };
+  const genericShiftEnter = await shiftEnterInputs();
+  await page.evaluate(() => {
+    const session = {
+      id: 'session-1', name: 'Agent 1', cwd: '/workspace', status: 'waiting', unread: false,
+      isActive: true, canRestart: true, canContinue: false, canRerun: true,
+      launchSource: 'default', launchProvider: 'claude'
+    };
+    window.__hostSend({ type: 'state', sessions: [session], activeId: 'session-1' });
+  });
+  await page.waitForTimeout(30);
+  const claudeShiftEnter = await shiftEnterInputs();
+
   await page.evaluate(() => {
     window.__hostSend({ type: 'output', id: 'session-1', data: 'mac-copy-target\r\n' });
   });
@@ -94,6 +117,12 @@ async (page) => {
   });
 
   const failures = [];
+  if (JSON.stringify(genericShiftEnter) !== JSON.stringify([[13]])) {
+    failures.push(`generic Shift+Enter: ${JSON.stringify(genericShiftEnter)}`);
+  }
+  if (JSON.stringify(claudeShiftEnter) !== JSON.stringify([[27, 13]])) {
+    failures.push(`Claude Shift+Enter: ${JSON.stringify(claudeShiftEnter)}`);
+  }
   if (controlSlash.length !== 1 || controlSlash[0]?.[0] !== 31) {
     failures.push(`Ctrl+/: ${JSON.stringify(controlSlash)}`);
   }
@@ -123,6 +152,8 @@ async (page) => {
 
   return {
     controlSlash,
+    genericShiftEnter,
+    claudeShiftEnter,
     macCopy,
     macPasteKeyEvents,
     itemsOnlyImage,

@@ -34,7 +34,8 @@ import { StartupLogger } from './startupLogger';
 import { WebviewDocumentHost } from './webviewDocumentHost';
 import { handleWebviewUtilityMessage } from './webviewUtilityMessages';
 import { defaultWorkingDirectory, pickWorkingDirectory } from './workingDirectory';
-import { detectLaunchProvider, WorkspaceSessionRestore } from './workspaceSessionRestore';
+import { detectLaunchProvider, prepareProviderLaunch } from './providerLaunch';
+import { WorkspaceSessionRestore } from './workspaceSessionRestore';
 import { launchWorkspaceRestore } from './workspaceSessionRestoreLaunch';
 
 export const VIEW_ID = 'agentTerminalPanel.terminalView';
@@ -87,7 +88,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
       onStateChanged: () => this.handleStateChanged(),
       onAttention: (event) => this.handleAttention(event),
       onStartupTiming: (event) => this.handleStartupTiming(event)
-    });
+    }, (command) => prepareProviderLaunch(command));
     this.lifecycle = new SessionLifecycleController({
       sessions: this.sessions,
       registry: this.sessionRegistry,

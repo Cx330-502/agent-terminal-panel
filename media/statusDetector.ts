@@ -110,9 +110,13 @@ export class StatusDetector {
 export function classifyScreen(screen: string): ScreenState {
   const normalized = screen.replace(/\u00a0/g, ' ');
   if (
-    /Would you like to (?:run|grant|allow|make|approve)/i.test(normalized) ||
+    /Would you like to (?:run|grant|allow|make|approve|proceed)/i.test(normalized) ||
     /Do you want to (?:approve|allow|continue|proceed)/i.test(normalized) ||
-    /Do you trust the contents of this directory/i.test(normalized) ||
+    // Claude Code permission dialogs ask "Do you want to make this edit…?" above numbered options.
+    (/Do you want to [^\n]{1,160}\?/i.test(normalized) && /^\s*(?:❯\s*)?1\.\s+Yes\b/mu.test(normalized)) ||
+    /Do you trust the (?:contents of this directory|files in this folder)/i.test(normalized) ||
+    /Yes, I trust this folder/i.test(normalized) ||
+    /No, and tell Claude what to do differently/i.test(normalized) ||
     /Press enter to confirm or esc to cancel/i.test(normalized) ||
     /Yes, (?:proceed|grant|just this once)/i.test(normalized)
   ) {
@@ -126,7 +130,8 @@ export function classifyScreen(screen: string): ScreenState {
     /Plan mode prompt:/i.test(normalized) ||
     /Waiting for (?:your )?(?:input|answer|response)/i.test(normalized) ||
     /Press enter to continue/i.test(normalized) ||
-    /Press enter to confirm or esc to go back/i.test(normalized)
+    /Press enter to confirm or esc to go back/i.test(normalized) ||
+    /Enter to select\s*·\s*(?:↑\/↓|Tab)/i.test(normalized)
   ) {
     return 'waiting';
   }
@@ -134,7 +139,9 @@ export function classifyScreen(screen: string): ScreenState {
     /esc to interrupt/i.test(normalized) ||
     /[•●◦]\s+(?:Working|Thinking|Running|Reading|Searching|Editing|Reviewing|Planning|Analyzing|Executing)\b/i.test(
       normalized
-    )
+    ) ||
+    // Claude Code spinner, e.g. "✻ Thinking… (12s · ↓ 1.2k tokens)"; finished turns drop the ellipsis.
+    /^\s*[✻✶✳✢✽·]\s+[A-Z][\w-]*…/mu.test(normalized)
   ) {
     return 'running';
   }
@@ -143,7 +150,10 @@ export function classifyScreen(screen: string): ScreenState {
     /\bReady\b.*\bContext\s+\d+%\s+left/i.test(normalized) ||
     /^\s*›\s+\S.+$/m.test(normalized) ||
     /^\s*›\s*$/m.test(normalized) ||
-    /\? for shortcuts\s+\d+% context left/i.test(normalized)
+    /\? for shortcuts\s+\d+% context left/i.test(normalized) ||
+    // Claude Code composer prompt; numbered "❯ 1." rows are selection menus, not the composer.
+    /^\s*(?:│\s*)?[>❯](?!\s*\d+\.)(?:\s|$)/mu.test(normalized) ||
+    /^\s*\? for shortcuts\s*$/mu.test(normalized)
   ) {
     return 'idle';
   }

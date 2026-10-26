@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, readFile, rm, utimes, writeFile } from 'node:fs/promise
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import test from 'node:test';
-import { ClaudeSessionProvider } from '../src/sessionHistory/claudeProvider';
+import { ClaudeSessionProvider, claudeProjectsRoot } from '../src/sessionHistory/claudeProvider';
 import { CodexSessionProvider } from '../src/sessionHistory/codexProvider';
 import { compactTitle, isInsideWorkspace } from '../src/sessionHistory/fileUtils';
 import { SessionHistoryRegistry } from '../src/sessionHistory/registry';
@@ -88,7 +88,7 @@ test('Claude provider ignores subagents and supports resume plus fork', async (t
   const root = await mkdtemp(path.join(tmpdir(), 'agent-panel-claude-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const workspace = path.join(root, 'workspace');
-  const project = path.join(root, 'projects', '-workspace');
+  const project = path.join(root, 'projects', workspace.replace(/[^a-zA-Z0-9]/gu, '-'));
   await mkdir(path.join(project, 'subagents'), { recursive: true });
   await mkdir(workspace, { recursive: true });
   const sessionId = '11111111-1111-4111-8111-111111111111';
@@ -133,6 +133,35 @@ test('Claude provider ignores subagents and supports resume plus fork', async (t
   assert.equal(renamed[0]?.title, 'Claude 自定义名称');
 });
 
+test('Claude provider honors CLAUDE_CONFIG_DIR and reads only workspace project folders', async (t) => {
+  assert.equal(claudeProjectsRoot({ CLAUDE_CONFIG_DIR: '/custom/claude' }), path.join('/custom/claude', 'projects'));
+  const root = await mkdtemp(path.join(tmpdir(), 'agent-panel-claude-scope-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const workspace = path.join(root, 'my_workspace');
+  const nested = path.join(workspace, 'packages', 'app');
+  const projects = path.join(root, 'projects');
+  const encode = (value: string) => value.replace(/[^a-zA-Z0-9]/gu, '-');
+  const ids = ['33333333-3333-4333-8333-333333333333', '44444444-4444-4444-8444-444444444444'];
+  await mkdir(path.join(projects, encode(nested)), { recursive: true });
+  await mkdir(path.join(projects, '-elsewhere'), { recursive: true });
+  await writeJsonl(path.join(projects, encode(nested), `${ids[0]}.jsonl`), [
+    { type: 'user', cwd: nested, sessionId: ids[0], message: { role: 'user', content: '真实问题' } },
+    { type: 'user', cwd: nested, sessionId: ids[0], isMeta: true, message: { role: 'user', content: 'meta' } },
+    {
+      type: 'user', cwd: nested, sessionId: ids[0],
+      message: { role: 'user', content: '<command-name>/clear</command-name>' }
+    }
+  ]);
+  // A transcript outside the workspace folders must not be opened at all.
+  await writeJsonl(path.join(projects, '-elsewhere', `${ids[1]}.jsonl`), [
+    { type: 'user', cwd: workspace, sessionId: ids[1], message: { role: 'user', content: 'misfiled' } }
+  ]);
+
+  const provider = new ClaudeSessionProvider('claude', projects);
+  const discovered = await provider.discover([workspace], 20);
+  assert.deepEqual(discovered.map((session) => [session.sessionId, session.title]), [[ids[0], '真实问题']]);
+});
+
 test('history registry sorts, deduplicates and isolates provider failures', async () => {
   const older = historical('one', 10);
   const newer = historical('two', 20);
@@ -149,6 +178,8 @@ test('history registry sorts, deduplicates and isolates provider failures', asyn
   const result = await registry.discover(['/workspace'], 10);
   assert.deepEqual(result.sessions.map((session) => session.sessionId), ['two', 'one']);
   assert.deepEqual(result.failedProviders, ['broken']);
+  const scoped = await registry.discover(['/workspace'], 10, new Set(['broken']));
+  assert.deepEqual(scoped, { sessions: [], failedProviders: ['broken'] });
 });
 
 async function writeJsonl(file: string, records: unknown[]): Promise<void> {

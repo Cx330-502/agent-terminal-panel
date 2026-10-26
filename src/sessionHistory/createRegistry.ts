@@ -1,5 +1,5 @@
 import { getAgentProcessConfig, getAgentShellConfig, getSessionHistoryConfig } from '../config';
-import { ClaudeSessionProvider } from './claudeProvider';
+import { ClaudeSessionProvider, claudeProjectsRoot } from './claudeProvider';
 import { CodexSessionProvider } from './codexProvider';
 import { SessionHistoryRegistry } from './registry';
 
@@ -12,6 +12,6 @@ export function createSessionHistoryRegistry(clientVersion = 'unknown'): Session
       environment,
       getShellConfig: getAgentShellConfig
     }),
-    new ClaudeSessionProvider(config.claudeCommand)
+    new ClaudeSessionProvider(config.claudeCommand, claudeProjectsRoot(environment))
   ]);
 }
