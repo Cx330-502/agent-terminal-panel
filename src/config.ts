@@ -28,6 +28,10 @@ export interface LayoutSettings {
   sessionListPosition: SessionListPosition;
 }
 
+export interface WebviewLayoutSettings extends LayoutSettings {
+  sessionSidebarCollapsed: boolean;
+}
+
 export interface SessionHistoryConfig {
   maxResults: number;
   codexCommand: string;

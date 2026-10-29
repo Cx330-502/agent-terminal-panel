@@ -1,3 +1,4 @@
+import type { WebviewLayoutSettings } from '../src/config';
 import type {
   HostMessage,
   SessionSnapshot,
@@ -22,7 +23,7 @@ import {
 } from './lifecycleMenu';
 import { localizeDocument } from './localizeDocument';
 import { SessionList, statusLabel } from './sessionList';
-import { SidebarResize } from './sidebarResize';
+import { SessionSidebar } from './sessionSidebar';
 import { StartupIndicator } from './startupIndicator';
 import { TerminalController } from './terminalController';
 import { readTerminalColors } from './theme';
@@ -34,7 +35,7 @@ export class WebviewApp {
   private readonly terminalSearch: TerminalSearch;
   private readonly attachmentController: AttachmentController;
   private readonly sessionList: SessionList;
-  private readonly sidebarResize: SidebarResize;
+  private readonly sessionSidebar: SessionSidebar;
   private readonly startupIndicator: StartupIndicator;
   private readonly communicationIndicator: CommunicationIndicator;
   private readonly launchMenu: LaunchMenu;
@@ -104,7 +105,13 @@ export class WebviewApp {
       renameSession: (id, name) => this.post({ type: 'renameSession', id, name }),
       closeSession: (id) => this.post({ type: 'closeSession', id })
     });
-    this.sidebarResize = new SidebarResize(this.root, splitter, vscode);
+    this.sessionSidebar = new SessionSidebar(
+      this.root,
+      splitter,
+      requiredElement<HTMLButtonElement>('collapse-session-sidebar'),
+      requiredElement<HTMLButtonElement>('show-session-sidebar'),
+      vscode
+    );
     this.startupIndicator = new StartupIndicator(
       requiredElement('startup-overlay'),
       requiredElement('startup-title'),
@@ -164,7 +171,7 @@ export class WebviewApp {
   private handleHostMessage(message: HostMessage): void {
     switch (message.type) {
       case 'initialize':
-        this.applyLayoutSettings(message.layoutSettings.sessionListPosition);
+        this.applyLayoutSettings(message.layoutSettings);
         this.launchMenu.setProfiles(message.launchProfiles);
         this.launchMenu.setClosedSessions(message.closedSessions);
         this.terminalController.initialize(message.terminalSettings, message.platform);
@@ -199,7 +206,7 @@ export class WebviewApp {
         this.terminalController.updateSettings(message.settings);
         return;
       case 'layoutSettings':
-        this.applyLayoutSettings(message.settings.sessionListPosition);
+        this.applyLayoutSettings(message.settings);
         return;
       case 'launchProfiles':
         this.launchMenu.setProfiles(message.profiles);
@@ -320,11 +327,12 @@ export class WebviewApp {
     });
   }
 
-  private applyLayoutSettings(position: 'left' | 'right'): void {
+  private applyLayoutSettings(settings: WebviewLayoutSettings): void {
     this.launchMenu.close();
     this.lifecycleMenu.close();
-    this.root.classList.toggle('session-list-right', position === 'right');
-    this.sidebarResize.setPosition(position);
+    this.root.classList.toggle('session-list-right', settings.sessionListPosition === 'right');
+    this.sessionSidebar.setPosition(settings.sessionListPosition);
+    this.sessionSidebar.setCollapsed(settings.sessionSidebarCollapsed === true);
   }
 
   private renderWorkspaceRestore(restore: WorkspaceRestoreSummary): void {

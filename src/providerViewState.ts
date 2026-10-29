@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
 import type { ClosedSessionRecovery } from './closedSessionRecovery';
 import {
-  getLayoutSettings,
   getLaunchProfiles,
-  getTerminalSettings
+  getTerminalSettings,
+  type WebviewLayoutSettings
 } from './config';
 import type { SessionManager } from './sessionManager';
 import type { HostMessage } from './shared';
@@ -13,6 +13,7 @@ export interface ProviderEventCallbacks {
   post(message: HostMessage): void;
   windowFocusChanged(focused: boolean): void;
   refreshCommunicationHealth(): void;
+  layoutSettings(): WebviewLayoutSettings;
 }
 
 export function registerProviderEvents(
@@ -31,7 +32,7 @@ export function registerProviderEvents(
         callbacks.post({ type: 'terminalSettings', settings: getTerminalSettings() });
       }
       if (event.affectsConfiguration('agentTerminalPanel.sessionListPosition')) {
-        callbacks.post({ type: 'layoutSettings', settings: getLayoutSettings() });
+        callbacks.post({ type: 'layoutSettings', settings: callbacks.layoutSettings() });
       }
       if (
         event.affectsConfiguration('agentTerminalPanel.launchCommands') ||
@@ -49,7 +50,8 @@ export function registerProviderEvents(
 export function createProviderInitializeMessage(
   sessions: SessionManager,
   workspaceRestore: WorkspaceSessionRestore,
-  closedSessions: ClosedSessionRecovery
+  closedSessions: ClosedSessionRecovery,
+  layoutSettings: WebviewLayoutSettings
 ): HostMessage {
   return {
     type: 'initialize',
@@ -57,7 +59,7 @@ export function createProviderInitializeMessage(
     activeId: sessions.getActiveId(),
     replays: sessions.replays(),
     terminalSettings: getTerminalSettings(),
-    layoutSettings: getLayoutSettings(),
+    layoutSettings,
     launchProfiles: getLaunchProfiles(),
     workspaceRestore: workspaceRestore.summary(),
     closedSessions: closedSessions.summary(),

@@ -5,25 +5,44 @@ const DEFAULT_WIDTH = 156;
 const MIN_WIDTH = 104;
 const MAX_WIDTH = 360;
 
-export class SidebarResize {
+export class SessionSidebar {
   private width: number;
+  private collapsed: boolean;
   private position: 'left' | 'right' = 'left';
 
   constructor(
     private readonly root: HTMLElement,
     private readonly splitter: HTMLElement,
+    private readonly collapseButton: HTMLButtonElement,
+    private readonly expandButton: HTMLButtonElement,
     private readonly vscode: VSCodeApi
   ) {
     const state = readWebviewState(vscode.getState());
-    this.width = clamp(state?.sidebarWidth ?? DEFAULT_WIDTH, MIN_WIDTH, MAX_WIDTH);
+    this.width = clamp(state.sidebarWidth ?? DEFAULT_WIDTH, MIN_WIDTH, MAX_WIDTH);
+    this.collapsed = state.sessionSidebarCollapsed ?? false;
     this.apply();
     this.splitter.addEventListener('pointerdown', (event) => this.startDrag(event));
     this.splitter.addEventListener('keydown', (event) => this.handleKey(event));
+    this.collapseButton.addEventListener('click', () => this.setCollapsedFromUser(true));
+    this.expandButton.addEventListener('click', () => this.setCollapsedFromUser(false));
   }
 
   setPosition(position: 'left' | 'right'): void {
     this.position = position;
     this.apply();
+  }
+
+  setCollapsed(collapsed: boolean): void {
+    this.collapsed = collapsed;
+    updateWebviewState(this.vscode, { sessionSidebarCollapsed: collapsed });
+    this.apply();
+  }
+
+  private setCollapsedFromUser(collapsed: boolean): void {
+    if (this.collapsed === collapsed) return;
+    this.setCollapsed(collapsed);
+    this.vscode.postMessage({ type: 'setSessionSidebarCollapsed', collapsed });
+    (collapsed ? this.expandButton : this.collapseButton).focus();
   }
 
   private startDrag(event: PointerEvent): void {
@@ -66,8 +85,11 @@ export class SidebarResize {
   }
 
   private apply(): void {
+    this.root.classList.toggle('session-sidebar-collapsed', this.collapsed);
     this.root.style.setProperty('--session-list-width', `${Math.round(this.width)}px`);
     this.splitter.setAttribute('aria-valuenow', String(Math.round(this.width)));
+    this.splitter.tabIndex = this.collapsed ? -1 : 0;
+    this.expandButton.hidden = !this.collapsed;
   }
 
   private persist(): void {

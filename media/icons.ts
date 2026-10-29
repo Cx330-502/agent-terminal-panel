@@ -10,6 +10,8 @@ const ICON_PATHS = {
   image:
     '<rect x="1.5" y="2.5" width="13" height="11" rx="2"/><circle cx="5" cy="6" r="1"/><path d="m3.5 11 3-3 2.25 2.25 1.5-1.5 2.25 2.25"/>',
   search: '<circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/>',
+  panelLeft:
+    '<rect x="1.5" y="2.5" width="13" height="11" rx="2"/><path d="M6 2.5v11"/>',
   arrowUp: '<path d="m4 10 4-4 4 4"/>',
   arrowDown: '<path d="m4 6 4 4 4-4"/>',
   pencil:

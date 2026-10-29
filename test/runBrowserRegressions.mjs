@@ -20,6 +20,7 @@ const regressionFiles = [
   'test/runScrollbackCompatRegression.js',
   'test/runTerminalSearchRegression.js',
   'test/runI18nRegression.js',
+  'test/runSidebarCollapseRegression.js',
   'test/runUiRegression.js'
 ];
 

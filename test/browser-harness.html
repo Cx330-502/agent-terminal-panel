@@ -147,7 +147,8 @@
               imagesEnabled: false
             },
             layoutSettings: {
-              sessionListPosition: 'left'
+              sessionListPosition: 'left',
+              sessionSidebarCollapsed: false
             },
             launchProfiles: [
               { id: 'profile-0', name: 'Claude', command: 'claude' },
@@ -197,6 +198,7 @@
       <header class="session-header">
         <span id="session-heading" class="session-heading">会话</span>
         <span class="session-actions">
+          <button id="collapse-session-sidebar" class="icon-button" type="button" aria-label="折叠会话列表" data-icon="panelLeft"></button>
           <span class="new-session-split">
             <button id="new-session" class="icon-button split-primary" type="button" aria-label="使用默认命令新建会话" data-icon="add"></button>
             <button id="new-session-menu" class="icon-button split-secondary" type="button" aria-label="选择其他启动方式" aria-haspopup="menu" aria-controls="launch-menu" aria-expanded="false" data-icon="chevronDown"></button>
@@ -209,6 +211,7 @@
     <main class="terminal-pane">
       <header id="active-header" class="active-header" hidden>
         <div class="active-meta">
+          <button id="show-session-sidebar" class="icon-button" type="button" aria-label="显示会话列表" data-icon="panelLeft" hidden></button>
           <span id="active-status" class="status-dot"></span>
           <span id="active-name" class="active-name"></span>
           <span id="active-cwd" class="active-cwd"></span>

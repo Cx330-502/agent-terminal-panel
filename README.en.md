@@ -95,6 +95,7 @@ launches initiated automatically by an Agent. Plain URLs and OSC 8 links are sup
 - When both operations are valid, the adjacent arrow opens an anchored menu for **continue Provider session** versus **reset terminal and rerun**. Resetting a default session reads the current default and starts a new Agent context; saved and one-off commands run exactly as saved; history Resume repeats its original Resume command.
 - A historical Fork remains one-shot and cannot be reset into another Fork. Once its newly created Provider identity is discovered, the primary action can Resume that new session.
 - Drag the session-list edge to resize it; the focused separator also supports arrow keys.
+- Use the sidebar button in the session-list header to collapse the list, then restore it from the button on the left of the terminal header. The collapsed state is stored in extension global state and survives VS Code restarts in either left or right layouts.
 - Put the session list on the left or right with `agentTerminalPanel.sessionListPosition`.
 - Move the entire view through VS Code's **Move View** action or by dragging the view title.
 - The settings button opens the complete extension settings page.

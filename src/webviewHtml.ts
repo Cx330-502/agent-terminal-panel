@@ -40,6 +40,7 @@ export function getWebviewHtml(
       <header class="session-header">
         <span id="session-heading" class="session-heading">${html(strings.sessionHeading)}</span>
         <span class="session-actions">
+          <button id="collapse-session-sidebar" class="icon-button" type="button" title="${html(strings.collapseSessionSidebar)}" aria-label="${html(strings.collapseSessionSidebar)}" data-icon="panelLeft"></button>
           <span class="new-session-split">
             <button id="new-session" class="icon-button split-primary" type="button" title="${html(strings.newDefaultSession)}" aria-label="${html(strings.newDefaultSession)}" data-icon="add"></button>
             <button id="new-session-menu" class="icon-button split-secondary" type="button" title="${html(strings.otherLaunchMethods)}" aria-label="${html(strings.otherLaunchMethods)}" aria-haspopup="menu" aria-controls="launch-menu" aria-expanded="false" data-icon="chevronDown"></button>
@@ -52,6 +53,7 @@ export function getWebviewHtml(
     <main class="terminal-pane">
       <header id="active-header" class="active-header" hidden>
         <div class="active-meta">
+          <button id="show-session-sidebar" class="icon-button" type="button" title="${html(strings.expandSessionSidebar)}" aria-label="${html(strings.expandSessionSidebar)}" data-icon="panelLeft" hidden></button>
           <span id="active-status" class="status-dot" aria-hidden="true"></span>
           <span id="active-name" class="active-name"></span>
           <span id="active-cwd" class="active-cwd"></span>
