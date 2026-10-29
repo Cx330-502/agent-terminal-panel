@@ -1,4 +1,4 @@
-import type { LayoutSettings } from './config';
+import type { WebviewLayoutSettings } from './config';
 import type { TerminalColors } from './terminalColors';
 
 export const WEBVIEW_HEARTBEAT_INTERVAL_MS = 5_000;
@@ -137,7 +137,7 @@ export type HostMessage =
       activeId?: string;
       replays: Record<string, string>;
       terminalSettings: TerminalSettings;
-      layoutSettings: LayoutSettings;
+      layoutSettings: WebviewLayoutSettings;
       launchProfiles: LaunchProfileSnapshot[];
       workspaceRestore: WorkspaceRestoreSummary;
       closedSessions: ClosedSessionSummary;
@@ -157,7 +157,7 @@ export type HostMessage =
       errors: string[];
     }
   | { type: 'terminalSettings'; settings: TerminalSettings }
-  | { type: 'layoutSettings'; settings: LayoutSettings }
+  | { type: 'layoutSettings'; settings: WebviewLayoutSettings }
   | { type: 'launchProfiles'; profiles: LaunchProfileSnapshot[] }
   | { type: 'openLaunchMenu' }
   | { type: 'openSearch' }
@@ -194,6 +194,7 @@ export type WebviewMessage =
       detail?: string;
     }
   | { type: 'focusChanged'; focused: boolean }
+  | { type: 'setSessionSidebarCollapsed'; collapsed: boolean }
   | { type: 'clipboardRead'; requestId: string }
   | { type: 'clipboardWrite'; text: string }
   | { type: 'pickAttachments'; id: string }

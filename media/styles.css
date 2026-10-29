@@ -108,6 +108,10 @@ button {
   cursor: pointer;
 }
 
+.icon-button[hidden] {
+  display: none;
+}
+
 .ui-icon {
   width: 16px;
   height: 16px;
@@ -467,6 +471,10 @@ button {
     display: none;
   }
 
+  #collapse-session-sidebar {
+    display: none;
+  }
+
   .session-row {
     grid-template-columns: 1fr;
     min-height: 38px;
@@ -497,4 +505,14 @@ button {
   .status-running {
     animation: none;
   }
+}
+
+.app-shell.session-sidebar-collapsed,
+.app-shell.session-sidebar-collapsed.session-list-right {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.session-sidebar-collapsed .session-sidebar,
+.session-sidebar-collapsed .session-splitter {
+  display: none;
 }

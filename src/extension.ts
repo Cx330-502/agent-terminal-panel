@@ -11,7 +11,8 @@ export function activate(context: vscode.ExtensionContext): void {
     context.extension.id,
     context.storageUri,
     context.globalStorageUri,
-    context.workspaceState
+    context.workspaceState,
+    context.globalState
   );
   const attachmentInbox = new AttachmentInboxProvider(
     context.storageUri ?? context.globalStorageUri,

@@ -18,6 +18,8 @@ export function localizeDocument(strings: WebviewStrings): void {
   setAria('lifecycle-menu', strings.restartMenuAria);
   setControl('new-session', strings.newDefaultSession);
   setControl('new-session-menu', strings.otherLaunchMethods);
+  setControl('collapse-session-sidebar', strings.collapseSessionSidebar);
+  setControl('show-session-sidebar', strings.expandSessionSidebar);
   setControl('find-terminal', strings.findTerminal);
   setControl('pick-attachments', strings.pickAttachmentsAria, strings.pickAttachmentsTitle);
   setControl('rename-active-session', strings.renameCurrentSession);

@@ -20,6 +20,19 @@ test('webview state rejects unknown future versions', () => {
   });
 });
 
+test('webview state restores the persisted sidebar collapse flag', () => {
+  assert.deepEqual(readWebviewState({ version: WEBVIEW_STATE_VERSION, sessionSidebarCollapsed: true }), {
+    version: WEBVIEW_STATE_VERSION,
+    sessionSidebarCollapsed: true
+  });
+});
+
+test('webview state ignores non-boolean sidebar collapse flags', () => {
+  assert.deepEqual(readWebviewState({ version: WEBVIEW_STATE_VERSION, sessionSidebarCollapsed: 'yes' }), {
+    version: WEBVIEW_STATE_VERSION
+  });
+});
+
 test('webview state updates preserve known fields and write the current version', () => {
   const vscode = new FakeVSCodeApi({ sidebarWidth: 144 });
   updateWebviewState(vscode, { sidebarWidth: 216 });

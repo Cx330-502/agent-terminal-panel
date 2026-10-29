@@ -7,7 +7,9 @@ import {
   getCommunicationHealthConfig,
   getLaunchCommand,
   getLaunchProfiles,
-  shouldStartSessionOnOpen
+  getLayoutSettings,
+  shouldStartSessionOnOpen,
+  type WebviewLayoutSettings
 } from './config';
 import { promptCustomSessionOptions } from './customSessionPrompt';
 import { configureDefaultLaunchCommand } from './defaultLaunchCommand';
@@ -39,6 +41,7 @@ import { WorkspaceSessionRestore } from './workspaceSessionRestore';
 import { launchWorkspaceRestore } from './workspaceSessionRestoreLaunch';
 
 export const VIEW_ID = 'agentTerminalPanel.terminalView';
+const SESSION_SIDEBAR_COLLAPSED_KEY = 'agentTerminalPanel.sessionSidebarCollapsed';
 export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   private readonly disposables: vscode.Disposable[] = [];
   private readonly sessions: SessionManager;
@@ -54,6 +57,7 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
   private windowFocused = vscode.window.state.focused;
   private webviewFocused = false;
   private didAutoStart = false;
+  private sessionSidebarCollapsed: boolean;
   private lastSize = { cols: 80, rows: 24 };
 
   constructor(
@@ -61,8 +65,13 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
     private readonly extensionId: string,
     storageUri: vscode.Uri | undefined,
     globalStorageUri: vscode.Uri,
-    workspaceState: vscode.Memento
+    workspaceState: vscode.Memento,
+    private readonly globalState: vscode.Memento
   ) {
+    this.sessionSidebarCollapsed = globalState.get<boolean>(
+      SESSION_SIDEBAR_COLLAPSED_KEY,
+      false
+    );
     const extensionVersion = vscode.extensions.getExtension(extensionId)?.packageJSON.version;
     this.sessionRegistry = createSessionHistoryRegistry(
       typeof extensionVersion === 'string' ? extensionVersion : 'unknown'
@@ -137,7 +146,8 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
         },
         refreshCommunicationHealth: () => {
           this.sessions.refreshCommunicationHealth();
-        }
+        },
+        layoutSettings: () => this.layoutSettings()
       })
     );
   }
@@ -388,6 +398,9 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
         this.webviewFocused = message.focused;
         if (message.focused) this.acknowledgeVisibleSession();
         return;
+      case 'setSessionSidebarCollapsed':
+        this.setSessionSidebarCollapsed(message.collapsed);
+        return;
     }
   }
 
@@ -412,10 +425,25 @@ export class AgentTerminalViewProvider implements vscode.WebviewViewProvider, vs
 
   private postInitialize(): void {
     this.post(
-      createProviderInitializeMessage(this.sessions, this.workspaceRestore, this.closedSessions)
+      createProviderInitializeMessage(
+        this.sessions,
+        this.workspaceRestore,
+        this.closedSessions,
+        this.layoutSettings()
+      )
     );
     const activeId = this.sessions.getActiveId();
     if (activeId) this.post({ type: 'focusSession', id: activeId });
+  }
+
+  private layoutSettings(): WebviewLayoutSettings {
+    return { ...getLayoutSettings(), sessionSidebarCollapsed: this.sessionSidebarCollapsed };
+  }
+
+  private setSessionSidebarCollapsed(collapsed: boolean): void {
+    if (this.sessionSidebarCollapsed === collapsed) return;
+    this.sessionSidebarCollapsed = collapsed;
+    void this.globalState.update(SESSION_SIDEBAR_COLLAPSED_KEY, collapsed);
   }
 
   private post(message: HostMessage): void {

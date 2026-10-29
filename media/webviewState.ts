@@ -5,6 +5,7 @@ export const WEBVIEW_STATE_VERSION = 1;
 export interface WebviewState {
   version: typeof WEBVIEW_STATE_VERSION;
   sidebarWidth?: number;
+  sessionSidebarCollapsed?: boolean;
 }
 
 export function readWebviewState(value: unknown): WebviewState {
@@ -13,9 +14,11 @@ export function readWebviewState(value: unknown): WebviewState {
     return { version: WEBVIEW_STATE_VERSION };
   }
   const sidebarWidth = finiteNumber(value.sidebarWidth);
+  const sessionSidebarCollapsed = booleanValue(value.sessionSidebarCollapsed);
   return {
     version: WEBVIEW_STATE_VERSION,
-    ...(sidebarWidth === undefined ? {} : { sidebarWidth })
+    ...(sidebarWidth === undefined ? {} : { sidebarWidth }),
+    ...(sessionSidebarCollapsed === undefined ? {} : { sessionSidebarCollapsed })
   };
 }
 
@@ -32,6 +35,10 @@ export function updateWebviewState(
 
 function finiteNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function booleanValue(value: unknown): boolean | undefined {
+  return typeof value === 'boolean' ? value : undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
